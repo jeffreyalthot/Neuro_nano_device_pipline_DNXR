@@ -16,9 +16,8 @@ cmake --build build
 Read `TERMS_OF_USE.md` before any use of this project.
 
 
-## For Give Help For Me Developpement
-bank name      =   Peoples Trust Company                       
-transit n°     =   16001                            
-institution n° =   621                            
-compte n°      =   218166422590                            
-IBAN/SWIFT n°  =                               
+## For Give Help For Developpement And Idees Giveway.
+Bitcoin address for donation big thanck you so mutch !
+
+1C7HaBc8oZLq7d54ni8E6XNEKF8miLEceY
+
