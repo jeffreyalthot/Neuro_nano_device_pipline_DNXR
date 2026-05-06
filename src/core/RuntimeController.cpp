@@ -1,0 +1,13 @@
+#include "RuntimeController.h"
+#include "../devices/NanoNodeInterface.h"
+#include "../devices/HostComputerBridge.h"
+#include "../devices/XRHeadsetInterface.h"
+#include "../signal/SignalStreamProcessor.h"
+#include "../signal/FeatureVectorizer.h"
+#include "../cognition/StateInferenceEngine.h"
+#include "../calibration/NeuralCalibrationEngine.h"
+#include "../immersion/ImmersionCore.h"
+#include "../rendering/XRRenderer.h"
+#include "../safety/PhysiologicalGuard.h"
+#include "../utils/Logger.h"
+namespace dnxr { void RuntimeController::runSingleCycle(){ NanoNodeInterface nodes; HostComputerBridge bridge; XRHeadsetInterface headset; SignalStreamProcessor dsp; FeatureVectorizer vec; StateInferenceEngine brain; NeuralCalibrationEngine calib; ImmersionCore immersion; XRRenderer renderer; PhysiologicalGuard guard; auto telemetry=headset.pullBioTelemetry(); if(!guard.enforce(telemetry)) return; auto raw=nodes.readNeuralNodeSignals(); auto uplinked=bridge.uplink(raw); auto clean=dsp.denoise(uplinked); auto features=vec.vectorize(clean); auto state=brain.inferState(features); Logger::info("Inferred " + state); auto calibrated=calib.calibrateForImmersion(features,1.15F); auto frame=immersion.buildImmersiveFrame(calibrated); renderer.present(frame); headset.pushSensoryFrame(frame); auto down=bridge.downlink(calibrated); nodes.writeNeuralStimulus(down); } }
