@@ -11,13 +11,33 @@
 #include "../safety/PhysiologicalGuard.h"
 #include "../utils/Logger.h"
 
+#include <cstdlib>
+#include <string>
+
 namespace dnxr {
+namespace {
+
+std::string envOrDefault(const char* key, const std::string& fallback) {
+    // This function reads runtime environment variables while keeping deterministic defaults for deployment templates.
+    if (const char* value = std::getenv(key); value != nullptr) {
+        return value;
+    }
+    return fallback;
+}
+
+} // namespace
 
 void RuntimeController::runSingleCycle() {
     // Build all pipeline subsystems for this protected runtime cycle.
-    NanoNodeInterface nodes;
-    HostComputerBridge bridge;
-    XRHeadsetInterface headset;
+    NanoNodeInterface nodes({envOrDefault("DNXR_NANO_ENDPOINT", "grpc://nano-cluster.local:7443"),
+                             envOrDefault("DNXR_NANO_AUTH_TOKEN", "replace-with-real-token"),
+                             100000U});
+    HostComputerBridge bridge({envOrDefault("DNXR_HOST_UPSTREAM_ENDPOINT", "grpc://host.local:9443/up"),
+                               envOrDefault("DNXR_HOST_DOWNSTREAM_ENDPOINT", "grpc://host.local:9443/down"),
+                               envOrDefault("DNXR_HOST_AUTH_TOKEN", "replace-with-real-token")});
+    XRHeadsetInterface headset({envOrDefault("DNXR_XR_ENDPOINT", "wss://xr-headset.local:8443"),
+                                envOrDefault("DNXR_XR_DEVICE_ID", "replace-with-real-headset-id"),
+                                envOrDefault("DNXR_XR_AUTH_TOKEN", "replace-with-real-token")});
     SignalStreamProcessor dsp;
     FeatureVectorizer vec;
     StateInferenceEngine brain;
