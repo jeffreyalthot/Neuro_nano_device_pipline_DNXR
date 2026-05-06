@@ -14,3 +14,11 @@ cmake --build build
 
 ## Important note
 Read `TERMS_OF_USE.md` before any use of this project.
+
+
+## For Give Help For Me Developpement
+bank information 
+transit n°     =
+institution n° =
+compte n°      =
+IBAN/SWIFT n°  =
