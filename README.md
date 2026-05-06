@@ -1,9 +1,9 @@
 # Neuro_nano_device_pipline
 
-Référentiel C++ d’un pipeline **simulé** "nano-device ↔ casque XR ↔ ordinateur" pour immersion profonde expérimentale (R&D conceptuelle).
+A C++ repository for a **simulated** "nano-device ↔ XR headset ↔ host computer" pipeline focused on deep-immersion experimental R&D.
 
-## Arborescence
-Voir `src/` pour l’architecture modulaire complète: core, devices, network, signal, cognition, calibration, immersion, safety, rendering, utils.
+## Structure
+See `src/` for the modular architecture: core, devices, network, signal, cognition, calibration, immersion, safety, rendering, and utilities.
 
 ## Build
 ```bash
@@ -12,5 +12,5 @@ cmake --build build
 ./build/distributed_neural_xr
 ```
 
-## Note importante
-Consultez `TERMS_OF_USE.md` avant toute utilisation.
+## Important note
+Read `TERMS_OF_USE.md` before any use of this project.

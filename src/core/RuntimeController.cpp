@@ -10,4 +10,52 @@
 #include "../rendering/XRRenderer.h"
 #include "../safety/PhysiologicalGuard.h"
 #include "../utils/Logger.h"
-namespace dnxr { void RuntimeController::runSingleCycle(){ NanoNodeInterface nodes; HostComputerBridge bridge; XRHeadsetInterface headset; SignalStreamProcessor dsp; FeatureVectorizer vec; StateInferenceEngine brain; NeuralCalibrationEngine calib; ImmersionCore immersion; XRRenderer renderer; PhysiologicalGuard guard; auto telemetry=headset.pullBioTelemetry(); if(!guard.enforce(telemetry)) return; auto raw=nodes.readNeuralNodeSignals(); auto uplinked=bridge.uplink(raw); auto clean=dsp.denoise(uplinked); auto features=vec.vectorize(clean); auto state=brain.inferState(features); Logger::info("Inferred " + state); auto calibrated=calib.calibrateForImmersion(features,1.15F); auto frame=immersion.buildImmersiveFrame(calibrated); renderer.present(frame); headset.pushSensoryFrame(frame); auto down=bridge.downlink(calibrated); nodes.writeNeuralStimulus(down); } }
+
+namespace dnxr {
+
+void RuntimeController::runSingleCycle() {
+    // Build all pipeline subsystems for this protected runtime cycle.
+    NanoNodeInterface nodes;
+    HostComputerBridge bridge;
+    XRHeadsetInterface headset;
+    SignalStreamProcessor dsp;
+    FeatureVectorizer vec;
+    StateInferenceEngine brain;
+    NeuralCalibrationEngine calib;
+    ImmersionCore immersion;
+    XRRenderer renderer;
+    PhysiologicalGuard guard;
+
+    // Validate wearable telemetry before any neural read/write operation.
+    const auto telemetry = headset.pullBioTelemetry();
+    if (!guard.enforce(telemetry)) {
+        Logger::warn("Cycle aborted by physiological guard.");
+        return;
+    }
+
+    // Acquire and process node signals through the host bridge.
+    const auto raw = nodes.readNeuralNodeSignals();
+    if (raw.empty()) {
+        Logger::warn("No neural samples received from NanoNode interface.");
+        return;
+    }
+
+    const auto uplinked = bridge.uplink(raw);
+    const auto clean = dsp.denoise(uplinked);
+    const auto features = vec.vectorize(clean);
+    const auto state = brain.inferState(features);
+    Logger::info("Inferred state: " + state);
+
+    // Use bounded sensitivity to reduce instability in adaptation behavior.
+    constexpr float kUserSensitivity = 1.05F;
+    const auto calibrated = calib.calibrateForImmersion(features, kUserSensitivity);
+    const auto frame = immersion.buildImmersiveFrame(calibrated);
+
+    // Deliver the resulting immersive frame and downlink command.
+    renderer.present(frame);
+    headset.pushSensoryFrame(frame);
+    const auto down = bridge.downlink(calibrated);
+    nodes.writeNeuralStimulus(down);
+}
+
+} // namespace dnxr
