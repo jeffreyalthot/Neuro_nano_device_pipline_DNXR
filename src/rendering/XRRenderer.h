@@ -8,6 +8,9 @@ class XRRenderer {
 public:
     /// Presents the generated sensory frame to the XR output surface.
     void present(const std::vector<float>& frame) const;
+
+    /// Renders the persistent in-view quick menu entry button and optional safe-exit menu.
+    void renderSafetyOverlay(bool quickMenuVisible) const;
 };
 
 } // namespace dnxr
