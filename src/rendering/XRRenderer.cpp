@@ -4,9 +4,12 @@
 
 namespace dnxr {
 
-void XRRenderer::present(const std::vector<float>& frame) const {
-    // This function submits the generated frame to the presentation layer and logs channel count.
-    Logger::info("Presenting XR frame channels=" + std::to_string(frame.size()));
+void XRRenderer::present(const std::vector<float>& frame, const VirtualWorldState& world) const {
+    // This function submits the generated frame and active Blender-compatible map metadata.
+    Logger::info("Presenting XR frame channels=" + std::to_string(frame.size()) +
+                 " map=" + world.activeMap.displayName +
+                 " format=" + world.activeMap.sourceFormat +
+                 " asset=" + world.activeMap.sourcePath);
 }
 
 void XRRenderer::renderSafetyOverlay(bool quickMenuVisible) const {

@@ -84,4 +84,8 @@ bool ImmersionCore::isQuickMenuVisible() const {
     return world_.quickMenuVisible;
 }
 
+const VirtualWorldState& ImmersionCore::currentWorldState() const {
+    return world_;
+}
+
 } // namespace dnxr

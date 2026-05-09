@@ -89,7 +89,7 @@ void RuntimeController::runSingleCycle() {
 
     // Deliver the resulting immersive frame and downlink command.
     renderer.renderSafetyOverlay(immersion.isQuickMenuVisible());
-    renderer.present(frame);
+    renderer.present(frame, immersion.currentWorldState());
     headset.pushSensoryFrame(frame);
 
     if (immersion.isSafeExitReady()) {

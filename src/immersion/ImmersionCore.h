@@ -20,6 +20,9 @@ public:
     /// Returns true when the quick menu is currently visible to the user.
     bool isQuickMenuVisible() const;
 
+    /// Returns current virtual world state including active map metadata.
+    const VirtualWorldState& currentWorldState() const;
+
     /// Receives cognitive state labels and adapts immersion envelope in real time.
     void updateUserCognitiveState(const std::string& inferredState);
 
