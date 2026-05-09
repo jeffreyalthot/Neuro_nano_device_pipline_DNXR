@@ -25,6 +25,13 @@ std::string envOrDefault(const char* key, const std::string& fallback) {
     return fallback;
 }
 
+bool envFlagEnabled(const char* key) {
+    if (const char* value = std::getenv(key); value != nullptr) {
+        return std::string(value) == "1" || std::string(value) == "true" || std::string(value) == "TRUE";
+    }
+    return false;
+}
+
 } // namespace
 
 void RuntimeController::runSingleCycle() {
@@ -72,11 +79,20 @@ void RuntimeController::runSingleCycle() {
     // Use bounded sensitivity to reduce instability in adaptation behavior.
     constexpr float kUserSensitivity = 1.05F;
     const auto calibrated = calib.calibrateForImmersion(features, kUserSensitivity);
+    immersion.handleUserQuickMenuInput(envFlagEnabled("DNXR_UI_MENU_BUTTON_PRESS"),
+                                       envFlagEnabled("DNXR_UI_MENU_QUIT_SELECTED"));
     const auto frame = immersion.buildImmersiveFrame(calibrated);
 
     // Deliver the resulting immersive frame and downlink command.
+    renderer.renderSafetyOverlay(immersion.isQuickMenuVisible());
     renderer.present(frame);
     headset.pushSensoryFrame(frame);
+
+    if (immersion.isSafeExitReady()) {
+        Logger::info("Skipping neural stimulus write because safe exit has completed this cycle.");
+        return;
+    }
+
     const auto down = bridge.downlink(calibrated);
     nodes.writeNeuralStimulus(down);
 }
