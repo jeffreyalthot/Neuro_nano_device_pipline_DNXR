@@ -2,6 +2,7 @@
 
 #include "SensoryRenderer.h"
 #include <vector>
+#include <string>
 
 namespace dnxr {
 
@@ -19,9 +20,18 @@ public:
     /// Returns true when the quick menu is currently visible to the user.
     bool isQuickMenuVisible() const;
 
+    /// Receives cognitive state labels and adapts immersion envelope in real time.
+    void updateUserCognitiveState(const std::string& inferredState);
+
 private:
+    float computeImmersionGain() const;
+
     SensoryRenderer renderer_;
     VirtualWorldState world_;
+    std::string lastState_ = "state:neutral";
+    float coherenceScore_ = 0.45F;
+    float focusScore_ = 0.45F;
+    float comfortScore_ = 0.75F;
 };
 
 } // namespace dnxr

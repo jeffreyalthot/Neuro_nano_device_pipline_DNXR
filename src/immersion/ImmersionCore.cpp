@@ -1,15 +1,51 @@
 #include "ImmersionCore.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "../utils/Logger.h"
 
 namespace dnxr {
 
+float ImmersionCore::computeImmersionGain() const {
+    // This gain favors immersion when focus/coherence are high while staying bounded by comfort.
+    const float presence = 0.55F * focusScore_ + 0.45F * coherenceScore_;
+    const float comfortGate = std::clamp(comfortScore_, 0.2F, 1.0F);
+    return std::clamp(0.65F + presence * comfortGate, 0.45F, 1.45F);
+}
+
+void ImmersionCore::updateUserCognitiveState(const std::string& inferredState) {
+    lastState_ = inferredState;
+
+    if (inferredState.find("focus") != std::string::npos) {
+        focusScore_ = 0.90F;
+        coherenceScore_ = 0.82F;
+        comfortScore_ = 0.84F;
+    } else if (inferredState.find("calm") != std::string::npos) {
+        focusScore_ = 0.66F;
+        coherenceScore_ = 0.80F;
+        comfortScore_ = 0.92F;
+    } else if (inferredState.find("stress") != std::string::npos ||
+               inferredState.find("overload") != std::string::npos) {
+        focusScore_ = 0.42F;
+        coherenceScore_ = 0.35F;
+        comfortScore_ = 0.48F;
+    } else {
+        focusScore_ = 0.58F;
+        coherenceScore_ = 0.55F;
+        comfortScore_ = 0.74F;
+    }
+
+    Logger::info("User state update -> " + lastState_ +
+                 " | focus=" + std::to_string(focusScore_) +
+                 " coherence=" + std::to_string(coherenceScore_) +
+                 " comfort=" + std::to_string(comfortScore_));
+}
+
 std::vector<float> ImmersionCore::buildImmersiveFrame(const std::vector<float>& calibratedSignal) {
     // This function maps calibrated neural intensity into bounded world-state rendering parameters.
     if (!calibratedSignal.empty()) {
-        world_.intensity = std::clamp(calibratedSignal[0], 0.0F, 1.5F);
+        world_.intensity = std::clamp(calibratedSignal[0] * computeImmersionGain(), 0.0F, 1.5F);
     }
 
     if (world_.safeExitRequested && !world_.safeExitCompleted) {
