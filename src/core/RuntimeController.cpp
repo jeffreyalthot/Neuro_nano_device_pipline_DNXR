@@ -55,8 +55,11 @@ void RuntimeController::runSingleCycle() {
     XRRenderer renderer;
     PhysiologicalGuard guard;
 
+    Logger::info("Runtime cycle started: sensing -> inference -> calibration -> immersion -> actuation.");
+
     // Validate wearable telemetry before any neural read/write operation.
     const auto telemetry = headset.pullBioTelemetry();
+    Logger::info("Bio telemetry samples pulled: " + std::to_string(telemetry.size()));
     if (!guard.enforce(telemetry)) {
         Logger::warn("Cycle aborted by physiological guard.");
         return;
@@ -79,6 +82,7 @@ void RuntimeController::runSingleCycle() {
     // Use bounded sensitivity to reduce instability in adaptation behavior.
     constexpr float kUserSensitivity = 1.05F;
     const auto calibrated = calib.calibrateForImmersion(features, kUserSensitivity);
+    immersion.updateUserCognitiveState(state);
     immersion.handleUserQuickMenuInput(envFlagEnabled("DNXR_UI_MENU_BUTTON_PRESS"),
                                        envFlagEnabled("DNXR_UI_MENU_QUIT_SELECTED"));
     const auto frame = immersion.buildImmersiveFrame(calibrated);
