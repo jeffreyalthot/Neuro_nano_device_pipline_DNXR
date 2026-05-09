@@ -25,6 +25,7 @@ Set runtime values through environment variables:
 - `DNXR_NANO_SIGNAL_PROTOCOL` (default: `neural-stream-v1`)
 - `DNXR_NANO_ENDPOINT`
 - `DNXR_NANO_AUTH_TOKEN`
+- `DNXR_NANO_ACCESS_PORTS` (default: `usb,bluetooth,wireless,ethernet,wifi,cellular,nfc,satellite,proprietary`)
 
 
 ## For Give Help For Developpement And Idees Giveway.

@@ -40,6 +40,7 @@ void RuntimeController::runSingleCycle() {
                              envOrDefault("DNXR_NANO_AUTH_TOKEN", "replace-with-real-token"),
                              envOrDefault("DNXR_NANO_VENDOR", "generic"),
                              envOrDefault("DNXR_NANO_SIGNAL_PROTOCOL", "neural-stream-v1"),
+                             envOrDefault("DNXR_NANO_ACCESS_PORTS", "usb,bluetooth,wireless,ethernet,wifi,cellular,nfc,satellite,proprietary"),
                              100000U});
     HostComputerBridge bridge({envOrDefault("DNXR_HOST_UPSTREAM_ENDPOINT", "grpc://host.local:9443/up"),
                                envOrDefault("DNXR_HOST_DOWNSTREAM_ENDPOINT", "grpc://host.local:9443/down"),
@@ -67,6 +68,7 @@ void RuntimeController::runSingleCycle() {
 
     // Acquire and process node signals through the host bridge.
     Logger::info("Active neural device vendor profile: " + nodes.vendorProfile());
+    Logger::info("Active neural device access ports: " + nodes.accessPortProfile());
     const auto raw = nodes.readNeuralNodeSignals();
     if (raw.empty()) {
         Logger::warn("No neural samples received from NanoNode interface.");

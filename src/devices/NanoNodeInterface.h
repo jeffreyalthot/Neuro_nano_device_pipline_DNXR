@@ -11,6 +11,7 @@ struct NanoNodeRuntimeConfig {
     std::string authToken;
     std::string vendor{"generic"};
     std::string signalProtocol{"neural-stream-v1"};
+    std::string accessPorts{"usb,bluetooth,wireless,ethernet,wifi,cellular,nfc,satellite,proprietary"};
     std::size_t expectedNodeCount{100000};
 };
 
@@ -27,6 +28,9 @@ public:
 
     /// Returns the selected vendor profile (for example: neuralink, blackrock, openbci).
     const std::string& vendorProfile() const;
+
+    /// Returns the enabled access-port profile (for example: usb,bluetooth,wireless).
+    const std::string& accessPortProfile() const;
 
 private:
     /// Validates that the configuration is ready for a real hardware transaction.
