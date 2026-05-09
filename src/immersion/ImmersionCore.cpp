@@ -15,9 +15,14 @@ float ImmersionCore::computeImmersionGain() const {
 }
 
 void ImmersionCore::updateUserCognitiveState(const std::string& inferredState) {
+    // This function translates cognitive labels into rendering envelope coefficients.
     lastState_ = inferredState;
 
-    if (inferredState.find("focus") != std::string::npos) {
+    if (inferredState.find("deep_immersion") != std::string::npos) {
+        focusScore_ = 0.97F;
+        coherenceScore_ = 0.93F;
+        comfortScore_ = 0.80F;
+    } else if (inferredState.find("focus") != std::string::npos) {
         focusScore_ = 0.90F;
         coherenceScore_ = 0.82F;
         comfortScore_ = 0.84F;
@@ -64,6 +69,7 @@ std::vector<float> ImmersionCore::buildImmersiveFrame(const std::vector<float>& 
 }
 
 void ImmersionCore::handleUserQuickMenuInput(bool quickMenuButtonPressed, bool safeQuitSelected) {
+    // This function manages quick menu visibility and triggers safe exit sequences.
     if (quickMenuButtonPressed) {
         world_.quickMenuVisible = !world_.quickMenuVisible;
         Logger::info("Quick menu toggled from left visual corner circular button (three dots).");
@@ -77,14 +83,17 @@ void ImmersionCore::handleUserQuickMenuInput(bool quickMenuButtonPressed, bool s
 }
 
 bool ImmersionCore::isSafeExitReady() const {
+    // This function reports whether all exit comfort conditions have been satisfied.
     return world_.safeExitCompleted;
 }
 
 bool ImmersionCore::isQuickMenuVisible() const {
+    // This function reports whether the quick menu is currently visible in the headset.
     return world_.quickMenuVisible;
 }
 
 const VirtualWorldState& ImmersionCore::currentWorldState() const {
+    // This function exposes the current world state snapshot for rendering and diagnostics.
     return world_;
 }
 
