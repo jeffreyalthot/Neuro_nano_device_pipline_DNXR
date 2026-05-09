@@ -9,6 +9,8 @@ namespace dnxr {
 struct NanoNodeRuntimeConfig {
     std::string endpoint;
     std::string authToken;
+    std::string vendor{"generic"};
+    std::string signalProtocol{"neural-stream-v1"};
     std::size_t expectedNodeCount{100000};
 };
 
@@ -22,6 +24,9 @@ public:
 
     /// Writes a stimulation vector back to neural nodes.
     void writeNeuralStimulus(const std::vector<float>& vec) const;
+
+    /// Returns the selected vendor profile (for example: neuralink, blackrock, openbci).
+    const std::string& vendorProfile() const;
 
 private:
     /// Validates that the configuration is ready for a real hardware transaction.
