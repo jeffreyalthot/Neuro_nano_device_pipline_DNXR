@@ -24,7 +24,8 @@ void NanoNodeInterface::writeNeuralStimulus(const std::vector<float>& vec) const
     validateRuntimeConfig();
     Logger::info("Dispatching real nano stimulus payload size=" + std::to_string(vec.size()) +
                  " toward endpoint=" + config_.endpoint + " vendor=" + config_.vendor +
-                 " protocol=" + config_.signalProtocol);
+                 " protocol=" + config_.signalProtocol +
+                 " accessPorts=" + config_.accessPorts);
     throw std::runtime_error(
         "Real nano-node stimulation backend is not wired yet. Connect vendor SDK writer before calling writeNeuralStimulus().");
 }
@@ -34,12 +35,17 @@ const std::string& NanoNodeInterface::vendorProfile() const {
     return config_.vendor;
 }
 
+const std::string& NanoNodeInterface::accessPortProfile() const {
+    // This function exposes enabled hardware access ports for routing/diagnostic decisions.
+    return config_.accessPorts;
+}
+
 void NanoNodeInterface::validateRuntimeConfig() const {
     // This function guarantees that real sessions always contain endpoint, token, and scale metadata.
     if (config_.endpoint.empty() || config_.authToken.empty() || config_.vendor.empty() ||
-        config_.signalProtocol.empty() || config_.expectedNodeCount == 0U) {
+        config_.signalProtocol.empty() || config_.accessPorts.empty() || config_.expectedNodeCount == 0U) {
         throw std::invalid_argument(
-            "NanoNodeRuntimeConfig is invalid: endpoint, authToken, vendor, signalProtocol, and expectedNodeCount are mandatory for real usage.");
+            "NanoNodeRuntimeConfig is invalid: endpoint, authToken, vendor, signalProtocol, accessPorts, and expectedNodeCount are mandatory for real usage.");
     }
 }
 
