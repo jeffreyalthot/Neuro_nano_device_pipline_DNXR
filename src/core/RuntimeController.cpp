@@ -120,7 +120,7 @@ void RuntimeController::runSingleCycle() {
     const auto calibratedAudioVector = calib.calibrateSpatialAudioVectors(audioVector, kUserSensitivity, immersion.comfortGate());
 
     // Deliver the resulting immersive frame and downlink command.
-    renderer.renderSafetyOverlay(immersion.isQuickMenuVisible());
+    renderer.renderSafetyOverlay(immersion.currentWorldState());
     auto orchestratedFrame = multiSense.orchestrate(frame, twin.recommendedIntensity(), !ethicalGuard.enforceNonBypassableLimits(telemetry, state));
     if (reversibility.shouldStartReturnToReality(telemetry)) {
         Logger::warn("Cognitive auto-reversibility triggered: progressive return to reality started.");
