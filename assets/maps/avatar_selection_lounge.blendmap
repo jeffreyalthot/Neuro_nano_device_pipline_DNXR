@@ -1,0 +1,4 @@
+# Placeholder Blender map metadata for avatar selection.
+map_id=avatar_selection_lounge
+spawn_point=selection_spawn
+purpose=character_customization

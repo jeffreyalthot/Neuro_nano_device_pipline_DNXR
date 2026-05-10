@@ -1,0 +1,4 @@
+# Placeholder Blender map metadata for primary MMORPG world.
+map_id=mmorpg_open_world_alpha
+spawn_point=world_spawn_alpha
+purpose=persistent_world

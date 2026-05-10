@@ -1,0 +1,30 @@
+{
+  "save_slot": "slot_001",
+  "character_id": "base_sphere_skin",
+  "appearance": {
+    "style": "manga",
+    "gender": "neutral",
+    "eye_shape": "round",
+    "eye_color": "brown",
+    "mouth_style": "soft_smile",
+    "hair_style": "short",
+    "hair_color": "black",
+    "ear_shape": "normal",
+    "face_shape": "oval",
+    "beard_style": "none",
+    "beard_color": "black"
+  },
+  "progression": {
+    "level": 1,
+    "experience": 0,
+    "hp": 100
+  },
+  "world": {
+    "last_map_id": "default_blender_map",
+    "last_spawn_point_id": "spawn_alpha",
+    "position": [0.0, 0.0, 2.0]
+  },
+  "inventory": ["starter_comm", "nano_compass"],
+  "skills": ["walk", "listen", "interact_menu"],
+  "equipment": ["sphere_shell", "spatial_audio_unit"]
+}
