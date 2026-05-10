@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SpatialAudioEngine.h"
+#include "../mmorpg/QuestSystem.h"
 
 #include <string>
 #include <vector>
@@ -160,6 +161,8 @@ struct VirtualWorldState {
     std::string mapsDirectoryPath{"assets/maps/"};
     std::string secondaryWorldMapName{"MMORPG Open World Alpha"};
     std::string baseSkinDescription{"adult manga-realistic body + camera vision + hearing unit"};
+    std::vector<Quest> questLog{};
+    PlayerProgression progression{};
 
     float intensity{0.5F}; float environmentSyncPhase{0.0F}; bool quickMenuVisible{false}; bool quickMenuButtonPressed{false};
     bool quitButtonPressed{false}; bool safeExitRequested{false}; bool safeExitCompleted{false}; float safeExitComfortFade{1.0F};
