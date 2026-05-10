@@ -28,6 +28,13 @@ void GameDesignBridge::integrateBaseGameplaySystems(VirtualWorldState& world) co
         {"ear_right", 0.10F, 0.0F, 0.05F, 8.0F},
         {"torso_zone", 0.0F, 0.0F, 0.0F, 4.0F}
     };
+
+    world.characterSelection.selectionMenuEnabled = true;
+    world.characterSelection.selectionMapId = "avatar_selection_lounge";
+    world.characterSelection.selectedCharacterId = "base_sphere_skin";
+    world.saveState.lastKnownMapId = world.activeMap.mapId;
+    world.saveState.lastKnownSpawnPointId = world.activeSpawnPointId;
+    world.saveState.hp = world.hpCurrent;
 }
 
 void GameDesignBridge::applyHealthState(VirtualWorldState& world, float hp, float hpMax) const {

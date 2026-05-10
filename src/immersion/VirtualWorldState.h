@@ -14,6 +14,42 @@ struct VirtualMapAsset {
     std::string sourcePath;
 };
 
+struct AvatarAppearance {
+    std::string style{"manga"};
+    std::string gender{"neutral"};
+    std::string eyeShape{"round"};
+    std::string eyeColor{"brown"};
+    std::string mouthStyle{"soft_smile"};
+    std::string hairStyle{"short"};
+    std::string hairColor{"black"};
+    std::string earShape{"normal"};
+    std::string faceShape{"oval"};
+    std::string beardStyle{"none"};
+    std::string beardColor{"black"};
+};
+
+struct CharacterSelectionState {
+    bool selectionMenuEnabled{true};
+    std::string selectionMapId{"avatar_selection_lounge"};
+    std::string selectedCharacterId{"base_sphere_skin"};
+    AvatarAppearance appearance{};
+};
+
+struct CharacterPersistence {
+    std::string saveSlotId{"slot_001"};
+    std::string lastKnownMapId{"default_blender_map"};
+    std::string lastKnownSpawnPointId{"spawn_alpha"};
+    float posX{0.0F};
+    float posY{0.0F};
+    float posZ{2.0F};
+    int level{1};
+    float experience{0.0F};
+    float hp{100.0F};
+    std::vector<std::string> inventory{"starter_comm", "nano_compass"};
+    std::vector<std::string> skills{"walk", "listen", "interact_menu"};
+    std::vector<std::string> equippedItems{"sphere_shell", "spatial_audio_unit"};
+};
+
 struct SpawnPoint {
     std::string id;
     std::string zoneName;
@@ -66,9 +102,15 @@ struct VirtualWorldState {
         "Default Nexus Atrium",
         "blender-map-v1",
         "assets/maps/default_nexus_atrium.blendmap"};
-    std::vector<VirtualMapAsset> availableMaps{
-        activeMap
-    };
+    std::vector<VirtualMapAsset> availableMaps{activeMap,
+                                               {"avatar_selection_lounge",
+                                                "Avatar Selection Lounge",
+                                                "blender-map-v1",
+                                                "assets/maps/avatar_selection_lounge.blendmap"},
+                                               {"mmorpg_open_world_alpha",
+                                                "MMORPG Open World Alpha",
+                                                "blender-map-v1",
+                                                "assets/maps/mmorpg_open_world_alpha.blendmap"}};
     std::vector<SpatialAudioSource> audioSources{
         {"object-reactor", "environment", 4.0F, -25.0F, 0.45F},
         {"npc-guide", "character", 2.5F, 35.0F, 0.40F},
@@ -88,6 +130,11 @@ struct VirtualWorldState {
     float avatarTransparency{1.0F};
     bool respawnMenuVisible{false};
     bool gameBridgeEnabled{false};
+    CharacterSelectionState characterSelection{};
+    CharacterPersistence saveState{};
+    std::string mapsDirectoryPath{"assets/maps/"};
+    std::string secondaryWorldMapName{"MMORPG Open World Alpha"};
+    std::string baseSkinDescription{"sphere-body + camera-vision + hearing-unit"};
 
     float intensity{0.5F};
     float environmentSyncPhase{0.0F};
