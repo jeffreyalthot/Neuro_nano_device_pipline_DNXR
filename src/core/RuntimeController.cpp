@@ -5,11 +5,18 @@
 #include "../signal/SignalStreamProcessor.h"
 #include "../signal/FeatureVectorizer.h"
 #include "../cognition/StateInferenceEngine.h"
+#include "../cognition/NeuroDigitalTwin.h"
 #include "../calibration/NeuralCalibrationEngine.h"
 #include "../immersion/ImmersionCore.h"
+#include "../immersion/MultiSenseOrchestrator.h"
+#include "../immersion/IdentityContinuityMemory.h"
 #include "../rendering/XRRenderer.h"
 #include "../safety/PhysiologicalGuard.h"
+#include "../safety/EthicalGuardEngine.h"
+#include "../safety/CognitiveReversibilitySystem.h"
 #include "../utils/Logger.h"
+#include "../network/OpenNeuralInteropProtocol.h"
+#include "../signal/EnergyThermalOptimizer.h"
 
 #include <cstdlib>
 #include <string>
@@ -52,17 +59,24 @@ void RuntimeController::runSingleCycle() {
     SignalStreamProcessor dsp;
     FeatureVectorizer vec;
     StateInferenceEngine brain;
+    NeuroDigitalTwin twin;
     NeuralCalibrationEngine calib;
     ImmersionCore immersion;
+    MultiSenseOrchestrator multiSense;
+    IdentityContinuityMemory continuityMemory;
     XRRenderer renderer;
     PhysiologicalGuard guard;
+    EthicalGuardEngine ethicalGuard;
+    CognitiveReversibilitySystem reversibility;
+    OpenNeuralInteropProtocol interop;
+    EnergyThermalOptimizer energyThermal;
 
     Logger::info("Runtime cycle started: sensing -> inference -> calibration -> immersion -> actuation.");
 
     // Validate wearable telemetry before any neural read/write operation.
     const auto telemetry = headset.pullBioTelemetry();
     Logger::info("Bio telemetry samples pulled: " + std::to_string(telemetry.size()));
-    if (!guard.enforce(telemetry)) {
+    if (!guard.enforce(telemetry) || !ethicalGuard.enforceNonBypassableLimits(telemetry, "baseline")) {
         Logger::warn("Cycle aborted by physiological guard.");
         return;
     }
@@ -81,6 +95,8 @@ void RuntimeController::runSingleCycle() {
     const auto features = vec.vectorize(clean);
     const auto state = brain.inferState(features);
     Logger::info("Inferred state: " + state);
+    const TwinState twinState = twin.update(state, telemetry);
+    Logger::info("Neuro-digital twin updated (load=" + std::to_string(twinState.cognitiveLoad) + ", stress=" + std::to_string(twinState.physiologicalStress) + ").");
 
     // Use bounded sensitivity to reduce instability in adaptation behavior.
     constexpr float kUserSensitivity = 1.05F;
@@ -89,6 +105,9 @@ void RuntimeController::runSingleCycle() {
     immersion.handleUserQuickMenuInput(envFlagEnabled("DNXR_UI_MENU_BUTTON_PRESS"),
                                        envFlagEnabled("DNXR_UI_MENU_QUIT_SELECTED"));
     const auto frame = immersion.buildImmersiveFrame(calibrated);
+    continuityMemory.save(immersion.currentWorldState().sceneName, immersion.comfortGate(), state);
+    const auto continuity = continuityMemory.restore();
+    Logger::info("Continuity memory anchor restored: " + continuity.spatialAnchor + "/" + continuity.narrativeAnchor);
 
     // Build neural communication vectors for spatial audio using comfort-gated calibration.
     std::vector<float> audioVector;
@@ -99,8 +118,13 @@ void RuntimeController::runSingleCycle() {
 
     // Deliver the resulting immersive frame and downlink command.
     renderer.renderSafetyOverlay(immersion.isQuickMenuVisible());
-    renderer.present(frame, immersion.currentWorldState());
-    headset.pushSensoryFrame(frame);
+    auto orchestratedFrame = multiSense.orchestrate(frame, twin.recommendedIntensity(), !ethicalGuard.enforceNonBypassableLimits(telemetry, state));
+    if (reversibility.shouldStartReturnToReality(telemetry)) {
+        Logger::warn("Cognitive auto-reversibility triggered: progressive return to reality started.");
+        orchestratedFrame = reversibility.runDecompression(orchestratedFrame);
+    }
+    renderer.present(orchestratedFrame, immersion.currentWorldState());
+    headset.pushSensoryFrame(orchestratedFrame);
 
     if (immersion.isSafeExitReady()) {
         Logger::info("Skipping neural stimulus write because safe exit has completed this cycle.");
@@ -109,6 +133,10 @@ void RuntimeController::runSingleCycle() {
 
     auto down = bridge.downlink(calibrated);
     down.insert(down.end(), calibratedAudioVector.begin(), calibratedAudioVector.end());
+    down = energyThermal.optimize(down, continuity.presenceLevel);
+    down = interop.encodeStandardPacket(down, nodes.vendorProfile());
+    Logger::info("Open interop metadata: " + interop.metadataTemplate());
+    Logger::info("Ethical audit: " + ethicalGuard.signedAuditRecord("stimulus_write", down));
     nodes.writeNeuralStimulus(down);
 }
 
