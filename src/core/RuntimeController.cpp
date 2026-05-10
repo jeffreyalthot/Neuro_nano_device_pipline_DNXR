@@ -49,7 +49,10 @@ void RuntimeController::runSingleCycle() {
                              envOrDefault("DNXR_NANO_VENDOR", "generic"),
                              envOrDefault("DNXR_NANO_SIGNAL_PROTOCOL", "neural-stream-v1"),
                              envOrDefault("DNXR_NANO_ACCESS_PORTS", "usb,bluetooth,wireless,ethernet,wifi,cellular,nfc,satellite,proprietary"),
-                             100000U});
+                             100000U,
+                             0.35F,
+                             0.08F,
+                             0.65F});
     HostComputerBridge bridge({envOrDefault("DNXR_HOST_UPSTREAM_ENDPOINT", "grpc://host.local:9443/up"),
                                envOrDefault("DNXR_HOST_DOWNSTREAM_ENDPOINT", "grpc://host.local:9443/down"),
                                envOrDefault("DNXR_HOST_AUTH_TOKEN", "replace-with-real-token")});
