@@ -43,12 +43,20 @@ struct UIAssetSpec {
     std::string hpBarPng{"assets/ui/hud_hp_bar_1024x128.png"};
     std::string quickMenuPng{"assets/ui/quick_menu_panel_1024x1024.png"};
     std::string respawnMenuPng{"assets/ui/respawn_menu_960x540.png"};
+    std::string quickMenuButtonNormalPng{"src/images/Images_Menu_Option/Bouton_3_Point_Normal_60x60.png"};
+    std::string quickMenuButtonPressPng{"src/images/Images_Menu_Option/Bouton_3_Point_Press_60x60.png"};
+    std::string quitButtonNormalPng{"src/images/Images_Menu_Option/Bouton_Frame_Quit_Normal_300x60.png"};
+    std::string quitButtonPressPng{"src/images/Images_Menu_Option/Bouton_Frame_Quit_Press_300x60.png"};
     int hpBarWidth{1024};
     int hpBarHeight{128};
     int quickMenuWidth{1024};
     int quickMenuHeight{1024};
     int respawnMenuWidth{960};
     int respawnMenuHeight{540};
+    int quickMenuButtonWidth{60};
+    int quickMenuButtonHeight{60};
+    int quitButtonWidth{300};
+    int quitButtonHeight{60};
 };
 
 struct VirtualWorldState {
@@ -84,6 +92,8 @@ struct VirtualWorldState {
     float intensity{0.5F};
     float environmentSyncPhase{0.0F};
     bool quickMenuVisible{false};
+    bool quickMenuButtonPressed{false};
+    bool quitButtonPressed{false};
     bool safeExitRequested{false};
     bool safeExitCompleted{false};
     float safeExitComfortFade{1.0F};

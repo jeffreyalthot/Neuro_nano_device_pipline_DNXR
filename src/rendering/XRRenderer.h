@@ -11,7 +11,7 @@ public:
     void present(const std::vector<float>& frame, const VirtualWorldState& world) const;
 
     /// Renders the persistent in-view quick menu entry button and optional safe-exit menu.
-    void renderSafetyOverlay(bool quickMenuVisible) const;
+    void renderSafetyOverlay(const VirtualWorldState& world) const;
 };
 
 } // namespace dnxr

@@ -90,6 +90,9 @@ std::vector<float> ImmersionCore::buildImmersiveFrame(const std::vector<float>& 
 
 void ImmersionCore::handleUserQuickMenuInput(bool quickMenuButtonPressed, bool safeQuitSelected) {
     // This function manages quick menu visibility and triggers safe exit sequences.
+    world_.quickMenuButtonPressed = quickMenuButtonPressed;
+    world_.quitButtonPressed = world_.quickMenuVisible && safeQuitSelected && !world_.safeExitRequested;
+
     if (quickMenuButtonPressed) {
         world_.quickMenuVisible = !world_.quickMenuVisible;
         Logger::info("Quick menu toggled from left visual corner circular button (three dots).");
