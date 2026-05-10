@@ -1,8 +1,8 @@
 #pragma once
 
 #include "SensoryRenderer.h"
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace dnxr {
 
@@ -25,6 +25,9 @@ public:
 
     /// Receives cognitive state labels and adapts immersion envelope in real time.
     void updateUserCognitiveState(const std::string& inferredState);
+
+    /// Returns a comfort gate used for safe vector calibration.
+    float comfortGate() const;
 
 private:
     float computeImmersionGain() const;

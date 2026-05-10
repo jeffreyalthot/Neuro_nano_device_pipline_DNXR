@@ -53,6 +53,14 @@ std::vector<float> ImmersionCore::buildImmersiveFrame(const std::vector<float>& 
         world_.intensity = std::clamp(calibratedSignal[0] * computeImmersionGain(), 0.0F, 1.5F);
     }
 
+    // This function synchronizes environment motion phase with audio spatial response cues.
+    world_.environmentSyncPhase = std::fmod(world_.environmentSyncPhase + world_.intensity * 0.15F, 6.2831853F);
+    for (std::size_t i = 0; i < world_.audioSources.size(); ++i) {
+        const float phaseShift = world_.environmentSyncPhase + static_cast<float>(i) * 0.9F;
+        world_.audioSources[i].azimuthDegrees = std::sin(phaseShift) * 150.0F;
+        world_.audioSources[i].baseLoudness = std::clamp(0.25F + 0.20F * std::fabs(std::cos(phaseShift)), 0.1F, 0.7F);
+    }
+
     if (world_.safeExitRequested && !world_.safeExitCompleted) {
         // Smoothly reduce immersion intensity to lower sensory shock during transition out of simulation.
         constexpr float kComfortFadeStep = 0.1F;
@@ -95,6 +103,11 @@ bool ImmersionCore::isQuickMenuVisible() const {
 const VirtualWorldState& ImmersionCore::currentWorldState() const {
     // This function exposes the current world state snapshot for rendering and diagnostics.
     return world_;
+}
+
+float ImmersionCore::comfortGate() const {
+    // This function exposes a bounded comfort coefficient for external calibration stages.
+    return std::clamp(comfortScore_ * world_.safeExitComfortFade, 0.2F, 1.0F);
 }
 
 } // namespace dnxr
