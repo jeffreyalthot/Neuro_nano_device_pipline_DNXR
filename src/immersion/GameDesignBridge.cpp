@@ -19,15 +19,53 @@ void GameDesignBridge::integrateBaseGameplaySystems(VirtualWorldState& world) co
     world.activeSpawnPointId = world.spawnPoints.front().id;
 
     world.cameras = {
-        {"cam_fp", "first_person", true, 110.0F, 0.02F, 600.0F},
-        {"cam_tp", "third_person", false, 90.0F, 0.10F, 900.0F}
+        {"cam_fp", "first_person", false, 110.0F, 0.02F, 600.0F},
+        {"cam_tp", "third_person", true, 90.0F, 0.10F, 900.0F},
+        {"cam_dialog", "dialogue", false, 58.0F, 0.02F, 60.0F},
+        {"cam_cine_a", "cinematic", false, 42.0F, 0.10F, 1200.0F}
     };
 
     world.audioSensors = {
         {"ear_left", -0.10F, 0.0F, 0.05F, 8.0F},
         {"ear_right", 0.10F, 0.0F, 0.05F, 8.0F},
-        {"torso_zone", 0.0F, 0.0F, 0.0F, 4.0F}
+        {"torso_zone", 0.0F, 0.0F, 0.0F, 4.0F},
+        {"combat_front", 0.0F, 0.0F, 1.8F, 12.0F},
+        {"ambience_far", 0.0F, 0.0F, 0.0F, 24.0F}
     };
+
+    world.menuScreens = {
+        {"title_screen", "Title", {"start", "options", "quit"}},
+        {"login_create", "Connexion / Creation", {"login", "create_profile", "back"}},
+        {"character_select", "Selection Personnage", {"avatars", "appearance", "confirm"}},
+        {"inventory", "Inventaire", {"bag", "consumables", "materials"}},
+        {"equipment", "Equipement", {"head", "torso", "legs", "feet", "accessory", "weapon"}},
+        {"skills", "Competences", {"active", "passive", "mastery"}},
+        {"map_quests", "Carte / Quetes", {"world_map", "active_quests", "pins"}},
+        {"options", "Options", {"audio", "video", "controls", "accessibility"}},
+        {"combat_hud", "Combat HUD", {"hp", "stamina", "skills_bar", "target"}}
+    };
+
+    world.inputBindings = {
+        {"move_forward", "W", "none", "LeftStickUp"},
+        {"move_left", "A", "none", "LeftStickLeft"},
+        {"move_back", "S", "none", "LeftStickDown"},
+        {"move_right", "D", "none", "LeftStickRight"},
+        {"interact", "E", "MouseLeft", "X"},
+        {"inventory", "I", "none", "DPadUp"},
+        {"character", "C", "none", "Y"},
+        {"skills", "K", "none", "RB"},
+        {"map", "M", "none", "View"},
+        {"system_menu", "Esc", "none", "Menu"}
+    };
+
+    world.avatarRigProfiles = {
+        {"avatar_male_adult_a", "locomotion_humanoid_v1", "combat_blade_v1", "idle_relaxed_v1", {"neutral", "focused", "smile", "concerned"}},
+        {"avatar_female_adult_a", "locomotion_humanoid_v1", "combat_blade_v1", "idle_relaxed_v1", {"neutral", "focused", "smile", "concerned"}}
+    };
+
+    world.environment.dayNightTimeHours = 9.0F;
+    world.environment.weatherMode = "clear";
+    world.environment.windIntensity = 0.30F;
 
     world.characterSelection.selectionMenuEnabled = true;
     world.characterSelection.selectionMapId = "avatar_selection_lounge";

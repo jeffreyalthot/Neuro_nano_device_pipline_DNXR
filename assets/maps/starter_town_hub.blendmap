@@ -1,0 +1,8 @@
+{
+  "mapId": "starter_town_hub",
+  "displayName": "Starter Town Hub",
+  "format": "blender-map-v1",
+  "zones": ["market_square", "guild_gate", "craft_lane"],
+  "lighting": {"preset": "day_night_dynamic", "sun": true, "moon": true},
+  "navigation": {"navMesh": true, "collision": true}
+}

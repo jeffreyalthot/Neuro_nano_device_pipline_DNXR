@@ -1,0 +1,8 @@
+{
+  "mapId": "low_level_combat_frontier",
+  "displayName": "Low Level Combat Frontier",
+  "format": "blender-map-v1",
+  "zones": ["training_camp", "boar_valley", "ruin_ring"],
+  "lighting": {"preset": "combat_contrast", "shadowQuality": "high"},
+  "navigation": {"navMesh": true, "collision": true}
+}

@@ -1,0 +1,8 @@
+{
+  "mapId": "nature_shard_fields",
+  "displayName": "Nature Shard Fields",
+  "format": "blender-map-v1",
+  "zones": ["river_bend", "wind_hill", "shard_forest"],
+  "lighting": {"preset": "outdoor_pbr", "volumetricFog": true},
+  "navigation": {"navMesh": true, "collision": true}
+}
