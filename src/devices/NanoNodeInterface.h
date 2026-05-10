@@ -13,6 +13,9 @@ struct NanoNodeRuntimeConfig {
     std::string signalProtocol{"neural-stream-v1"};
     std::string accessPorts{"usb,bluetooth,wireless,ethernet,wifi,cellular,nfc,satellite,proprietary"};
     std::size_t expectedNodeCount{100000};
+    float maxStimulusAmplitude{0.35F};
+    float maxStimulusDeltaPerCycle{0.08F};
+    float painAbsorptionGain{0.65F};
 };
 
 class NanoNodeInterface {
@@ -33,6 +36,8 @@ public:
     const std::string& accessPortProfile() const;
 
 private:
+    std::vector<float> applyNeuroShockProtection(const std::vector<float>& vec) const;
+
     /// Validates that the configuration is ready for a real hardware transaction.
     void validateRuntimeConfig() const;
 
