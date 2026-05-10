@@ -30,6 +30,16 @@ struct AvatarAppearance {
     std::string beardStyle{"none"};
     std::string beardColor{"black"};
     std::string expressionPreset{"neutral"};
+    std::string physiqueProfile{"realistic_anime_adult"};
+    std::string skinMaterial{"soft_natural"};
+};
+
+struct WearableItem {
+    std::string id;
+    std::string slot;
+    std::string label;
+    std::string meshPath;
+    std::string materialPreset;
 };
 
 struct AvatarRigProfile {
@@ -47,6 +57,7 @@ struct CharacterSelectionState {
     std::vector<std::string> availableCharacterIds{"avatar_male_adult_a", "avatar_female_adult_a"};
     AvatarAppearance appearance{};
     std::vector<std::string> equippedStyleSlots{"head", "torso", "legs", "feet", "accessory"};
+    std::vector<WearableItem> wardrobeCatalog{};
 };
 
 struct CharacterPersistence {
@@ -74,6 +85,9 @@ struct CameraRig {
     float fovDegrees;
     float nearClip;
     float farClip;
+    float anchorX{0.0F};
+    float anchorY{1.65F};
+    float anchorZ{0.0F};
 };
 
 struct AudioCaptureZone { std::string id; float x; float y; float z; float radiusMeters; };

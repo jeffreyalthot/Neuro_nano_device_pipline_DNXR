@@ -19,10 +19,10 @@ void GameDesignBridge::integrateBaseGameplaySystems(VirtualWorldState& world) co
     world.activeSpawnPointId = world.spawnPoints.front().id;
 
     world.cameras = {
-        {"cam_fp", "first_person", false, 110.0F, 0.02F, 600.0F},
-        {"cam_tp", "third_person", true, 90.0F, 0.10F, 900.0F},
-        {"cam_dialog", "dialogue", false, 58.0F, 0.02F, 60.0F},
-        {"cam_cine_a", "cinematic", false, 42.0F, 0.10F, 1200.0F}
+        {"cam_fp", "first_person", false, 110.0F, 0.02F, 600.0F, 0.0F, 1.67F, 0.02F},
+        {"cam_tp", "third_person", true, 90.0F, 0.10F, 900.0F, -0.35F, 1.70F, -2.25F},
+        {"cam_dialog", "dialogue", false, 58.0F, 0.02F, 60.0F, 0.20F, 1.63F, 1.10F},
+        {"cam_cine_a", "cinematic", false, 42.0F, 0.10F, 1200.0F, 1.60F, 2.10F, -3.75F}
     };
 
     world.audioSensors = {
@@ -43,6 +43,16 @@ void GameDesignBridge::integrateBaseGameplaySystems(VirtualWorldState& world) co
         {"map_quests", "Carte / Quetes", {"world_map", "active_quests", "pins"}},
         {"options", "Options", {"audio", "video", "controls", "accessibility"}},
         {"combat_hud", "Combat HUD", {"hp", "stamina", "skills_bar", "target"}}
+    };
+
+    world.characterSelection.wardrobeCatalog = {
+        {"hair_short_black", "head", "Cheveux courts noirs", "assets/avatars/wearables/hair_short_black.mesh", "hair_matte"},
+        {"hair_long_brown", "head", "Cheveux longs brun", "assets/avatars/wearables/hair_long_brown.mesh", "hair_satin"},
+        {"cloth_tunic_blue", "torso", "Tunique bleue", "assets/avatars/wearables/cloth_tunic_blue.mesh", "cloth_soft"},
+        {"jacket_leather_black", "torso", "Veste cuir noire", "assets/avatars/wearables/jacket_leather_black.mesh", "leather_standard"},
+        {"pants_travel_gray", "legs", "Pantalon voyage gris", "assets/avatars/wearables/pants_travel_gray.mesh", "fabric_dense"},
+        {"boots_starter_brown", "feet", "Bottes de base", "assets/avatars/wearables/boots_starter_brown.mesh", "leather_rough"},
+        {"cape_windrunner", "accessory", "Cape Windrunner", "assets/avatars/wearables/cape_windrunner.mesh", "cloth_dynamic"}
     };
 
     world.inputBindings = {
