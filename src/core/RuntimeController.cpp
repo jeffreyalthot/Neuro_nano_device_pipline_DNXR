@@ -13,6 +13,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 namespace dnxr {
 namespace {
@@ -89,6 +90,13 @@ void RuntimeController::runSingleCycle() {
                                        envFlagEnabled("DNXR_UI_MENU_QUIT_SELECTED"));
     const auto frame = immersion.buildImmersiveFrame(calibrated);
 
+    // Build neural communication vectors for spatial audio using comfort-gated calibration.
+    std::vector<float> audioVector;
+    if (frame.size() > 3) {
+        audioVector.assign(frame.begin() + 3, frame.end());
+    }
+    const auto calibratedAudioVector = calib.calibrateSpatialAudioVectors(audioVector, kUserSensitivity, immersion.comfortGate());
+
     // Deliver the resulting immersive frame and downlink command.
     renderer.renderSafetyOverlay(immersion.isQuickMenuVisible());
     renderer.present(frame, immersion.currentWorldState());
@@ -99,7 +107,8 @@ void RuntimeController::runSingleCycle() {
         return;
     }
 
-    const auto down = bridge.downlink(calibrated);
+    auto down = bridge.downlink(calibrated);
+    down.insert(down.end(), calibratedAudioVector.begin(), calibratedAudioVector.end());
     nodes.writeNeuralStimulus(down);
 }
 
