@@ -48,7 +48,11 @@ void ImmersionCore::updateUserCognitiveState(const std::string& inferredState) {
 }
 
 std::vector<float> ImmersionCore::buildImmersiveFrame(const std::vector<float>& calibratedSignal) {
-    // This function maps calibrated neural intensity into bounded world-state rendering parameters.
+    // This function prepares default gameplay bridge systems once, then maps calibrated vectors.
+    if (!world_.gameBridgeEnabled) {
+        gameBridge_.integrateBaseGameplaySystems(world_);
+    }
+
     if (!calibratedSignal.empty()) {
         world_.intensity = std::clamp(calibratedSignal[0] * computeImmersionGain(), 0.0F, 1.5F);
     }
@@ -71,6 +75,14 @@ std::vector<float> ImmersionCore::buildImmersiveFrame(const std::vector<float>& 
             world_.safeExitCompleted = true;
             Logger::info("Safe-exit comfort fade completed. User can leave simulation safely.");
         }
+    }
+
+
+    // Keep baseline HP/respawn behavior synchronized with immersion state and translucent avatar safety mode.
+    gameBridge_.applyHealthState(world_, world_.hpCurrent, world_.hpMax);
+
+    if (world_.respawnMenuVisible) {
+        gameBridge_.processRespawn(world_, false, 0);
     }
 
     return renderer_.renderSensoryFrame(world_);
