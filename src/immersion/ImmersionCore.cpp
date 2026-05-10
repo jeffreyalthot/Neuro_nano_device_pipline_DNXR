@@ -51,6 +51,10 @@ std::vector<float> ImmersionCore::buildImmersiveFrame(const std::vector<float>& 
     // This function prepares default gameplay bridge systems once, then maps calibrated vectors.
     if (!world_.gameBridgeEnabled) {
         gameBridge_.integrateBaseGameplaySystems(world_);
+        world_.questLog = questSystem_.seedStarterQuests();
+        if (!world_.questLog.empty()) {
+            questSystem_.acceptQuest(world_.questLog, world_.questLog.front().id);
+        }
     }
 
     if (!calibratedSignal.empty()) {
@@ -83,6 +87,12 @@ std::vector<float> ImmersionCore::buildImmersiveFrame(const std::vector<float>& 
 
     if (world_.respawnMenuVisible) {
         gameBridge_.processRespawn(world_, false, 0);
+    }
+
+    if (lastState_.find("focus") != std::string::npos || lastState_.find("deep_immersion") != std::string::npos) {
+        questSystem_.advanceObjective(world_.questLog, "q_intro_sync", "obj_calibrate", 1);
+        questSystem_.advanceObjective(world_.questLog, "q_intro_sync", "obj_talk_guide", 1);
+        questSystem_.claimRewards(world_.questLog, world_.progression, "q_intro_sync");
     }
 
     return renderer_.renderSensoryFrame(world_);

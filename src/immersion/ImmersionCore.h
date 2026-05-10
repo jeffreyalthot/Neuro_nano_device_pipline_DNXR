@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameDesignBridge.h"
+#include "../mmorpg/QuestSystem.h"
 #include "SensoryRenderer.h"
 #include <string>
 #include <vector>
@@ -22,6 +23,7 @@ private:
 
     SensoryRenderer renderer_;
     GameDesignBridge gameBridge_;
+    QuestSystem questSystem_;
     VirtualWorldState world_;
     std::string lastState_ = "state:neutral";
     float coherenceScore_ = 0.45F;
