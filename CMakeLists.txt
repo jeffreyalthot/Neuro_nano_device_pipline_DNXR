@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 project(DistributedNeuralXR LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
+
+# Runtime portability for Windows builds.
+option(DNXR_WINDOWS_PORTABLE_RUNTIME "Statically link C/C++ runtime on Windows to avoid missing DLL entry points" ON)
+if(WIN32 AND DNXR_WINDOWS_PORTABLE_RUNTIME)
+    if(MSVC)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        add_link_options(-static-libgcc -static-libstdc++)
+    endif()
+endif()
+
 file(GLOB_RECURSE DNXR_SRC CONFIGURE_DEPENDS src/*.cpp)
 add_executable(distributed_neural_xr ${DNXR_SRC})
 
