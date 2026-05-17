@@ -70,6 +70,7 @@ private:
     std::unique_ptr<class XRRenderer> renderer_;
     std::unique_ptr<class PhysiologicalGuard> guard_;
     std::unique_ptr<class EmergencyShutdown> emergency_;
+    std::unique_ptr<class DeepImmersionPlatform> deepImmersion_;
 
     mutable std::mutex mtx_;
 };

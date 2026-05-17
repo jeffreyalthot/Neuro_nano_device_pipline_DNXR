@@ -11,6 +11,7 @@
 #include "../rendering/XRRenderer.h"
 #include "../safety/PhysiologicalGuard.h"
 #include "../safety/EmergencyShutdown.h"
+#include "../neurotech/DeepImmersionPlatform.h"
 #include "../utils/Logger.h"
 
 #include <cstdlib>
@@ -87,6 +88,7 @@ void RuntimeController::initializeModules() {
     renderer_ = std::make_unique<XRRenderer>();
     guard_ = std::make_unique<PhysiologicalGuard>();
     emergency_ = std::make_unique<EmergencyShutdown>();
+    deepImmersion_ = std::make_unique<DeepImmersionPlatform>();
 }
 
 void RuntimeController::shutdownModules() {
@@ -101,6 +103,7 @@ void RuntimeController::shutdownModules() {
     renderer_.reset();
     guard_.reset();
     emergency_.reset();
+    deepImmersion_.reset();
 }
 
 void RuntimeController::runSingleCycle(double timestamp) {
@@ -126,17 +129,42 @@ void RuntimeController::runSingleCycle(double timestamp) {
     auto features = vec_->vectorize(clean);
 
     auto state = brain_->inferState(features, timestamp);
-    lastState_ = state;
+
+    BiometricFrame bio{};
+    if (!telemetry.empty()) {
+        bio.heartRate = telemetry[0];
+        bio.galvanicSkinResponse = telemetry.size() > 1 ? telemetry[1] : 0.0f;
+        bio.eyeFocus = telemetry.size() > 2 ? telemetry[2] : 0.0f;
+        bio.respirationRate = 12.0f + bio.galvanicSkinResponse * 8.0f;
+        bio.postureStability = telemetry.size() > 5 ? telemetry[5] : 0.75f;
+        bio.movementEnergy = telemetry.size() > 6 ? telemetry[6] / 128.0f : 0.2f;
+    }
+
+    const CognitiveState cognitive = deepImmersion_->runInferenceTick(clean, bio, "runtime_controller");
+    const XRAdaptationFrame adaptation = deepImmersion_->runAdaptationTick(cognitive, bio);
+    const NeuroPipelineDiagnostics diag = deepImmersion_->lastDiagnostics();
+
+    lastState_ = state + "|immersion=" + std::to_string(cognitive.immersionIndex)
+        + "|stress=" + std::to_string(cognitive.stress)
+        + "|shader=" + adaptation.shaderProfile
+        + "|brainwave=" + diag.brainwaveClass
+        + "|cue=" + diag.neurofeedbackCue;
 
     if (eventCallback_)
-        eventCallback_("state:" + state);
+        eventCallback_("state:" + lastState_);
 
-    Logger::info("🧠 State -> " + state);
+    Logger::info("🧠 State -> " + lastState_);
 
     constexpr float kUserSensitivity = 1.05f;
     auto calibrated = calib_->calibrateForImmersion(features, kUserSensitivity, timestamp);
 
     auto frame = immersion_->buildImmersiveFrame(calibrated);
+    if (!frame.empty()) {
+        frame[0] *= (0.70f + adaptation.sceneIntensity * 0.60f);
+        if (frame.size() > 1) {
+            frame[1] *= (0.75f + adaptation.musicArousal * 0.50f);
+        }
+    }
 
     renderer_->present(frame);
 

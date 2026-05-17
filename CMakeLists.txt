@@ -65,3 +65,18 @@ add_executable(dnxr_pipeline_integration_test
     src/utils/Logger.cpp
 )
 add_test(NAME dnxr_pipeline_integration_test COMMAND dnxr_pipeline_integration_test)
+
+
+add_executable(dnxr_neurotech_unit_test
+    tests/dnxr_neurotech_unit_test.cpp
+    src/neurotech/DeepImmersionPlatform.cpp
+)
+add_test(NAME dnxr_neurotech_unit_test COMMAND dnxr_neurotech_unit_test)
+
+
+add_executable(dnxr_neuro_sdk_bridge_test
+    tests/dnxr_neuro_sdk_bridge_test.cpp
+    src/neurotech/NeuroSDKBridge.cpp
+    src/neurotech/DeepImmersionPlatform.cpp
+)
+add_test(NAME dnxr_neuro_sdk_bridge_test COMMAND dnxr_neuro_sdk_bridge_test)
