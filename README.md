@@ -12,6 +12,34 @@ cmake --build build
 ./build/distributed_neural_xr
 ```
 
+## Windows / MinGW troubleshooting
+If you get an error like:
+
+`Le point d'entrée de procédure _ZNKSt25__codecvt_utf8_utf16_baselwE10do_unshiftERiPcS2_RS2_ est introuvable`
+
+the executable was usually built with one MinGW/GCC runtime and is started with another `libstdc++-6.dll` at runtime.
+
+Recommended fix:
+
+1. Delete previous build artifacts (`build/`).
+2. Ensure a **single** compiler toolchain is used end-to-end (configure, build, and run from the same terminal/environment).
+3. Reconfigure and rebuild:
+
+   ```bash
+   cmake -S . -B build -G "MinGW Makefiles"
+   cmake --build build --clean-first
+   ```
+
+4. Check which runtime DLL your executable loads (`libstdc++-6.dll`) and make sure it comes from the same MinGW installation as `g++.exe`.
+
+Optional hardening for local binaries:
+
+```cmake
+target_link_options(distributed_neural_xr PRIVATE -static-libstdc++ -static-libgcc)
+```
+
+This often avoids runtime conflicts on machines with multiple MinGW installations.
+
 ## Important note
 Read `TERMS_OF_USE.md` before any use of this project.
 
