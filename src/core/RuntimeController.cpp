@@ -1,146 +1,186 @@
 #include "RuntimeController.h"
+
 #include "../devices/NanoNodeInterface.h"
 #include "../devices/HostComputerBridge.h"
 #include "../devices/XRHeadsetInterface.h"
 #include "../signal/SignalStreamProcessor.h"
 #include "../signal/FeatureVectorizer.h"
 #include "../cognition/StateInferenceEngine.h"
-#include "../cognition/NeuroDigitalTwin.h"
 #include "../calibration/NeuralCalibrationEngine.h"
 #include "../immersion/ImmersionCore.h"
-#include "../immersion/MultiSenseOrchestrator.h"
-#include "../immersion/IdentityContinuityMemory.h"
 #include "../rendering/XRRenderer.h"
 #include "../safety/PhysiologicalGuard.h"
-#include "../safety/EthicalGuardEngine.h"
-#include "../safety/CognitiveReversibilitySystem.h"
+#include "../safety/EmergencyShutdown.h"
 #include "../utils/Logger.h"
-#include "../network/OpenNeuralInteropProtocol.h"
-#include "../signal/EnergyThermalOptimizer.h"
 
 #include <cstdlib>
-#include <string>
-#include <vector>
+#include <thread>
+#include <sstream>
 
 namespace dnxr {
-namespace {
 
+namespace {
 std::string envOrDefault(const char* key, const std::string& fallback) {
-    // This function reads runtime environment variables while keeping deterministic defaults for deployment templates.
-    if (const char* value = std::getenv(key); value != nullptr) {
-        return value;
-    }
+    if (const char* v = std::getenv(key))
+        return v;
     return fallback;
 }
-
-bool envFlagEnabled(const char* key) {
-    if (const char* value = std::getenv(key); value != nullptr) {
-        return std::string(value) == "1" || std::string(value) == "true" || std::string(value) == "TRUE";
-    }
-    return false;
 }
 
-} // namespace
+RuntimeController::RuntimeController()
+    : runtimeRunning_(false),
+      frameBudgetMs_(11),   // ~90 Hz
+      droppedFrames_(0),
+      cycleCounter_(0),
+      lastState_("init") {
+    initializeModules();
+}
 
-void RuntimeController::runSingleCycle() {
-    // Build all pipeline subsystems for this protected runtime cycle.
-    NanoNodeInterface nodes({envOrDefault("DNXR_NANO_ENDPOINT", "grpc://nano-cluster.local:7443"),
-                             envOrDefault("DNXR_NANO_AUTH_TOKEN", "replace-with-real-token"),
-                             envOrDefault("DNXR_NANO_VENDOR", "generic"),
-                             envOrDefault("DNXR_NANO_SIGNAL_PROTOCOL", "neural-stream-v1"),
-                             envOrDefault("DNXR_NANO_ACCESS_PORTS", "usb,bluetooth,wireless,ethernet,wifi,cellular,nfc,satellite,proprietary"),
-                             100000U,
-                             0.35F,
-                             0.08F,
-                             0.65F});
-    HostComputerBridge bridge({envOrDefault("DNXR_HOST_UPSTREAM_ENDPOINT", "grpc://host.local:9443/up"),
-                               envOrDefault("DNXR_HOST_DOWNSTREAM_ENDPOINT", "grpc://host.local:9443/down"),
-                               envOrDefault("DNXR_HOST_AUTH_TOKEN", "replace-with-real-token")});
-    XRHeadsetInterface headset({envOrDefault("DNXR_XR_ENDPOINT", "wss://xr-headset.local:8443"),
-                                envOrDefault("DNXR_XR_DEVICE_ID", "replace-with-real-headset-id"),
-                                envOrDefault("DNXR_XR_AUTH_TOKEN", "replace-with-real-token")});
-    SignalStreamProcessor dsp;
-    FeatureVectorizer vec;
-    StateInferenceEngine brain;
-    NeuroDigitalTwin twin;
-    NeuralCalibrationEngine calib;
-    ImmersionCore immersion;
-    MultiSenseOrchestrator multiSense;
-    IdentityContinuityMemory continuityMemory;
-    XRRenderer renderer;
-    PhysiologicalGuard guard;
-    EthicalGuardEngine ethicalGuard;
-    CognitiveReversibilitySystem reversibility;
-    OpenNeuralInteropProtocol interop;
-    EnergyThermalOptimizer energyThermal;
+RuntimeController::~RuntimeController() {
+    stop();
+    shutdownModules();
+}
 
-    Logger::info("Runtime cycle started: sensing -> inference -> calibration -> immersion -> actuation.");
+void RuntimeController::initializeModules() {
+    nodes_ = std::make_unique<NanoNodeInterface>(NanoNodeRuntimeConfig{
+        envOrDefault("DNXR_NANO_ENDPOINT", "grpc://nano-cluster.local:7443"),
+        envOrDefault("DNXR_NANO_AUTH_TOKEN", "token-placeholder"),
+        100000U
+    });
 
-    // Validate wearable telemetry before any neural read/write operation.
-    const auto telemetry = headset.pullBioTelemetry();
-    Logger::info("Bio telemetry samples pulled: " + std::to_string(telemetry.size()));
-    if (!guard.enforce(telemetry) || !ethicalGuard.enforceNonBypassableLimits(telemetry, "baseline")) {
-        Logger::warn("Cycle aborted by physiological guard.");
+    bridge_ = std::make_unique<HostComputerBridge>(HostBridgeRuntimeConfig{
+        envOrDefault("DNXR_HOST_UPSTREAM_ENDPOINT", "grpc://host.local:9443/up"),
+        envOrDefault("DNXR_HOST_DOWNSTREAM_ENDPOINT", "grpc://host.local:9443/down"),
+        envOrDefault("DNXR_HOST_AUTH_TOKEN", "token-placeholder")
+    });
+
+    headset_ = std::make_unique<XRHeadsetInterface>(XRHeadsetRuntimeConfig{
+        envOrDefault("DNXR_XR_ENDPOINT", "wss://xr-headset.local:8443"),
+        envOrDefault("DNXR_XR_DEVICE_ID", "headset-placeholder"),
+        envOrDefault("DNXR_XR_AUTH_TOKEN", "token-placeholder")
+    });
+
+    dsp_ = std::make_unique<SignalStreamProcessor>();
+    vec_ = std::make_unique<FeatureVectorizer>();
+    brain_ = std::make_unique<StateInferenceEngine>();
+    calib_ = std::make_unique<NeuralCalibrationEngine>();
+    immersion_ = std::make_unique<ImmersionCore>();
+    renderer_ = std::make_unique<XRRenderer>();
+    guard_ = std::make_unique<PhysiologicalGuard>();
+    emergency_ = std::make_unique<EmergencyShutdown>();
+}
+
+void RuntimeController::shutdownModules() {
+    nodes_.reset();
+    bridge_.reset();
+    headset_.reset();
+    dsp_.reset();
+    vec_.reset();
+    brain_.reset();
+    calib_.reset();
+    immersion_.reset();
+    renderer_.reset();
+    guard_.reset();
+    emergency_.reset();
+}
+
+void RuntimeController::runSingleCycle(double timestamp) {
+    // Lecture biométrique
+    const auto telemetry = headset_->pullBioTelemetry();
+    if (!guard_->enforce(telemetry)) {
+        emergency_->trigger();
+        Logger::warn("⚠️  Physiological guard triggered.");
+        throttleEmergency();
         return;
     }
 
-    // Acquire and process node signals through the host bridge.
-    Logger::info("Active neural device vendor profile: " + nodes.vendorProfile());
-    Logger::info("Active neural device access ports: " + nodes.accessPortProfile());
-    const auto raw = nodes.readNeuralNodeSignals();
+    // Lecture signaux neuronaux
+    auto raw = nodes_->readNeuralNodeSignals();
     if (raw.empty()) {
-        Logger::warn("No neural samples received from NanoNode interface.");
+        Logger::warn("⚠️  Empty neural signal frame.");
         return;
     }
 
-    const auto uplinked = bridge.uplink(raw);
-    const auto clean = dsp.denoise(uplinked);
-    const auto features = vec.vectorize(clean);
-    const auto state = brain.inferState(features);
-    Logger::info("Inferred state: " + state);
-    const TwinState twinState = twin.update(state, telemetry);
-    Logger::info("Neuro-digital twin updated (load=" + std::to_string(twinState.cognitiveLoad) + ", stress=" + std::to_string(twinState.physiologicalStress) + ").");
+    // Traitement pipeline
+    auto uplinked = bridge_->uplink(raw);
+    auto clean = dsp_->denoise(uplinked);
+    auto features = vec_->vectorize(clean);
 
-    // Use bounded sensitivity to reduce instability in adaptation behavior.
-    constexpr float kUserSensitivity = 1.05F;
-    const auto calibrated = calib.calibrateForImmersion(features, kUserSensitivity);
-    immersion.updateUserCognitiveState(state);
-    immersion.handleUserQuickMenuInput(envFlagEnabled("DNXR_UI_MENU_BUTTON_PRESS"),
-                                       envFlagEnabled("DNXR_UI_MENU_QUIT_SELECTED"));
-    const auto frame = immersion.buildImmersiveFrame(calibrated);
-    continuityMemory.save(immersion.currentWorldState().sceneName, immersion.comfortGate(), state);
-    const auto continuity = continuityMemory.restore();
-    Logger::info("Continuity memory anchor restored: " + continuity.spatialAnchor + "/" + continuity.narrativeAnchor);
+    auto state = brain_->inferState(features, timestamp);
+    lastState_ = state;
 
-    // Build neural communication vectors for spatial audio using comfort-gated calibration.
-    std::vector<float> audioVector;
-    if (frame.size() > 3) {
-        audioVector.assign(frame.begin() + 3, frame.end());
+    if (eventCallback_)
+        eventCallback_("state:" + state);
+
+    Logger::info("🧠 State -> " + state);
+
+    constexpr float kUserSensitivity = 1.05f;
+    auto calibrated = calib_->calibrateForImmersion(features, kUserSensitivity, timestamp);
+
+    auto frame = immersion_->buildImmersiveFrame(calibrated);
+
+    renderer_->present(frame);
+
+    headset_->pushSensoryFrame(frame);
+
+    auto down = bridge_->downlink(calibrated);
+    nodes_->writeNeuralStimulus(down);
+
+    ++cycleCounter_;
+}
+
+void RuntimeController::run() {
+    runtimeRunning_ = true;
+    Logger::info("🎬 [Runtime] Starting execution loop...");
+
+    using clock = std::chrono::high_resolution_clock;
+    while (runtimeRunning_) {
+        const auto start = clock::now();
+        const double timestamp = std::chrono::duration<double>(start.time_since_epoch()).count();
+        runSingleCycle(timestamp);
+        throttle(start);
     }
-    const auto calibratedAudioVector = calib.calibrateSpatialAudioVectors(audioVector, kUserSensitivity, immersion.comfortGate());
 
-    // Deliver the resulting immersive frame and downlink command.
-    renderer.renderSafetyOverlay(immersion.currentWorldState());
-    auto orchestratedFrame = multiSense.orchestrate(frame, twin.recommendedIntensity(), !ethicalGuard.enforceNonBypassableLimits(telemetry, state));
-    if (reversibility.shouldStartReturnToReality(telemetry)) {
-        Logger::warn("Cognitive auto-reversibility triggered: progressive return to reality started.");
-        orchestratedFrame = reversibility.runDecompression(orchestratedFrame);
-    }
-    renderer.present(orchestratedFrame, immersion.currentWorldState());
-    headset.pushSensoryFrame(orchestratedFrame);
+    Logger::info("🛑 [Runtime] Execution stopped.");
+}
 
-    if (immersion.isSafeExitReady()) {
-        Logger::info("Skipping neural stimulus write because safe exit has completed this cycle.");
-        return;
-    }
+void RuntimeController::stop() noexcept {
+    if (!runtimeRunning_) return;
+    runtimeRunning_ = false;
+}
 
-    auto down = bridge.downlink(calibrated);
-    down.insert(down.end(), calibratedAudioVector.begin(), calibratedAudioVector.end());
-    down = energyThermal.optimize(down, continuity.presenceLevel);
-    down = interop.encodeStandardPacket(down, nodes.vendorProfile());
-    Logger::info("Open interop metadata: " + interop.metadataTemplate());
-    Logger::info("Ethical audit: " + ethicalGuard.signedAuditRecord("stimulus_write", down));
-    nodes.writeNeuralStimulus(down);
+void RuntimeController::throttle(const std::chrono::high_resolution_clock::time_point& start) {
+    using namespace std::chrono;
+
+    auto elapsed = duration_cast<milliseconds>(high_resolution_clock::now() - start);
+    auto target = milliseconds(frameBudgetMs_);
+
+    if (elapsed < target)
+        std::this_thread::sleep_for(target - elapsed);
+}
+
+void RuntimeController::throttleEmergency() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(120));
+}
+
+void RuntimeController::setFrameBudgetMs(int ms) {
+    frameBudgetMs_ = std::max(1, ms);
+}
+
+int RuntimeController::getFrameBudgetMs() const {
+    return frameBudgetMs_;
+}
+
+std::string RuntimeController::getLastState() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return lastState_;
+}
+
+uint64_t RuntimeController::getCycleCount() const { return cycleCounter_; }
+uint64_t RuntimeController::getDroppedFrames() const { return droppedFrames_; }
+
+void RuntimeController::setRuntimeEventCallback(const std::function<void(const std::string&)>& cb) {
+    eventCallback_ = cb;
 }
 
 } // namespace dnxr

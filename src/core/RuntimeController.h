@@ -1,11 +1,77 @@
 #pragma once
 
+#include <string>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <vector>
+
 namespace dnxr {
 
+/// Contrôleur d’exécution principal du pipeline immersif.
+/// Coordonne les modules du noyau en une chaîne cohérente temps réel.
 class RuntimeController {
 public:
-    /// Runs one end-to-end pipeline iteration from sensing to stimulation.
-    void runSingleCycle();
+    RuntimeController();
+    ~RuntimeController();
+
+    /// Effectue un cycle complet de traitement (1 frame).
+    void runSingleCycle(double timestamp);
+
+    /// Lance la boucle continue.
+    void run();
+
+    /// Stop le contrôleur proprement.
+    void stop() noexcept;
+
+    /// Définit la durée cible d’un frame (ms).
+    void setFrameBudgetMs(int ms);
+    int getFrameBudgetMs() const;
+
+    /// Renvoie le dernier état cognitif connu.
+    std::string getLastState() const;
+
+    /// Expose quelques compteurs runtime.
+    uint64_t getCycleCount() const;
+    uint64_t getDroppedFrames() const;
+
+    /// Attache un callback pour rapporter les états du pipeline à un superviseur.
+    void setRuntimeEventCallback(const std::function<void(const std::string&)>& cb);
+
+private:
+    void throttle(const std::chrono::high_resolution_clock::time_point& start);
+    void throttleEmergency();
+
+    // Initialisation centralisée des modules
+    void initializeModules();
+    void shutdownModules();
+
+private:
+    std::atomic<bool> runtimeRunning_;
+    int frameBudgetMs_;
+    uint64_t droppedFrames_;
+    uint64_t cycleCounter_;
+    std::string lastState_;
+
+    std::function<void(const std::string&)> eventCallback_;
+
+    // Pré-instanciations pour réutilisation inter-frames
+    std::unique_ptr<class NanoNodeInterface> nodes_;
+    std::unique_ptr<class HostComputerBridge> bridge_;
+    std::unique_ptr<class XRHeadsetInterface> headset_;
+    std::unique_ptr<class SignalStreamProcessor> dsp_;
+    std::unique_ptr<class FeatureVectorizer> vec_;
+    std::unique_ptr<class StateInferenceEngine> brain_;
+    std::unique_ptr<class NeuralCalibrationEngine> calib_;
+    std::unique_ptr<class ImmersionCore> immersion_;
+    std::unique_ptr<class XRRenderer> renderer_;
+    std::unique_ptr<class PhysiologicalGuard> guard_;
+    std::unique_ptr<class EmergencyShutdown> emergency_;
+
+    mutable std::mutex mtx_;
 };
 
 } // namespace dnxr

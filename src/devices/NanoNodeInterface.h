@@ -3,45 +3,62 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+#include <mutex>
+#include <atomic>
+#include <functional>
+#include <thread>
 
 namespace dnxr {
 
+/// Configuration d’exécution pour le cluster NanoNode.
 struct NanoNodeRuntimeConfig {
-    std::string endpoint;
-    std::string authToken;
-    std::string vendor{"generic"};
-    std::string signalProtocol{"neural-stream-v1"};
-    std::string accessPorts{"usb,bluetooth,wireless,ethernet,wifi,cellular,nfc,satellite,proprietary"};
+    std::string endpoint;                ///< adresse réseau du backend
+    std::string authToken;               ///< jeton d’authentification sécurisé
     std::size_t expectedNodeCount{100000};
-    float maxStimulusAmplitude{0.35F};
-    float maxStimulusDeltaPerCycle{0.08F};
-    float painAbsorptionGain{0.65F};
+    bool simulationMode{true};           ///< true = données synthétiques, false = interface réelle
+    float updateRateHz{120.0f};          ///< cadence d’acquisition
 };
 
+/// Interface d’acquisition I/O neuronale.
+/// Fournit un pont sûr entre le moteur XR et un cluster neuronal simulé ou matériel.
 class NanoNodeInterface {
 public:
-    /// Builds a real nano-device interface using secure runtime credentials.
     explicit NanoNodeInterface(NanoNodeRuntimeConfig config);
+    ~NanoNodeInterface();
 
-    /// Reads the latest neural signal sample window from implanted nodes.
+    NanoNodeInterface(const NanoNodeInterface&) = delete;
+    NanoNodeInterface& operator=(const NanoNodeInterface&) = delete;
+    NanoNodeInterface(NanoNodeInterface&&) noexcept = default;
+    NanoNodeInterface& operator=(NanoNodeInterface&&) noexcept = default;
+
+    /// Lecture du flux brut. En simulation, génère un signal pseudo‑neural.
     std::vector<float> readNeuralNodeSignals() const;
 
-    /// Writes a stimulation vector back to neural nodes.
+    /// Écrit une stimulation calibrée vers le backend.
     void writeNeuralStimulus(const std::vector<float>& vec) const;
 
-    /// Returns the selected vendor profile (for example: neuralink, blackrock, openbci).
-    const std::string& vendorProfile() const;
+    /// Démarre un thread asynchrone de flux continu (pour usage temps réel).
+    void startAsyncStream();
+    void stopAsyncStream();
 
-    /// Returns the enabled access-port profile (for example: usb,bluetooth,wireless).
-    const std::string& accessPortProfile() const;
+    bool isStreamActive() const noexcept;
+    bool simulationModeEnabled() const noexcept;
+
+    void setOnSignalUpdate(const std::function<void(const std::vector<float>&)>& cb);
 
 private:
-    std::vector<float> applyNeuroShockProtection(const std::vector<float>& vec) const;
-
-    /// Validates that the configuration is ready for a real hardware transaction.
     void validateRuntimeConfig() const;
+    void simulateNodeStream(std::vector<float>& out, std::size_t count) const;
+    void runBackgroundLoop();
 
+private:
     NanoNodeRuntimeConfig config_;
+    mutable std::mutex bufferMutex_;
+    mutable std::vector<float> lastNodeBuffer_;
+
+    std::atomic<bool> streamRunning_{false};
+    std::thread streamThread_;
+    std::function<void(const std::vector<float>&)> onSignalUpdate_;
 };
 
 } // namespace dnxr

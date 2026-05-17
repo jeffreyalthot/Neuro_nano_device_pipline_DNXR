@@ -1,17 +1,35 @@
+// XRRenderer.h
+
 #pragma once
 
-#include "../immersion/VirtualWorldState.h"
 #include <vector>
+#include <cstdint>
 
 namespace dnxr {
 
 class XRRenderer {
 public:
-    /// Presents the generated sensory frame to the XR output surface.
-    void present(const std::vector<float>& frame, const VirtualWorldState& world) const;
+    XRRenderer();
 
-    /// Renders the persistent in-view quick menu entry button and optional safe-exit menu.
-    void renderSafetyOverlay(const VirtualWorldState& world) const;
+    /// Presents the generated sensory frame to the XR output surface.
+    void present(const std::vector<float>& frame) const;
+
+    /// Metrics
+    float getLastFrameEnergy() const;
+    uint64_t getFrameCount() const;
+
+    void setVsyncEnabled(bool enabled);
+    bool isVsyncEnabled() const;
+
+    void setFrameDropThreshold(float t);
+    float getFrameDropThreshold() const;
+
+private:
+    float frameDropThreshold_;
+    bool vsyncEnabled_;
+
+    mutable float lastFrameEnergy_;
+    mutable uint64_t frameCounter_;
 };
 
 } // namespace dnxr

@@ -1,34 +1,58 @@
 #pragma once
 
-#include "GameDesignBridge.h"
-#include "../mmorpg/QuestSystem.h"
 #include "SensoryRenderer.h"
-#include <string>
+#include "VirtualWorldState.h"
+
 #include <vector>
+#include <cstdint>
+#include <mutex>
+#include <functional>
 
 namespace dnxr {
 
+/// Noyau d’intégration neurale‑sensorielle :
+/// transforme les signaux calibrés en stimuli immersifs XR cohérents.
 class ImmersionCore {
 public:
+    ImmersionCore();
+
+    /// Génère une frame sensorielle à partir d’un flux calibré.
     std::vector<float> buildImmersiveFrame(const std::vector<float>& calibratedSignal);
-    void handleUserQuickMenuInput(bool quickMenuButtonPressed, bool safeQuitSelected);
-    bool isSafeExitReady() const;
-    bool isQuickMenuVisible() const;
-    const VirtualWorldState& currentWorldState() const;
-    void updateUserCognitiveState(const std::string& inferredState);
-    float comfortGate() const;
+
+    /// Modulation externe (venant de flux cognitifs parallèles).
+    void applyCognitiveContext(float emotionalLevel, float focusLevel);
+
+    /// Réglages dynamiques.
+    void setTransitionSpeed(float speed);
+    float getTransitionSpeed() const;
+
+    void enableAdaptiveMode(bool enabled);
+    bool isAdaptiveModeEnabled() const;
+
+    float getLastIntensity() const;
+    uint64_t getFrameCount() const;
+
+    /// Déclare un callback déclenché à chaque frame immersive produite.
+    void setOnFrameBuilt(const std::function<void(const std::vector<float>&)>& cb);
 
 private:
-    float computeImmersionGain() const;
+    void postProcessFrame(std::vector<float>& frame) const;
 
+private:
     SensoryRenderer renderer_;
-    GameDesignBridge gameBridge_;
-    QuestSystem questSystem_;
     VirtualWorldState world_;
-    std::string lastState_ = "state:neutral";
-    float coherenceScore_ = 0.45F;
-    float focusScore_ = 0.45F;
-    float comfortScore_ = 0.75F;
+
+    float transitionSpeed_;
+    bool adaptiveMode_;
+
+    float lastIntensity_;
+    uint64_t frameCounter_;
+
+    float emotionalMod_;
+    float focusMod_;
+
+    mutable std::mutex mtx_;
+    std::function<void(const std::vector<float>&)> onFrameBuilt_;
 };
 
 } // namespace dnxr

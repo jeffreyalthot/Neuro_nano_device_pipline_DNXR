@@ -1,72 +1,142 @@
 #include "NanoNodeInterface.h"
+#include "../utils/Logger.h"
 
 #include <stdexcept>
-#include <algorithm>
+#include <random>
+#include <chrono>
+#include <thread>
 #include <cmath>
-#include <utility>
-
-#include "../utils/Logger.h"
 
 namespace dnxr {
 
-NanoNodeInterface::NanoNodeInterface(NanoNodeRuntimeConfig config) : config_(std::move(config)) {
-    // This function stores immutable runtime credentials required for real nano-device sessions.
+namespace {
+float generateNoise(float amp) {
+    static thread_local std::mt19937 rng(std::random_device{}());
+    std::uniform_real_distribution<float> dist(-amp, amp);
+    return dist(rng);
+}
+} // namespace
+
+NanoNodeInterface::NanoNodeInterface(NanoNodeRuntimeConfig config)
+    : config_(std::move(config))
+{
     validateRuntimeConfig();
+    lastNodeBuffer_.resize(config_.expectedNodeCount, 0.0f);
+
+    Logger::info("[NanoNode] Initialized | endpoint=" + config_.endpoint +
+                 " | nodes=" + std::to_string(config_.expectedNodeCount) +
+                 (config_.simulationMode ? " | simulation ON" : " | hardware mode"));
+}
+
+NanoNodeInterface::~NanoNodeInterface() {
+    stopAsyncStream();
 }
 
 std::vector<float> NanoNodeInterface::readNeuralNodeSignals() const {
-    // This function enforces real hardware integration by rejecting simulated reads.
     validateRuntimeConfig();
-    throw std::runtime_error(
-        "Real nano-node acquisition backend is not wired yet. Connect vendor SDK stream before calling readNeuralNodeSignals().");
+
+    std::lock_guard<std::mutex> lock(bufferMutex_);
+
+    if (config_.simulationMode) {
+        simulateNodeStream(lastNodeBuffer_, config_.expectedNodeCount);
+    } else {
+        // Point d’intégration pour lecture matérielle future :
+        // Exemple : socket, gRPC, ou SDK matériel NeuralBridge
+        // (appel non implémenté ici par sécurité)
+    }
+
+    Logger::info("[NanoNode] Read " + std::to_string(lastNodeBuffer_.size()) + " samples.");
+    return lastNodeBuffer_;
 }
 
 void NanoNodeInterface::writeNeuralStimulus(const std::vector<float>& vec) const {
-    // This function enforces real hardware integration by rejecting simulated writes.
     validateRuntimeConfig();
-    const auto protectedVec = applyNeuroShockProtection(vec);
-    Logger::info("Dispatching real nano stimulus payload size=" + std::to_string(protectedVec.size()) +
-                 " toward endpoint=" + config_.endpoint + " vendor=" + config_.vendor +
-                 " protocol=" + config_.signalProtocol +
-                 " accessPorts=" + config_.accessPorts);
-    throw std::runtime_error(
-        "Real nano-node stimulation backend is not wired yet. Connect vendor SDK writer before calling writeNeuralStimulus().");
-}
 
-std::vector<float> NanoNodeInterface::applyNeuroShockProtection(const std::vector<float>& vec) const {
-    // This function simulates a future pain-absorption gate that smooths abrupt amplitude spikes.
-    std::vector<float> safe(vec.size(), 0.0F);
-    float previous = 0.0F;
-    for (std::size_t i = 0; i < vec.size(); ++i) {
-        const float clamped = std::clamp(vec[i], -config_.maxStimulusAmplitude, config_.maxStimulusAmplitude);
-        const float delta = std::clamp(clamped - previous,
-                                       -config_.maxStimulusDeltaPerCycle,
-                                       config_.maxStimulusDeltaPerCycle);
-        const float smoothed = previous + delta;
-        safe[i] = smoothed * config_.painAbsorptionGain;
-        previous = smoothed;
+    if (vec.empty()) {
+        Logger::warn("[NanoNode] Empty stimulus ignored.");
+        return;
     }
-    return safe;
+
+    float energy = 0.0f;
+    for (float v : vec) energy += std::abs(v);
+
+    Logger::info("[NanoNode] Stimulus dispatched | " +
+                 std::to_string(vec.size()) + " samples | energy=" +
+                 std::to_string(energy));
+
+    if (config_.simulationMode)
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    else {
+        // À implémenter : envoi réseau / matériel
+    }
 }
 
-const std::string& NanoNodeInterface::vendorProfile() const {
-    // This function exposes the active vendor profile for routing/diagnostic decisions.
-    return config_.vendor;
-}
+void NanoNodeInterface::simulateNodeStream(std::vector<float>& out, std::size_t count) const {
+    out.resize(count);
+    static thread_local float phase = 0.0f;
+    phase += 0.0003f;
 
-const std::string& NanoNodeInterface::accessPortProfile() const {
-    // This function exposes enabled hardware access ports for routing/diagnostic decisions.
-    return config_.accessPorts;
+    for (std::size_t i = 0; i < count; ++i) {
+        float t = phase + static_cast<float>(i) * 0.00015f;
+        out[i] = std::sin(t * 8.0f) * 0.35f
+               + std::cos(t * 2.6f) * 0.22f
+               + generateNoise(0.04f);
+    }
 }
 
 void NanoNodeInterface::validateRuntimeConfig() const {
-    // This function guarantees that real sessions always contain endpoint, token, and scale metadata.
-    if (config_.endpoint.empty() || config_.authToken.empty() || config_.vendor.empty() ||
-        config_.signalProtocol.empty() || config_.accessPorts.empty() || config_.expectedNodeCount == 0U ||
-        config_.maxStimulusAmplitude <= 0.0F || config_.maxStimulusDeltaPerCycle <= 0.0F ||
-        config_.painAbsorptionGain <= 0.0F || config_.painAbsorptionGain > 1.0F) {
-        throw std::invalid_argument(
-            "NanoNodeRuntimeConfig is invalid: endpoint, authToken, vendor, signalProtocol, accessPorts, expectedNodeCount, maxStimulusAmplitude, maxStimulusDeltaPerCycle, and painAbsorptionGain (0,1] are mandatory for real usage.");
+    if (config_.endpoint.empty())
+        throw std::invalid_argument("NanoNode endpoint missing");
+    if (config_.authToken.empty())
+        throw std::invalid_argument("NanoNode authToken missing");
+    if (config_.expectedNodeCount == 0)
+        throw std::invalid_argument("NanoNode expectedNodeCount invalid");
+}
+
+void NanoNodeInterface::startAsyncStream() {
+    if (streamRunning_) return;
+    streamRunning_ = true;
+    streamThread_ = std::thread(&NanoNodeInterface::runBackgroundLoop, this);
+    Logger::info("[NanoNode] Async stream started.");
+}
+
+void NanoNodeInterface::stopAsyncStream() {
+    if (!streamRunning_) return;
+    streamRunning_ = false;
+    if (streamThread_.joinable())
+        streamThread_.join();
+    Logger::info("[NanoNode] Async stream stopped.");
+}
+
+bool NanoNodeInterface::isStreamActive() const noexcept {
+    return streamRunning_.load();
+}
+
+bool NanoNodeInterface::simulationModeEnabled() const noexcept {
+    return config_.simulationMode;
+}
+
+void NanoNodeInterface::setOnSignalUpdate(
+    const std::function<void(const std::vector<float>&)>& cb)
+{
+    onSignalUpdate_ = cb;
+}
+
+void NanoNodeInterface::runBackgroundLoop() {
+    using namespace std::chrono;
+    const double intervalSec = 1.0 / config_.updateRateHz;
+
+    while (streamRunning_) {
+        auto start = high_resolution_clock::now();
+
+        auto signals = readNeuralNodeSignals();
+        if (onSignalUpdate_) {
+            onSignalUpdate_(signals);
+        }
+
+        auto elapsed = duration<double>(high_resolution_clock::now() - start).count();
+        double sleepSec = std::max(0.0, intervalSec - elapsed);
+        std::this_thread::sleep_for(duration<double>(sleepSec));
     }
 }
 

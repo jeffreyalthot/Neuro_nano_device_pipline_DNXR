@@ -1,138 +1,102 @@
 #include "ImmersionCore.h"
+#include "../utils/Logger.h"
 
 #include <algorithm>
 #include <cmath>
-
-#include "../utils/Logger.h"
+#include <numeric>
 
 namespace dnxr {
 
-float ImmersionCore::computeImmersionGain() const {
-    // This gain favors immersion when focus/coherence are high while staying bounded by comfort.
-    const float presence = 0.55F * focusScore_ + 0.45F * coherenceScore_;
-    const float comfortGate = std::clamp(comfortScore_, 0.2F, 1.0F);
-    return std::clamp(0.65F + presence * comfortGate, 0.45F, 1.45F);
+namespace {
+float clampIntensity(float v) { return std::clamp(v, 0.0f, 1.5f); }
+
+float smoothStep(float current, float target, float factor) {
+    return current + (target - current) * factor;
 }
+} // namespace
 
-void ImmersionCore::updateUserCognitiveState(const std::string& inferredState) {
-    // This function translates cognitive labels into rendering envelope coefficients.
-    lastState_ = inferredState;
-
-    if (inferredState.find("deep_immersion") != std::string::npos) {
-        focusScore_ = 0.97F;
-        coherenceScore_ = 0.93F;
-        comfortScore_ = 0.80F;
-    } else if (inferredState.find("focus") != std::string::npos) {
-        focusScore_ = 0.90F;
-        coherenceScore_ = 0.82F;
-        comfortScore_ = 0.84F;
-    } else if (inferredState.find("calm") != std::string::npos) {
-        focusScore_ = 0.66F;
-        coherenceScore_ = 0.80F;
-        comfortScore_ = 0.92F;
-    } else if (inferredState.find("stress") != std::string::npos ||
-               inferredState.find("overload") != std::string::npos) {
-        focusScore_ = 0.42F;
-        coherenceScore_ = 0.35F;
-        comfortScore_ = 0.48F;
-    } else {
-        focusScore_ = 0.58F;
-        coherenceScore_ = 0.55F;
-        comfortScore_ = 0.74F;
-    }
-
-    Logger::info("User state update -> " + lastState_ +
-                 " | focus=" + std::to_string(focusScore_) +
-                 " coherence=" + std::to_string(coherenceScore_) +
-                 " comfort=" + std::to_string(comfortScore_));
-}
+ImmersionCore::ImmersionCore()
+    : transitionSpeed_(0.12f),
+      adaptiveMode_(true),
+      lastIntensity_(0.5f),
+      frameCounter_(0),
+      emotionalMod_(0.5f),
+      focusMod_(0.5f) {}
 
 std::vector<float> ImmersionCore::buildImmersiveFrame(const std::vector<float>& calibratedSignal) {
-    // This function prepares default gameplay bridge systems once, then maps calibrated vectors.
-    if (!world_.gameBridgeEnabled) {
-        gameBridge_.integrateBaseGameplaySystems(world_);
-        world_.questLog = questSystem_.seedStarterQuests();
-        if (!world_.questLog.empty()) {
-            questSystem_.acceptQuest(world_.questLog, world_.questLog.front().id);
-        }
-    }
+    std::lock_guard<std::mutex> lock(mtx_);
 
     if (!calibratedSignal.empty()) {
-        world_.intensity = std::clamp(calibratedSignal[0] * computeImmersionGain(), 0.0F, 1.5F);
-    }
+        const float modFactor = std::clamp((emotionalMod_ * 0.6f + focusMod_ * 0.4f), 0.25f, 1.25f);
+        const float rawTarget = clampIntensity(calibratedSignal[0] * modFactor);
 
-    // This function synchronizes environment motion phase with audio spatial response cues.
-    world_.environmentSyncPhase = std::fmod(world_.environmentSyncPhase + world_.intensity * 0.15F, 6.2831853F);
-    for (std::size_t i = 0; i < world_.audioSources.size(); ++i) {
-        const float phaseShift = world_.environmentSyncPhase + static_cast<float>(i) * 0.9F;
-        world_.audioSources[i].azimuthDegrees = std::sin(phaseShift) * 150.0F;
-        world_.audioSources[i].baseLoudness = std::clamp(0.25F + 0.20F * std::fabs(std::cos(phaseShift)), 0.1F, 0.7F);
-    }
-
-    if (world_.safeExitRequested && !world_.safeExitCompleted) {
-        // Smoothly reduce immersion intensity to lower sensory shock during transition out of simulation.
-        constexpr float kComfortFadeStep = 0.1F;
-        world_.safeExitComfortFade = std::max(0.0F, world_.safeExitComfortFade - kComfortFadeStep);
-        world_.intensity *= world_.safeExitComfortFade;
-
-        if (world_.safeExitComfortFade <= 0.01F) {
-            world_.safeExitCompleted = true;
-            Logger::info("Safe-exit comfort fade completed. User can leave simulation safely.");
+        if (adaptiveMode_) {
+            float blended = smoothStep(world_.getIntensity(), rawTarget, transitionSpeed_);
+            world_.setIntensity(blended);
+        } else {
+            world_.setIntensity(rawTarget);
         }
+
+        lastIntensity_ = world_.getIntensity();
+
+        // Synchronise la scène selon les paramètres cognitifs
+        world_.integrateCognitiveInput(emotionalMod_, focusMod_);
     }
 
+    world_.update();
 
-    // Keep baseline HP/respawn behavior synchronized with immersion state and translucent avatar safety mode.
-    gameBridge_.applyHealthState(world_, world_.hpCurrent, world_.hpMax);
+    // Demande au renderer de produire la frame sensorielle
+    auto frame = renderer_.renderSensoryFrame(world_);
 
-    if (world_.respawnMenuVisible) {
-        gameBridge_.processRespawn(world_, false, 0);
+    // Traitements post-rendu (lissage)
+    postProcessFrame(frame);
+
+    ++frameCounter_;
+
+    // Diffusion du résultat
+    if (onFrameBuilt_) {
+        onFrameBuilt_(frame);
     }
 
-    if (lastState_.find("focus") != std::string::npos || lastState_.find("deep_immersion") != std::string::npos) {
-        questSystem_.advanceObjective(world_.questLog, "q_intro_sync", "obj_calibrate", 1);
-        questSystem_.advanceObjective(world_.questLog, "q_intro_sync", "obj_talk_guide", 1);
-        questSystem_.claimRewards(world_.questLog, world_.progression, "q_intro_sync");
+    Logger::info("[ImmersionCore] Frame #" + std::to_string(frameCounter_) +
+                 " | intensity=" + std::to_string(lastIntensity_) +
+                 " | scene=" + world_.getSceneName());
+
+    return frame;
+}
+
+void ImmersionCore::applyCognitiveContext(float emotionalLevel, float focusLevel) {
+    emotionalMod_ = std::clamp(emotionalLevel, 0.0f, 1.0f);
+    focusMod_ = std::clamp(focusLevel, 0.0f, 1.0f);
+
+    // Transmet la modulation cognitive au renderer
+    renderer_.applyCognitiveModulation(emotionalMod_, focusMod_);
+}
+
+void ImmersionCore::setTransitionSpeed(float speed) {
+    transitionSpeed_ = std::clamp(speed, 0.01f, 1.0f);
+}
+
+float ImmersionCore::getTransitionSpeed() const { return transitionSpeed_; }
+
+void ImmersionCore::enableAdaptiveMode(bool enabled) { adaptiveMode_ = enabled; }
+bool ImmersionCore::isAdaptiveModeEnabled() const { return adaptiveMode_; }
+
+float ImmersionCore::getLastIntensity() const { return lastIntensity_; }
+uint64_t ImmersionCore::getFrameCount() const { return frameCounter_; }
+
+void ImmersionCore::setOnFrameBuilt(const std::function<void(const std::vector<float>&)>& cb) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    onFrameBuilt_ = cb;
+}
+
+void ImmersionCore::postProcessFrame(std::vector<float>& frame) const {
+    if (frame.empty()) return;
+
+    float avg = std::accumulate(frame.begin(), frame.end(), 0.0f) / static_cast<float>(frame.size());
+    for (float& v : frame) {
+        v = (0.85f * v) + (0.15f * avg);
     }
-
-    return renderer_.renderSensoryFrame(world_);
-}
-
-void ImmersionCore::handleUserQuickMenuInput(bool quickMenuButtonPressed, bool safeQuitSelected) {
-    // This function manages quick menu visibility and triggers safe exit sequences.
-    world_.quickMenuButtonPressed = quickMenuButtonPressed;
-    world_.quitButtonPressed = world_.quickMenuVisible && safeQuitSelected && !world_.safeExitRequested;
-
-    if (quickMenuButtonPressed) {
-        world_.quickMenuVisible = !world_.quickMenuVisible;
-        Logger::info("Quick menu toggled from left visual corner circular button (three dots).");
-    }
-
-    if (world_.quickMenuVisible && safeQuitSelected && !world_.safeExitRequested) {
-        world_.safeExitRequested = true;
-        world_.safeExitComfortFade = 1.0F;
-        Logger::info("Safe quit selected from quick menu. Starting progressive neural comfort fade.");
-    }
-}
-
-bool ImmersionCore::isSafeExitReady() const {
-    // This function reports whether all exit comfort conditions have been satisfied.
-    return world_.safeExitCompleted;
-}
-
-bool ImmersionCore::isQuickMenuVisible() const {
-    // This function reports whether the quick menu is currently visible in the headset.
-    return world_.quickMenuVisible;
-}
-
-const VirtualWorldState& ImmersionCore::currentWorldState() const {
-    // This function exposes the current world state snapshot for rendering and diagnostics.
-    return world_;
-}
-
-float ImmersionCore::comfortGate() const {
-    // This function exposes a bounded comfort coefficient for external calibration stages.
-    return std::clamp(comfortScore_ * world_.safeExitComfortFade, 0.2F, 1.0F);
 }
 
 } // namespace dnxr
