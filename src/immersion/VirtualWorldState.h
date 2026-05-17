@@ -12,6 +12,19 @@ namespace dnxr {
 /// Sert de tampon de cohérence entre les données neuronales et la scène immersive.
 class VirtualWorldState {
 public:
+    struct EmbodiedInput {
+        float moveForward = 0.0f;
+        float moveRight = 0.0f;
+        float lookYaw = 0.0f;
+        float lookPitch = 0.0f;
+        bool interact = false;
+        float vision = 1.0f;
+        float audition = 1.0f;
+        float touch = 1.0f;
+        float smell = 0.5f;
+        float taste = 0.5f;
+    };
+
     VirtualWorldState();
 
     /// Définit la scène XR active.
@@ -33,6 +46,9 @@ public:
 
     /// Application contextuelle externe (par exemple via état cognitif).
     void integrateCognitiveInput(float emotionalLevel, float focusLevel);
+    void applyEmbodiedInput(const EmbodiedInput& input, double deltaTime = 0.016);
+    std::string getAvatarPoseSummary() const;
+    float getFiveSenseBlend() const;
 
 private:
     void notifyObservers() const;
@@ -51,6 +67,13 @@ private:
     std::chrono::steady_clock::time_point lastUpdate_;
 
     std::function<void(const std::string&, float)> onStateChanged_;
+    float posX_;
+    float posY_;
+    float posZ_;
+    float yawDeg_;
+    float pitchDeg_;
+    bool interactionActive_;
+    float senseBlend_;
 };
 
 } // namespace dnxr

@@ -1,4 +1,5 @@
 #include "ImmersionCore.h"
+#include "GameDesignBridge.h"
 #include "../utils/Logger.h"
 
 #include <algorithm>
@@ -71,6 +72,22 @@ void ImmersionCore::applyCognitiveContext(float emotionalLevel, float focusLevel
 
     // Transmet la modulation cognitive au renderer
     renderer_.applyCognitiveModulation(emotionalMod_, focusMod_);
+}
+
+void ImmersionCore::initializeBaseGameplay() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    GameDesignBridge bridge;
+    bridge.integrateBaseGameplaySystems(world_);
+}
+
+void ImmersionCore::applyEmbodiedInput(const VirtualWorldState::EmbodiedInput& input, double deltaTime) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    world_.applyEmbodiedInput(input, deltaTime);
+}
+
+std::string ImmersionCore::getAvatarPoseSummary() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return world_.getAvatarPoseSummary();
 }
 
 void ImmersionCore::setTransitionSpeed(float speed) {

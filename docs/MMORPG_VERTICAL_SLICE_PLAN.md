@@ -13,7 +13,9 @@
 - Combat/equipement/stats: HP, stamina, stats de base, armes + FX, compétences actives/passives.
 
 ## Notes implementation
-Les structures de données runtime sont dans `src/immersion/VirtualWorldState.h` et initialisées via `GameDesignBridge::integrateBaseGameplaySystems`.
+Le runtime actuel expose un contrat **compact** dans `src/immersion/VirtualWorldState.h` (scène + intensité + transitions).
+Les éléments MMORPG riches listés ci-dessus servent de cible produit et ne sont pas encore tous matérialisés dans l'état runtime.
+L'initialisation passe par `GameDesignBridge::integrateBaseGameplaySystems`.
 
 ## Exclusions
 Ce lot est strictement SFW (pas de contenu sexuel explicite).

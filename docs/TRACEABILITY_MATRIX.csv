@@ -1,0 +1,5 @@
+RequirementID,Requirement,RiskID,DesignArtifact,VerificationTest,EvidenceStatus,Owner
+REQ-SAFE-001,Reject invalid telemetry and trigger emergency latch,H-001,src/safety/PhysiologicalGuard.cpp,dnxr_safety_unit_test,Implemented,Safety Lead
+REQ-PROT-001,Enforce protocol version and packet length consistency,H-003,src/network/OpenNeuralInteropProtocol.cpp,Protocol validation unit test (to add),Partial,Network Lead
+REQ-RT-001,Maintain runtime loop budget target and expose overrun metrics,H-002,src/main.cpp;src/utils/RuntimeMetrics.cpp,Runtime latency test (to add),Partial,Runtime Lead
+REQ-IMM-001,Maintain immersive state continuity at target cycle,NA,src/immersion/ImmersionCore.cpp,dnxr_pipeline_integration_test,Implemented,Immersion Lead

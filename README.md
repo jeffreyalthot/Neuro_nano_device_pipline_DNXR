@@ -21,3 +21,7 @@ Bitcoin address for donation big thanck you so mutch !
 
 1C7HaBc8oZLq7d54ni8E6XNEKF8miLEceY
 
+## Clinical readiness
+This repository is a simulation scaffold and is **not** a certified clinical, regulatory, or deterministic real-time implant stack.
+See `docs/CLINICAL_READINESS_GAP_ANALYSIS.md` for the gap analysis and roadmap.
+For clinic-facing technical transfer material, see `docs/NEURALINK_CLINIC_TRANSFER_PACKAGE.md`.
