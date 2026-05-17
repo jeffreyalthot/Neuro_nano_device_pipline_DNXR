@@ -19,6 +19,12 @@ public:
 
 class PhysiologicalGuard {
 public:
+    enum class EmergencyState {
+        Nominal = 0,
+        Warning = 1,
+        EmergencyLatched = 2
+    };
+
     PhysiologicalGuard();
 
     /// Vérifie la stabilité physiologique et déclenche un arrêt si nécessaire.
@@ -30,6 +36,8 @@ public:
     uint64_t getEnforcementCount() const;
 
     bool getLastDecision() const;
+    EmergencyState getEmergencyState() const;
+    std::string getLastEmergencyReason() const;
 
 private:
     void triggerEmergency(const std::string& reason) const;
@@ -41,6 +49,8 @@ private:
     mutable bool emergencyMode_;
     mutable bool lastDecision_;
     mutable uint64_t lastViolationTime_;
+    mutable EmergencyState emergencyState_;
+    mutable std::string lastEmergencyReason_;
 };
 
 } // namespace dnxr

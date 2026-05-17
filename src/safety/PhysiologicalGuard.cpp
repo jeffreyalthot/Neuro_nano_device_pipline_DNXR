@@ -32,7 +32,9 @@ bool isValidTelemetry(const std::vector<float>& t) {
 PhysiologicalGuard::PhysiologicalGuard()
     : emergencyMode_(false),
       lastDecision_(true),
-      lastViolationTime_(0) {
+      lastViolationTime_(0),
+      emergencyState_(EmergencyState::Nominal),
+      lastEmergencyReason_("none") {
 }
 
 bool PhysiologicalGuard::enforce(const std::vector<float>& telemetry) const {
@@ -43,6 +45,8 @@ bool PhysiologicalGuard::enforce(const std::vector<float>& telemetry) const {
 
     if (!isValidTelemetry(telemetry)) {
         Logger::warn("PhysiologicalGuard: invalid telemetry detected.");
+        emergencyState_ = EmergencyState::EmergencyLatched;
+        lastEmergencyReason_ = "invalid_telemetry";
         triggerEmergency("invalid_telemetry");
         return false;
     }
@@ -62,12 +66,16 @@ bool PhysiologicalGuard::enforce(const std::vector<float>& telemetry) const {
 
         killSwitch_.trigger();
         emergencyMode_ = true;
+        emergencyState_ = EmergencyState::EmergencyLatched;
+        lastEmergencyReason_ = "threshold_violation";
 
         return false;
     }
 
     lastDecision_ = true;
     emergencyMode_ = false;
+    emergencyState_ = EmergencyState::Nominal;
+    lastEmergencyReason_ = "none";
 
     return true;
 }
@@ -80,6 +88,14 @@ void PhysiologicalGuard::triggerEmergency(const std::string& reason) const {
 
 bool PhysiologicalGuard::isEmergencyActive() const {
     return emergencyMode_;
+}
+
+PhysiologicalGuard::EmergencyState PhysiologicalGuard::getEmergencyState() const {
+    return emergencyState_;
+}
+
+std::string PhysiologicalGuard::getLastEmergencyReason() const {
+    return lastEmergencyReason_;
 }
 
 uint64_t PhysiologicalGuard::getViolationCount() const {

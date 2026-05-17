@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <thread>
 #include <sstream>
+#include <stdexcept>
 
 namespace dnxr {
 
@@ -24,6 +25,13 @@ std::string envOrDefault(const char* key, const std::string& fallback) {
     if (const char* v = std::getenv(key))
         return v;
     return fallback;
+}
+
+bool envFlagEnabled(const char* key) {
+    if (const char* v = std::getenv(key)) {
+        return std::string(v) == "1" || std::string(v) == "true" || std::string(v) == "TRUE";
+    }
+    return false;
 }
 }
 
@@ -42,22 +50,33 @@ RuntimeController::~RuntimeController() {
 }
 
 void RuntimeController::initializeModules() {
+    // Safety guardrail: this repository remains simulation-only.
+    // Any attempt to switch to real hardware mode is blocked at runtime.
+    if (envFlagEnabled("DNXR_ALLOW_REAL_HARDWARE")) {
+        throw std::runtime_error(
+            "DNXR_ALLOW_REAL_HARDWARE is not permitted in this build. "
+            "This project is simulation-only and not authorized for clinical/hardware use.");
+    }
+
     nodes_ = std::make_unique<NanoNodeInterface>(NanoNodeRuntimeConfig{
         envOrDefault("DNXR_NANO_ENDPOINT", "grpc://nano-cluster.local:7443"),
         envOrDefault("DNXR_NANO_AUTH_TOKEN", "token-placeholder"),
-        100000U
+        100000U,
+        true
     });
 
     bridge_ = std::make_unique<HostComputerBridge>(HostBridgeRuntimeConfig{
         envOrDefault("DNXR_HOST_UPSTREAM_ENDPOINT", "grpc://host.local:9443/up"),
         envOrDefault("DNXR_HOST_DOWNSTREAM_ENDPOINT", "grpc://host.local:9443/down"),
-        envOrDefault("DNXR_HOST_AUTH_TOKEN", "token-placeholder")
+        envOrDefault("DNXR_HOST_AUTH_TOKEN", "token-placeholder"),
+        true
     });
 
     headset_ = std::make_unique<XRHeadsetInterface>(XRHeadsetRuntimeConfig{
         envOrDefault("DNXR_XR_ENDPOINT", "wss://xr-headset.local:8443"),
         envOrDefault("DNXR_XR_DEVICE_ID", "headset-placeholder"),
-        envOrDefault("DNXR_XR_AUTH_TOKEN", "token-placeholder")
+        envOrDefault("DNXR_XR_AUTH_TOKEN", "token-placeholder"),
+        true
     });
 
     dsp_ = std::make_unique<SignalStreamProcessor>();

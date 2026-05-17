@@ -12,7 +12,14 @@ VirtualWorldState::VirtualWorldState()
       targetIntensity_(0.5f),
       transitionSpeed_(0.08f),
       dirtyFlag_(false),
-      lastUpdate_(std::chrono::steady_clock::now()) {}
+      lastUpdate_(std::chrono::steady_clock::now()),
+      posX_(0.0f),
+      posY_(0.0f),
+      posZ_(0.0f),
+      yawDeg_(0.0f),
+      pitchDeg_(0.0f),
+      interactionActive_(false),
+      senseBlend_(0.75f) {}
 
 void VirtualWorldState::setScene(const std::string& newScene) {
     if (newScene.empty())
@@ -67,6 +74,37 @@ void VirtualWorldState::integrateCognitiveInput(float emotionalLevel, float focu
     } else {
         setScene("ExplorationCorridor");
     }
+}
+
+void VirtualWorldState::applyEmbodiedInput(const EmbodiedInput& input, double deltaTime) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    const float dt = static_cast<float>(std::max(0.0, deltaTime));
+    const float moveSpeed = 2.2f;
+    posZ_ += std::clamp(input.moveForward, -1.0f, 1.0f) * moveSpeed * dt;
+    posX_ += std::clamp(input.moveRight, -1.0f, 1.0f) * moveSpeed * dt;
+    yawDeg_ += std::clamp(input.lookYaw, -180.0f, 180.0f) * dt;
+    pitchDeg_ = std::clamp(pitchDeg_ + std::clamp(input.lookPitch, -180.0f, 180.0f) * dt, -89.0f, 89.0f);
+    interactionActive_ = input.interact;
+
+    const float senses =
+        clamp01((input.vision + input.audition + input.touch + input.smell + input.taste) / 5.0f);
+    senseBlend_ = senses;
+    setIntensity(std::clamp(0.2f + senses * 0.8f, 0.0f, 1.0f));
+}
+
+std::string VirtualWorldState::getAvatarPoseSummary() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return "x=" + std::to_string(posX_) +
+           " y=" + std::to_string(posY_) +
+           " z=" + std::to_string(posZ_) +
+           " yaw=" + std::to_string(yawDeg_) +
+           " pitch=" + std::to_string(pitchDeg_) +
+           " interact=" + std::string(interactionActive_ ? "1" : "0");
+}
+
+float VirtualWorldState::getFiveSenseBlend() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return senseBlend_;
 }
 
 std::string VirtualWorldState::getSceneName() const {

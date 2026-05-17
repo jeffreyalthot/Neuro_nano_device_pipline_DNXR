@@ -21,6 +21,9 @@ public:
 
     /// Modulation externe (venant de flux cognitifs parallèles).
     void applyCognitiveContext(float emotionalLevel, float focusLevel);
+    void initializeBaseGameplay() ;
+    void applyEmbodiedInput(const VirtualWorldState::EmbodiedInput& input, double deltaTime = 0.016);
+    std::string getAvatarPoseSummary() const;
 
     /// Réglages dynamiques.
     void setTransitionSpeed(float speed);
