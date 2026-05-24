@@ -80,3 +80,13 @@ add_executable(dnxr_neuro_sdk_bridge_test
     src/neurotech/DeepImmersionPlatform.cpp
 )
 add_test(NAME dnxr_neuro_sdk_bridge_test COMMAND dnxr_neuro_sdk_bridge_test)
+
+
+# Cross-platform compile tags for Windows/Linux/macOS integration layers.
+if(WIN32)
+    target_compile_definitions(distributed_neural_xr PRIVATE DNXR_TARGET_OS_WINDOWS=1)
+elseif(APPLE)
+    target_compile_definitions(distributed_neural_xr PRIVATE DNXR_TARGET_OS_MACOS=1)
+elseif(UNIX)
+    target_compile_definitions(distributed_neural_xr PRIVATE DNXR_TARGET_OS_LINUX=1)
+endif()
