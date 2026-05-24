@@ -67,3 +67,22 @@ Rebuild conseillé :
 cmake -S . -B build -G "MinGW Makefiles"
 cmake --build build --config Release
 ```
+
+
+## Neural-Chip Deep Immersion (Vector-only) — 2026 update
+
+This runtime is now explicitly **neural-chip vector driven** end-to-end (no EEG device dependency in the software contract).
+
+### Key runtime capabilities
+- Neural vector inference (`runInferenceTick`) with safety diagnostics (`neuralSignalQuality`, `neuralSignalVariance`, `safetyMode`).
+- XR adaptation with visual perception tuning:
+  - `visualClarity`
+  - `depthPrecision`
+  - `motionStability`
+  - `contrastEnhancement`
+- Precision control from neural vectors:
+  - action-level control (`runActionTick`) for movement/look/interact
+  - full-body control (`runFullBodyControlTick`) for head/torso/arms/hands/legs/locomotion/balance
+- Platform-aware behavior for Windows/Linux/macOS via `RuntimePlatformProfile` and `DNXR_TARGET_OS_*` compile tags.
+
+See `docs/DEEP_IMMERSION_NEURAL_VECTOR_RUNTIME_SPEC.md` for complete technical documentation.
