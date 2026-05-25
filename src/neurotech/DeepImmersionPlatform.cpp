@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
+#include <chrono>
 
 namespace dnxr {
 namespace {
@@ -137,6 +138,7 @@ float StressAdaptationModel::adaptationGain(float stress, float heartRate) const
 float AttentionTrackingSystem::attentionLock(float attention, float eyeFocus, float postureStability) const { return clamp01(attention * 0.45f + eyeFocus * 0.35f + postureStability * 0.2f); }
 
 DeepImmersionPlatform::DeepImmersionPlatform() : historyLimit_(256) {
+    consentManager_.setPolicy({true, true, true, "default_runtime_policy"});
 #if defined(DNXR_TARGET_OS_WINDOWS)
     platformProfile_ = RuntimePlatformProfile::Windows;
 #elif defined(DNXR_TARGET_OS_LINUX)
@@ -167,17 +169,22 @@ std::vector<float> DeepImmersionPlatform::buildTemporalWindow(const std::vector<
 
 CognitiveState DeepImmersionPlatform::runInferenceTick(const std::vector<float>& rawNeuralVectorFrame, const BiometricFrame& biometrics, const std::string& source) {
     // Entire inference path is vector-driven from neural chip streams (no EEG device dependency).
-    const std::vector<float> acquired = acquisition_.ingestFrame(rawNeuralVectorFrame, source);
+    InfluenceTrace influence{};
+    const std::vector<float> influenced = influenceEngine_.applyInfluence(rawNeuralVectorFrame, inducedVector_, influence);
+    const std::vector<float> acquired = acquisition_.ingestFrame(influenced, source);
     const std::vector<float> filtered = denoise_.denoise(acquired);
     const float signalQuality = acquisition_.estimateSignalQuality(filtered);
     const float signalVariance = acquisition_.estimateVariance(filtered);
     const std::vector<float> temporal = buildTemporalWindow(filtered);
     const std::vector<float> bands = bandAnalyzer_.extractBands(temporal);
 
+    const bool consentIntent = consentManager_.isAllowed("intent");
+    const bool consentBio = consentManager_.isAllowed("biometric");
+
     CognitiveState state;
-    state.motorIntent = intent_.decode(temporal);
+    state.motorIntent = consentIntent ? intent_.decode(temporal) : 0.0f;
     state.emotionValence = emotion_.inferValence(temporal, biometrics);
-    state.fatigue = cognitiveLoad_.predictLoad(bands, biometrics);
+    state.fatigue = consentBio ? cognitiveLoad_.predictLoad(bands, biometrics) : clamp01(meanOf(bands));
     state.attention = clamp01(1.0f - state.fatigue * 0.65f + biometrics.eyeFocus * 0.25f);
     state.stress = clamp01((1.0f - state.emotionValence) * 0.45f + biometrics.galvanicSkinResponse * 0.55f);
     state.immersionIndex = clamp01((state.attention * 0.30f) + (state.motorIntent * 0.25f) + (state.emotionValence * 0.30f) + ((1.0f - state.stress) * 0.15f));
@@ -193,13 +200,41 @@ CognitiveState DeepImmersionPlatform::runInferenceTick(const std::vector<float>&
     lastDiagnostics_.brainwaveClass = classifier_.classify(bands);
     lastDiagnostics_.neurofeedbackCue = neurofeedback_.buildFeedbackCue(state);
     lastDiagnostics_.safetyMode = (signalQuality < 0.25f || signalVariance < 0.01f) ? "stability_guard" : "nominal";
-    lastDiagnostics_.biometricFusionScore = fusion_.fusionScore(state, biometrics);
+    lastDiagnostics_.biometricFusionScore = consentBio ? fusion_.fusionScore(state, biometrics) : 0.0f;
     lastDiagnostics_.stressAdaptationGain = stressAdaptation_.adaptationGain(state.stress, biometrics.heartRate);
     lastDiagnostics_.attentionLock = attentionTracking_.attentionLock(state.attention, biometrics.eyeFocus, biometrics.postureStability);
     lastDiagnostics_.neuralSignalQuality = signalQuality;
     lastDiagnostics_.neuralSignalVariance = signalVariance;
+    lastDiagnostics_.inducedInfluence = influence.inducedInfluence;
+    lastDiagnostics_.decisionDrift = influence.decisionDrift;
+    lastDiagnostics_.autonomyPreservation = influence.autonomyPreservation;
+    const float baseConfidence = clamp01(state.motorIntent * 0.6f + state.attention * 0.4f);
+    const NeuralIntentVector intentVector = intentProtocol_.decode(temporal, baseConfidence);
+    lastDiagnostics_.intentConfidence = intentVector.confidence;
+    lastDiagnostics_.intentSchemaVersion = intentVector.schemaVersion;
+
+    const float jitterComp = clamp01(signalVariance * 0.5f + (1.0f - signalQuality) * 0.5f);
+    lastDiagnostics_.jitterCompensation = jitterComp;
+
+    if (intentVector.confidence < 0.45f) {
+        lastDiagnostics_.fallbackChannel = "voice_gaze_gesture";
+        lastDiagnostics_.safetyMode = "degraded_fallback";
+        state.immersionIndex = clamp01(state.immersionIndex * 0.75f);
+    } else {
+        lastDiagnostics_.fallbackChannel = "neural_primary";
+    }
     const XRAdaptationFrame visualFrame = adaptiveReality_.adapt(state, biometrics);
     lastDiagnostics_.visualHarmonyIndex = clamp01(visualFrame.visualClarity * 0.30f + visualFrame.depthPrecision * 0.25f + visualFrame.motionStability * 0.25f + visualFrame.contrastEnhancement * 0.20f);
+    const float sceneInstability = clamp01(1.0f - visualFrame.motionStability + visualFrame.distortionAmount * 0.6f);
+    const AddictionRiskReport risk = addictionGuard_.evaluate(sceneInstability, state.emotionValence, state.stress, 30.0f);
+    lastDiagnostics_.addictionRisk = risk.addictionRisk;
+    lastDiagnostics_.addictionMitigationActive = risk.mitigationActive;
+    lastDiagnostics_.addictionPolicyAction = risk.policyAction;
+
+    if (risk.mitigationActive) {
+        lastDiagnostics_.safetyMode = "addiction_risk_mitigation";
+        state.immersionIndex = clamp01(state.immersionIndex * 0.70f);
+    }
 
     return state;
 }
@@ -300,5 +335,8 @@ void DeepImmersionPlatform::setRuntimePlatformProfile(RuntimePlatformProfile pro
 RuntimePlatformProfile DeepImmersionPlatform::runtimePlatformProfile() const { return platformProfile_; }
 
 NeuroPipelineDiagnostics DeepImmersionPlatform::lastDiagnostics() const { return lastDiagnostics_; }
+
+void DeepImmersionPlatform::setConsentPolicy(const NeuroConsentPolicy& policy) { consentManager_.setPolicy(policy); }
+void DeepImmersionPlatform::setInducedVector(const std::vector<float>& inducedVector) { inducedVector_ = inducedVector; }
 
 } // namespace dnxr

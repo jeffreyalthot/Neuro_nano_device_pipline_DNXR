@@ -4,6 +4,11 @@
 #include <string>
 #include <vector>
 
+#include "../network/NeuralIntentProtocol.h"
+#include "../safety/NeuroConsentManager.h"
+#include "../cognition/InducedVectorInfluenceEngine.h"
+#include "../safety/AddictionRiskGuard.h"
+
 namespace dnxr {
 
 struct CognitiveState {
@@ -77,6 +82,16 @@ struct NeuroPipelineDiagnostics {
     float neuralSignalQuality = 0.0f;
     float neuralSignalVariance = 0.0f;
     float visualHarmonyIndex = 0.0f;
+    float intentConfidence = 0.0f;
+    float jitterCompensation = 0.0f;
+    std::string fallbackChannel;
+    std::string intentSchemaVersion;
+    float inducedInfluence = 0.0f;
+    float decisionDrift = 0.0f;
+    float autonomyPreservation = 1.0f;
+    float addictionRisk = 0.0f;
+    bool addictionMitigationActive = false;
+    std::string addictionPolicyAction;
 };
 
 class NeuralIntentDecoder { public: float decode(const std::vector<float>& neuralWindow) const; };
@@ -110,6 +125,8 @@ public:
     void setRuntimePlatformProfile(RuntimePlatformProfile profile);
     RuntimePlatformProfile runtimePlatformProfile() const;
     NeuroPipelineDiagnostics lastDiagnostics() const;
+    void setConsentPolicy(const NeuroConsentPolicy& policy);
+    void setInducedVector(const std::vector<float>& inducedVector);
 
 private:
     std::vector<float> buildTemporalWindow(const std::vector<float>& filteredFrame);
@@ -127,6 +144,11 @@ private:
     BiometricFusionEngine fusion_;
     StressAdaptationModel stressAdaptation_;
     AttentionTrackingSystem attentionTracking_;
+    NeuralIntentProtocol intentProtocol_;
+    NeuroConsentManager consentManager_;
+    InducedVectorInfluenceEngine influenceEngine_;
+    std::vector<float> inducedVector_;
+    AddictionRiskGuard addictionGuard_;
 
     XRFullBodyCommand smoothFullBodyCommand(const XRFullBodyCommand& current);
 

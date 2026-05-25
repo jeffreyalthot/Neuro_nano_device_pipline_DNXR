@@ -70,6 +70,10 @@ add_test(NAME dnxr_pipeline_integration_test COMMAND dnxr_pipeline_integration_t
 add_executable(dnxr_neurotech_unit_test
     tests/dnxr_neurotech_unit_test.cpp
     src/neurotech/DeepImmersionPlatform.cpp
+    src/network/NeuralIntentProtocol.cpp
+    src/safety/NeuroConsentManager.cpp
+    src/cognition/InducedVectorInfluenceEngine.cpp
+    src/safety/AddictionRiskGuard.cpp
 )
 add_test(NAME dnxr_neurotech_unit_test COMMAND dnxr_neurotech_unit_test)
 
@@ -78,6 +82,10 @@ add_executable(dnxr_neuro_sdk_bridge_test
     tests/dnxr_neuro_sdk_bridge_test.cpp
     src/neurotech/NeuroSDKBridge.cpp
     src/neurotech/DeepImmersionPlatform.cpp
+    src/network/NeuralIntentProtocol.cpp
+    src/safety/NeuroConsentManager.cpp
+    src/cognition/InducedVectorInfluenceEngine.cpp
+    src/safety/AddictionRiskGuard.cpp
 )
 add_test(NAME dnxr_neuro_sdk_bridge_test COMMAND dnxr_neuro_sdk_bridge_test)
 
@@ -90,3 +98,26 @@ elseif(APPLE)
 elseif(UNIX)
     target_compile_definitions(distributed_neural_xr PRIVATE DNXR_TARGET_OS_LINUX=1)
 endif()
+
+
+add_executable(dnxr_runtime_realtime_test
+    tests/dnxr_runtime_realtime_test.cpp
+    src/core/NeuroRealtimeScheduler.cpp
+    src/utils/DeterministicSessionReplay.cpp
+)
+add_test(NAME dnxr_runtime_realtime_test COMMAND dnxr_runtime_realtime_test)
+
+
+add_executable(dnxr_security_foundation_test
+    tests/dnxr_security_foundation_test.cpp
+    src/network/NeuralCryptoTransport.cpp
+    src/safety/NeuralIdentityVault.cpp
+)
+add_test(NAME dnxr_security_foundation_test COMMAND dnxr_security_foundation_test)
+
+
+add_executable(dnxr_open_interop_protocol_test
+    tests/dnxr_open_interop_protocol_test.cpp
+    src/network/OpenNeuralInteropProtocol.cpp
+)
+add_test(NAME dnxr_open_interop_protocol_test COMMAND dnxr_open_interop_protocol_test)

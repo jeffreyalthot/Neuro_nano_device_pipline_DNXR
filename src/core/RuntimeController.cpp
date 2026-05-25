@@ -40,6 +40,7 @@ RuntimeController::RuntimeController()
     : runtimeRunning_(false),
       frameBudgetMs_(11),   // ~90 Hz
       droppedFrames_(0),
+      scheduler_(20.0),
       cycleCounter_(0),
       lastState_("init") {
     initializeModules();
@@ -89,6 +90,16 @@ void RuntimeController::initializeModules() {
     guard_ = std::make_unique<PhysiologicalGuard>();
     emergency_ = std::make_unique<EmergencyShutdown>();
     deepImmersion_ = std::make_unique<DeepImmersionPlatform>();
+    deepImmersion_->setConsentPolicy({true, true, false, "runtime_default"});
+    deepImmersion_->setInducedVector({0.05f, -0.02f, 0.03f, 0.01f}); // runtime_induced_vector
+
+    scheduler_.registerTask({"acquisition", 100, 3.0});
+    scheduler_.registerTask({"signal_processing", 80, 4.0});
+    scheduler_.registerTask({"inference", 70, 5.0});
+    scheduler_.registerTask({"render", 60, 6.0});
+
+    const std::string sessionIdentityToken = identityVault_.tokenizeIdentity("runtime_user");
+    Logger::info("identity_token_initialized=" + sessionIdentityToken);
 }
 
 void RuntimeController::shutdownModules() {
@@ -107,7 +118,9 @@ void RuntimeController::shutdownModules() {
 }
 
 void RuntimeController::runSingleCycle(double timestamp) {
+    SchedulerTickReport tickReport = scheduler_.beginTick();
     // Lecture biométrique
+    const auto tAcq = std::chrono::steady_clock::now();
     const auto telemetry = headset_->pullBioTelemetry();
     if (!guard_->enforce(telemetry)) {
         emergency_->trigger();
@@ -118,17 +131,22 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
     // Lecture signaux neuronaux
     auto raw = nodes_->readNeuralNodeSignals();
+    scheduler_.endTask("acquisition", tAcq, tickReport);
     if (raw.empty()) {
         Logger::warn("⚠️  Empty neural signal frame.");
         return;
     }
 
     // Traitement pipeline
-    auto uplinked = bridge_->uplink(raw);
+    const auto tSignal = std::chrono::steady_clock::now();
+    const std::vector<std::uint8_t> encrypted = crypto_.encrypt(raw, "dnxr_key_2026_secure");
+    const auto decrypted = crypto_.decrypt(encrypted, "dnxr_key_2026_secure");
+    auto uplinked = bridge_->uplink(decrypted.empty() ? raw : decrypted);
     auto clean = dsp_->denoise(uplinked);
     auto features = vec_->vectorize(clean);
 
     auto state = brain_->inferState(features, timestamp);
+    scheduler_.endTask("signal_processing", tSignal, tickReport);
 
     BiometricFrame bio{};
     if (!telemetry.empty()) {
@@ -140,7 +158,9 @@ void RuntimeController::runSingleCycle(double timestamp) {
         bio.movementEnergy = telemetry.size() > 6 ? telemetry[6] / 128.0f : 0.2f;
     }
 
+    const auto tInference = std::chrono::steady_clock::now();
     const CognitiveState cognitive = deepImmersion_->runInferenceTick(clean, bio, "runtime_controller");
+    scheduler_.endTask("inference", tInference, tickReport);
     const XRAdaptationFrame adaptation = deepImmersion_->runAdaptationTick(cognitive, bio);
     const NeuroPipelineDiagnostics diag = deepImmersion_->lastDiagnostics();
 
@@ -148,7 +168,10 @@ void RuntimeController::runSingleCycle(double timestamp) {
         + "|stress=" + std::to_string(cognitive.stress)
         + "|shader=" + adaptation.shaderProfile
         + "|brainwave=" + diag.brainwaveClass
-        + "|cue=" + diag.neurofeedbackCue;
+        + "|cue=" + diag.neurofeedbackCue
+        + "|induced=" + std::to_string(diag.inducedInfluence)
+        + "|drift=" + std::to_string(diag.decisionDrift)
+        + "|autonomy=" + std::to_string(diag.autonomyPreservation);
 
     if (eventCallback_)
         eventCallback_("state:" + lastState_);
@@ -166,12 +189,21 @@ void RuntimeController::runSingleCycle(double timestamp) {
         }
     }
 
+    replay_.record({clean, timestamp});
+    const auto tRender = std::chrono::steady_clock::now();
     renderer_->present(frame);
+    scheduler_.endTask("render", tRender, tickReport);
 
     headset_->pushSensoryFrame(frame);
 
     auto down = bridge_->downlink(calibrated);
     nodes_->writeNeuralStimulus(down);
+
+    scheduler_.endTick(tickReport);
+    if (!tickReport.withinBudget) {
+        ++droppedFrames_;
+        Logger::warn("⚠️ Runtime frame budget exceeded total_ms=" + std::to_string(tickReport.totalMs) + " jitter_ms=" + std::to_string(tickReport.jitterMs));
+    }
 
     ++cycleCounter_;
 }

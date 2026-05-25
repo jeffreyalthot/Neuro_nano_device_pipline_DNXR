@@ -86,3 +86,5 @@ This runtime is now explicitly **neural-chip vector driven** end-to-end (no EEG 
 - Platform-aware behavior for Windows/Linux/macOS via `RuntimePlatformProfile` and `DNXR_TARGET_OS_*` compile tags.
 
 See `docs/DEEP_IMMERSION_NEURAL_VECTOR_RUNTIME_SPEC.md` for complete technical documentation.
+
+See `docs/NEURAL_CHIP_XR_SOFTWARE_IMPROVEMENT_PLAN.md` for the 2026 software improvement backlog (real-time, safety, tooling, neurorights).
