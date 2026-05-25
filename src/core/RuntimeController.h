@@ -9,6 +9,11 @@
 #include <functional>
 #include <vector>
 
+#include "NeuroRealtimeScheduler.h"
+#include "../utils/DeterministicSessionReplay.h"
+#include "../network/NeuralCryptoTransport.h"
+#include "../safety/NeuralIdentityVault.h"
+
 namespace dnxr {
 
 /// Contrôleur d’exécution principal du pipeline immersif.
@@ -53,6 +58,10 @@ private:
     std::atomic<bool> runtimeRunning_;
     int frameBudgetMs_;
     uint64_t droppedFrames_;
+    NeuroRealtimeScheduler scheduler_;
+    DeterministicSessionReplay replay_;
+    NeuralCryptoTransport crypto_;
+    NeuralIdentityVault identityVault_;
     uint64_t cycleCounter_;
     std::string lastState_;
 

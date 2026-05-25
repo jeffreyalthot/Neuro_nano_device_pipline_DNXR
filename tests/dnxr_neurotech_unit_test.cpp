@@ -16,6 +16,10 @@ int main() {
 
     std::vector<float> neuralVector = {0.12f, 0.25f, 0.38f, 0.42f, 0.27f, 0.18f, 0.31f};
 
+    dnxr::NeuroConsentPolicy consent{true, true, true, "unit_test"};
+    platform.setConsentPolicy(consent);
+    platform.setInducedVector({0.08f, -0.03f, 0.04f});
+
     dnxr::CognitiveState state = platform.runInferenceTick(neuralVector, biometrics, "unit_test_stream");
     dnxr::XRAdaptationFrame xr = platform.runAdaptationTick(state, biometrics);
     dnxr::XRActionCommand action = platform.runActionTick(neuralVector, state);
@@ -68,11 +72,21 @@ int main() {
     assert(!diagnostics.neurofeedbackCue.empty());
     assert(diagnostics.biometricFusionScore >= 0.0f && diagnostics.biometricFusionScore <= 1.0f);
     assert(!diagnostics.safetyMode.empty());
-    assert(diagnostics.safetyMode == "nominal" || diagnostics.safetyMode == "stability_guard");
+    assert(diagnostics.safetyMode == "nominal" || diagnostics.safetyMode == "stability_guard" || diagnostics.safetyMode == "degraded_fallback");
     assert(diagnostics.neuralSignalQuality >= 0.0f && diagnostics.neuralSignalQuality <= 1.0f);
     assert(diagnostics.neuralSignalVariance >= 0.0f && diagnostics.neuralSignalVariance <= 1.0f);
     assert(diagnostics.stressAdaptationGain >= 0.0f && diagnostics.stressAdaptationGain <= 1.0f);
     assert(diagnostics.attentionLock >= 0.0f && diagnostics.attentionLock <= 1.0f);
+
+    assert(diagnostics.intentConfidence >= 0.0f && diagnostics.intentConfidence <= 1.0f);
+    assert(!diagnostics.intentSchemaVersion.empty());
+    assert(diagnostics.jitterCompensation >= 0.0f && diagnostics.jitterCompensation <= 1.0f);
+    assert(!diagnostics.fallbackChannel.empty());
+    assert(diagnostics.inducedInfluence >= 0.0f && diagnostics.inducedInfluence <= 1.0f);
+    assert(diagnostics.decisionDrift >= 0.0f && diagnostics.decisionDrift <= 1.0f);
+    assert(diagnostics.autonomyPreservation >= 0.0f && diagnostics.autonomyPreservation <= 1.0f);
+    assert(diagnostics.addictionRisk >= 0.0f && diagnostics.addictionRisk <= 1.0f);
+    assert(!diagnostics.addictionPolicyAction.empty());
 
     return 0;
 }
