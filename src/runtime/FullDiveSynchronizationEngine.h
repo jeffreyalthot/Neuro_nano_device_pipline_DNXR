@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-#include "../neural/BrainStateTopology.h"
+#include "../neuro/BrainStateTopology.h"
 #include "../neural/NeuralOscillationModel.h"
 #include "../neural/MotorPredictionLoop.h"
 

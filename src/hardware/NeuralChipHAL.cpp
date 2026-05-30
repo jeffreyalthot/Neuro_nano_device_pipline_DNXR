@@ -1,0 +1,163 @@
+#include "NeuralChipHAL.h"
+
+#include "../utils/TimeSync.h"
+
+#include <algorithm>
+#include <cmath>
+#include <stdexcept>
+
+namespace dnxr {
+namespace {
+
+float clamp01(float value) {
+    return std::clamp(value, 0.0f, 1.0f);
+}
+
+} // namespace
+
+SimulatedNeuralChipHAL::SimulatedNeuralChipHAL(
+    std::size_t channelCount,
+    NeuralChipRuntimeMode mode)
+    : channelCount_(std::max<std::size_t>(1, channelCount)),
+      mode_(mode),
+      connected_(false),
+      emergencyLatched_(false),
+      nextSequenceId_(1),
+      phase_(0.0f) {
+
+    status_.simulation = (mode_ == NeuralChipRuntimeMode::Simulation);
+    status_.statusMessage = "disconnected";
+}
+
+void SimulatedNeuralChipHAL::connect(const std::string& deviceIdentifier) {
+    if (deviceIdentifier.empty()) {
+        throw std::invalid_argument("NeuralChipHAL device identifier missing");
+    }
+
+    if (mode_ == NeuralChipRuntimeMode::ClinicalLocked) {
+        throw std::runtime_error(
+            "ClinicalLocked mode cannot connect without regulated authorization");
+    }
+
+    connected_ = true;
+    emergencyLatched_ = false;
+    status_.connected = true;
+    status_.emergencyLatched = false;
+    status_.statusMessage = "connected:" + deviceIdentifier;
+}
+
+void SimulatedNeuralChipHAL::disconnect() {
+    connected_ = false;
+    status_.connected = false;
+    status_.statusMessage = "disconnected";
+}
+
+NeuralChipFrame SimulatedNeuralChipHAL::readFrame() {
+    if (!connected_ || emergencyLatched_) {
+        return {};
+    }
+
+    NeuralChipFrame frame;
+    frame.sequenceId = nextSequenceId_++;
+    frame.monotonicTimestampMs = TimeSync::nowMs();
+    frame.channels.resize(channelCount_);
+
+    phase_ += 0.013f;
+    float energy = 0.0f;
+    for (std::size_t i = 0; i < channelCount_; ++i) {
+        const float t = phase_ + static_cast<float>(i) * 0.017f;
+        const float value = (std::sin(t * 3.0f) * 0.28f) +
+                            (std::cos(t * 0.7f) * 0.12f);
+        frame.channels[i] = std::clamp(value, -1.0f, 1.0f);
+        energy += std::abs(frame.channels[i]);
+    }
+
+    frame.signalQuality = clamp01(1.0f - (energy / static_cast<float>(channelCount_)) * 0.18f);
+    frame.acquisitionLatencyMs = 0.35f;
+    frame.simulation = (mode_ == NeuralChipRuntimeMode::Simulation);
+
+    status_.signalQuality = frame.signalQuality;
+    status_.lastLatencyMs = frame.acquisitionLatencyMs;
+    status_.statusMessage = "frame_read";
+    return frame;
+}
+
+bool SimulatedNeuralChipHAL::validateCommand(
+    const SafeNeuralStimulusCommand& command) const {
+
+    if (!connected_ || emergencyLatched_) {
+        return false;
+    }
+
+    if (mode_ == NeuralChipRuntimeMode::ClinicalLocked || !command.allowHardwareWrite) {
+        return false;
+    }
+
+    if (command.boundedChannels.empty() || command.calibrationProfileId.empty()) {
+        return false;
+    }
+
+    if (command.riskScore < 0.0f || command.riskScore >= 0.90f) {
+        return false;
+    }
+
+    if (command.intensityScale < 0.0f || command.intensityScale > 1.0f) {
+        return false;
+    }
+
+    if (command.aggregateSensoryLoad < 0.0f || command.aggregateSensoryLoad > 1.0f) {
+        return false;
+    }
+
+    if (command.modalityIntensities.size() != 5U || !command.fiveSenseCoverage) {
+        return false;
+    }
+
+    for (float intensity : command.modalityIntensities) {
+        if (!std::isfinite(intensity) || intensity < 0.0f || intensity > 1.0f) {
+            return false;
+        }
+    }
+
+    for (float channel : command.boundedChannels) {
+        if (!std::isfinite(channel) || channel < -1.0f || channel > 1.0f) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool SimulatedNeuralChipHAL::writeSafeStimulus(
+    const SafeNeuralStimulusCommand& command) {
+
+    if (!validateCommand(command)) {
+        return false;
+    }
+
+    lastAcceptedStimulus_ = command;
+    status_.statusMessage = "stimulus_accepted:" + command.safetyMode;
+    return true;
+}
+
+void SimulatedNeuralChipHAL::emergencyStop(const std::string& reason) {
+    emergencyLatched_ = true;
+    connected_ = false;
+    status_.connected = false;
+    status_.emergencyLatched = true;
+    status_.statusMessage = "emergency_stop:" + reason;
+}
+
+NeuralChipStatus SimulatedNeuralChipHAL::status() const {
+    NeuralChipStatus status = status_;
+    status.connected = connected_;
+    status.emergencyLatched = emergencyLatched_;
+    status.simulation = (mode_ == NeuralChipRuntimeMode::Simulation);
+    return status;
+}
+
+const SafeNeuralStimulusCommand& SimulatedNeuralChipHAL::lastAcceptedStimulus() const {
+    return lastAcceptedStimulus_;
+}
+
+} // namespace dnxr

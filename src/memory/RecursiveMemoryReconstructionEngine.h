@@ -21,7 +21,7 @@ enum class MemoryLayerType {
     PREDICTIVE
 };
 
-struct MemoryFragment {
+struct ReconstructedMemoryFragment {
 
     uint64_t fragmentId;
 
@@ -119,7 +119,7 @@ public:
 
     const std::unordered_map<
         uint64_t,
-        MemoryFragment>&
+        ReconstructedMemoryFragment>&
     getFragments() const;
 
 private:
@@ -128,7 +128,7 @@ private:
 
     std::unordered_map<
         uint64_t,
-        MemoryFragment>
+        ReconstructedMemoryFragment>
     fragments_;
 
     MemoryReconstructionState

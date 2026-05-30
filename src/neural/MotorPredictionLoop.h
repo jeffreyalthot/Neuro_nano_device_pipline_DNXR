@@ -3,6 +3,7 @@
 #include <array>
 #include <deque>
 #include <vector>
+#include <cstdint>
 
 namespace neuroxr {
 

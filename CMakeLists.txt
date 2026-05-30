@@ -43,6 +43,10 @@ add_executable(dnxr_safety_unit_test
     tests/dnxr_safety_unit_test.cpp
     src/safety/PhysiologicalGuard.cpp
     src/safety/StabilityMonitor.cpp
+    src/safety/EthicalGuardEngine.cpp
+    src/safety/CognitiveReversibilitySystem.cpp
+    src/safety/SafetyGovernor.cpp
+    src/signal/EnergyThermalOptimizer.cpp
     src/utils/Logger.cpp
 )
 add_test(NAME dnxr_safety_unit_test COMMAND dnxr_safety_unit_test)
@@ -104,6 +108,8 @@ add_executable(dnxr_runtime_realtime_test
     tests/dnxr_runtime_realtime_test.cpp
     src/core/NeuroRealtimeScheduler.cpp
     src/utils/DeterministicSessionReplay.cpp
+    src/utils/SessionSafetyJournal.cpp
+    src/utils/TimeSync.cpp
 )
 add_test(NAME dnxr_runtime_realtime_test COMMAND dnxr_runtime_realtime_test)
 
@@ -115,9 +121,57 @@ add_executable(dnxr_security_foundation_test
 )
 add_test(NAME dnxr_security_foundation_test COMMAND dnxr_security_foundation_test)
 
+add_executable(dnxr_neural_chip_hal_test
+    tests/dnxr_neural_chip_hal_test.cpp
+    src/hardware/NeuralChipHAL.cpp
+    src/safety/NeuralStimulusSafetyEnvelope.cpp
+    src/utils/TimeSync.cpp
+)
+add_test(NAME dnxr_neural_chip_hal_test COMMAND dnxr_neural_chip_hal_test)
+
 
 add_executable(dnxr_open_interop_protocol_test
     tests/dnxr_open_interop_protocol_test.cpp
     src/network/OpenNeuralInteropProtocol.cpp
 )
 add_test(NAME dnxr_open_interop_protocol_test COMMAND dnxr_open_interop_protocol_test)
+
+add_executable(dnxr_full_dive_orchestrator_integration_test
+    tests/dnxr_full_dive_orchestrator_integration_test.cpp
+    src/runtime/FullDiveOrchestrator.cpp
+    src/runtime/FullDiveSynchronizationEngine.cpp
+    src/neuro/BrainStateTopology.cpp
+    src/neural/NeuralOscillationModel.cpp
+    src/neural/MotorPredictionLoop.cpp
+    src/immersion/NeuralPerceptionSynthesizer.cpp
+    src/immersion/VestibularEmulationEngine.cpp
+    src/immersion/SyntheticProprioceptionLayer.cpp
+    src/cognition/SubjectiveContinuityEngine.cpp
+    src/cognition/PersistentNeuroCognitiveTwin.cpp
+    src/memory/ImmersiveMemoryPersistenceEngine.cpp
+    src/affective/AffectiveRealityEngine.cpp
+    src/social/SocialPresenceEngine.cpp
+    src/time/SubjectiveTimeEngine.cpp
+    src/network/DistributedConsciousnessNetwork.cpp
+    src/memory/RecursiveMemoryReconstructionEngine.cpp
+    src/reality/SubjectiveTimeDilationEngine.cpp
+    src/physics/NeuralQuantumEntanglementEngine.cpp
+    src/emotion/AffectiveResonanceMatrix.cpp
+    src/subconscious/SubconsciousSimulationEngine.cpp
+)
+add_test(NAME dnxr_full_dive_orchestrator_integration_test COMMAND dnxr_full_dive_orchestrator_integration_test)
+
+add_executable(dnxr_neural_chip_immersion_integration_test
+    tests/dnxr_neural_chip_immersion_integration_test.cpp
+    src/neurotech/DeepImmersionPlatform.cpp
+    src/network/NeuralIntentProtocol.cpp
+    src/safety/NeuroConsentManager.cpp
+    src/cognition/InducedVectorInfluenceEngine.cpp
+    src/safety/AddictionRiskGuard.cpp
+    src/immersion/ImmersionCore.cpp
+    src/immersion/SensoryRenderer.cpp
+    src/immersion/VirtualWorldState.cpp
+    src/immersion/GameDesignBridge.cpp
+    src/utils/Logger.cpp
+)
+add_test(NAME dnxr_neural_chip_immersion_integration_test COMMAND dnxr_neural_chip_immersion_integration_test)
