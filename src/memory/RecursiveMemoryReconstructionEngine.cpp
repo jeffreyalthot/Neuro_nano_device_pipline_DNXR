@@ -53,7 +53,7 @@ createMemoryFragment(
     MemoryLayerType type,
     const std::string& label) {
 
-    MemoryFragment fragment;
+    ReconstructedMemoryFragment fragment;
 
     fragment.fragmentId =
         nextFragmentId_++;
@@ -522,7 +522,7 @@ getState() const {
 
 const std::unordered_map<
     uint64_t,
-    MemoryFragment>&
+    ReconstructedMemoryFragment>&
 RecursiveMemoryReconstructionEngine::
 getFragments() const {
 

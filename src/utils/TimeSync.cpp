@@ -40,4 +40,16 @@ std::int64_t TimeSync::nowMs() {
     return t;
 }
 
+
+void TimeSync::reset() {
+
+    std::lock_guard<std::mutex> lock(g_timeMutex);
+    g_lastTimestamp.store(0, std::memory_order_relaxed);
+}
+
+std::int64_t TimeSync::lastTimestamp() {
+
+    return g_lastTimestamp.load(std::memory_order_relaxed);
+}
+
 } // namespace dnxr

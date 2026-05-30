@@ -61,6 +61,7 @@ private:
     NeuroRealtimeScheduler scheduler_;
     DeterministicSessionReplay replay_;
     NeuralCryptoTransport crypto_;
+    std::unique_ptr<class SessionSafetyJournal> safetyJournal_;
     NeuralIdentityVault identityVault_;
     uint64_t cycleCounter_;
     std::string lastState_;
@@ -79,6 +80,11 @@ private:
     std::unique_ptr<class XRRenderer> renderer_;
     std::unique_ptr<class PhysiologicalGuard> guard_;
     std::unique_ptr<class EmergencyShutdown> emergency_;
+    std::unique_ptr<class CognitiveReversibilitySystem> reversibility_;
+    std::unique_ptr<class EnergyThermalOptimizer> thermalOptimizer_;
+    std::unique_ptr<class SafetyGovernor> safetyGovernor_;
+    std::unique_ptr<class NeuralStimulusSafetyEnvelope> stimulusEnvelope_;
+    std::unique_ptr<class SimulatedNeuralChipHAL> neuralChipHal_;
     std::unique_ptr<class DeepImmersionPlatform> deepImmersion_;
 
     mutable std::mutex mtx_;

@@ -26,9 +26,17 @@
 #include "../rendering/XRRenderer.h"
 #include "../safety/PhysiologicalGuard.h"
 #include "../safety/EmergencyShutdown.h"
+#include "../safety/CognitiveReversibilitySystem.h"
+#include "../safety/SafetyGovernor.h"
+#include "../safety/NeuralStimulusSafetyEnvelope.h"
+#include "../signal/EnergyThermalOptimizer.h"
+#include "../hardware/NeuralChipHAL.h"
 #include "../neurotech/DeepImmersionPlatform.h"
 #include "../utils/Logger.h"
+#include "../utils/SessionSafetyJournal.h"
+#include "../utils/TimeSync.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <thread>
 #include <sstream>
@@ -80,6 +88,28 @@ std::string auditHash(const std::vector<float>& v) {
     return oss.str();
 }
 
+std::vector<float> normalizedTelemetryRiskVector(const std::vector<float>& telemetry) {
+    if (telemetry.empty()) {
+        return {};
+    }
+
+    const float heartRate = telemetry.size() > 0 ? telemetry[0] : 72.0f;
+    const float stress = telemetry.size() > 1 ? telemetry[1] : 0.0f;
+    const float focus = telemetry.size() > 2 ? telemetry[2] : 1.0f;
+    const float neuralNoise = telemetry.size() > 3 ? telemetry[3] : 0.0f;
+    const float oxygen = telemetry.size() > 4 ? telemetry[4] : 1.0f;
+    const float eyeStability = telemetry.size() > 5 ? telemetry[5] : 1.0f;
+
+    return {
+        std::clamp((heartRate - 60.0f) / 80.0f, 0.0f, 1.0f),
+        std::clamp(stress, 0.0f, 1.0f),
+        std::clamp(1.0f - focus, 0.0f, 1.0f),
+        std::clamp(neuralNoise * 8.0f, 0.0f, 1.0f),
+        std::clamp(1.0f - oxygen, 0.0f, 1.0f),
+        std::clamp(1.0f - eyeStability, 0.0f, 1.0f)
+    };
+}
+
 } // namespace
 
 RuntimeController::RuntimeController()
@@ -89,6 +119,7 @@ RuntimeController::RuntimeController()
       scheduler_(20.0),
       cycleCounter_(0),
       lastState_("init") {
+    safetyJournal_ = std::make_unique<SessionSafetyJournal>();
     initializeModules();
 }
 
@@ -135,6 +166,13 @@ void RuntimeController::initializeModules() {
     renderer_     = std::make_unique<XRRenderer>();
     guard_        = std::make_unique<PhysiologicalGuard>();
     emergency_    = std::make_unique<EmergencyShutdown>();
+    reversibility_= std::make_unique<CognitiveReversibilitySystem>();
+    thermalOptimizer_ = std::make_unique<EnergyThermalOptimizer>();
+    safetyGovernor_ = std::make_unique<SafetyGovernor>();
+    stimulusEnvelope_ = std::make_unique<NeuralStimulusSafetyEnvelope>(
+        UserNeuralCalibrationProfile{"runtime_default_calibration", 0.85f, 0.80f, 0.70f, 0.35f, 0.60f, 0.18f});
+    neuralChipHal_ = std::make_unique<SimulatedNeuralChipHAL>(64);
+    neuralChipHal_->connect("runtime_simulated_neural_chip");
     deepImmersion_= std::make_unique<DeepImmersionPlatform>();
 
     deepImmersion_->setConsentPolicy({true, true, false, "runtime_default"});
@@ -183,6 +221,7 @@ void RuntimeController::initializeModules() {
 }
 
 void RuntimeController::shutdownModules() {
+    safetyJournal_.reset();
     nodes_.reset();
     bridge_.reset();
     headset_.reset();
@@ -194,6 +233,11 @@ void RuntimeController::shutdownModules() {
     renderer_.reset();
     guard_.reset();
     emergency_.reset();
+    reversibility_.reset();
+    thermalOptimizer_.reset();
+    safetyGovernor_.reset();
+    stimulusEnvelope_.reset();
+    neuralChipHal_.reset();
     deepImmersion_.reset();
 }
 
@@ -212,6 +256,10 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
     // Lecture signaux neuronaux
     auto raw = nodes_->readNeuralNodeSignals();
+    const NeuralChipFrame chipFrame = neuralChipHal_->readFrame();
+    if (!chipFrame.channels.empty()) {
+        raw = chipFrame.channels;
+    }
     scheduler_.endTask("acquisition", tAcq, tickReport);
     if (raw.empty()) {
         Logger::warn("⚠️  Empty neural signal frame.");
@@ -228,6 +276,8 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
     auto state = brain_->inferState(features, timestamp);
     scheduler_.endTask("signal_processing", tSignal, tickReport);
+
+    const auto normalizedRiskTelemetry = normalizedTelemetryRiskVector(telemetry);
 
     BiometricFrame bio{};
     if (!telemetry.empty()) {
@@ -277,12 +327,60 @@ void RuntimeController::runSingleCycle(double timestamp) {
     constexpr float kUserSensitivity = 1.05f;
     auto calibrated = calib_->calibrateForImmersion(features, kUserSensitivity, timestamp);
 
-    auto frame = immersion_->buildImmersiveFrame(calibrated);
-    if (!frame.empty()) {
-        frame[0] *= (0.70f + adaptation.sceneIntensity * 0.60f);
-        if (frame.size() > 1) {
-            frame[1] *= (0.75f + adaptation.musicArousal * 0.50f);
-        }
+    const XRFullBodyCommand bodyCommand =
+        deepImmersion_->runFullBodyControlTick(clean, cognitive);
+
+    const NeuralSensoryFrame neuralFrame =
+        immersion_->buildImmersiveFrameFromChip(
+            cognitive,
+            bodyCommand,
+            adaptation,
+            diag);
+
+    auto frame = neuralFrame.toVector();
+    if (!frame.empty() && !calibrated.empty()) {
+        const float calibrationAnchor = calibrated.front();
+        frame[0] = (frame[0] * 0.85f) + (calibrationAnchor * 0.15f);
+    }
+
+    const SafetyDecision safetyDecision = safetyGovernor_->evaluate({
+        normalizedRiskTelemetry,
+        frame,
+        state,
+        cognitive,
+        bio,
+        diag
+    });
+
+    const auto safetyAudit = safetyJournal_->record(
+        "safety_decision",
+        safetyDecision.reason + "|" + safetyDecision.auditRecord,
+        safetyDecision.riskScore);
+
+    if (safetyDecision.requiresEmergencyStop || !safetyDecision.allowRender) {
+        emergency_->trigger();
+        Logger::error("[SafetyGovernor] Emergency stop before render | " +
+                      safetyDecision.reason + " | " + safetyDecision.auditRecord +
+                      " | journal=" + safetyAudit.eventHash);
+        scheduler_.endTick(tickReport);
+        ++cycleCounter_;
+        return;
+    }
+
+    frame = safetyGovernor_->applyDecisionToFrame(frame, safetyDecision);
+    if (safetyDecision.action != SafetyAction::Continue) {
+        Logger::warn("[SafetyGovernor] action=" + safetyDecision.reason +
+                     " risk=" + std::to_string(safetyDecision.riskScore) +
+                     " scale=" + std::to_string(safetyDecision.intensityScale));
+    }
+
+    frame = thermalOptimizer_->optimize(frame, cognitive.immersionIndex);
+
+    if (safetyDecision.action == SafetyAction::Decompress ||
+        safetyDecision.action == SafetyAction::RealityAnchor ||
+        reversibility_->shouldStartReturnToReality(normalizedRiskTelemetry)) {
+        frame = reversibility_->runDecompression(frame);
+        Logger::warn("[CognitiveReversibility] Return-to-reality decompression applied.");
     }
 
     replay_.record({clean, timestamp});
@@ -303,7 +401,24 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
     headset_->pushSensoryFrame(frame);
 
-    auto down = bridge_->downlink(calibrated);
+    const SafeNeuralStimulusCommand stimulusCommand =
+        stimulusEnvelope_->buildCommand(cycleCounter_, frame, safetyDecision);
+
+    if (!neuralChipHal_->writeSafeStimulus(stimulusCommand)) {
+        const auto rejectionAudit = safetyJournal_->record(
+            "hal_reject",
+            stimulusCommand.safetyMode,
+            stimulusCommand.riskScore);
+        neuralChipHal_->emergencyStop("unsafe_stimulus_rejected");
+        emergency_->trigger();
+        Logger::error("[NeuralChipHAL] Safe stimulus command rejected before node dispatch. journal=" +
+                      rejectionAudit.eventHash);
+        scheduler_.endTick(tickReport);
+        ++cycleCounter_;
+        return;
+    }
+
+    auto down = bridge_->downlink(frame);
     nodes_->writeNeuralStimulus(down);
 
     scheduler_.endTick(tickReport);
