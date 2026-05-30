@@ -1,3 +1,25 @@
+// =============================================================================
+// DOSSIER : src/calibration/
+// FICHIER : NeuralCalibrationEngine.cpp
+//
+// AMÉLIORATION APPLIQUÉE :
+//   [5] stabilizeSignal — la variable "prev" n'est plus initialisée à 0.0f
+//       à chaque appel. Elle est maintenant un membre persistant (prevStabilization_)
+//       initialisé une seule fois à la construction.
+//
+//       PROBLÈME ORIGINAL :
+//         float prev = 0.0f;  // ← reset à chaque frame !
+//         Avec stabilizationFactor_ = 0.85f, les ~15 premiers échantillons
+//         de chaque frame étaient tirés artificiellement vers zéro, perturbant
+//         motorIntent et attention au début de chaque cycle d'inférence.
+//
+//       CORRECTION :
+//         prevStabilization_ persiste entre les appels.
+//         Il n'est remis à zéro que sur reset explicite (resetStabilization()).
+//         Cela supprime le biais de début de frame et rend la stabilisation
+//         véritablement continue sur toute la session.
+// =============================================================================
+
 #include "NeuralCalibrationEngine.h"
 
 #include <algorithm>
@@ -10,7 +32,9 @@ NeuralCalibrationEngine::NeuralCalibrationEngine()
     : immersionIntensity_(1.0f),
       adaptiveNoiseReduction_(true),
       emotionalFeedbackGain_(0.5f),
-      stabilizationFactor_(0.85f) {}
+      stabilizationFactor_(0.85f),
+      prevStabilization_(0.0f)   // [FIX 5] membre persistant, reset une seule fois
+{}
 
 std::vector<float> NeuralCalibrationEngine::calibrateForImmersion(
     const std::vector<float>& features,
@@ -26,7 +50,7 @@ std::vector<float> NeuralCalibrationEngine::calibrateForImmersion(
     // 1. Adaptation individuelle et profil utilisateur
     std::vector<float> adapted = adaptation_.processInputStream(features, userSensitivity, timestamp);
 
-    // 2. Stabilisation neuronale temporelle
+    // 2. Stabilisation neuronale temporelle (continue, sans reset par frame)
     stabilizeSignal(adapted);
 
     // 3. Amplification immersive (renforcement perceptuel)
@@ -78,6 +102,14 @@ float NeuralCalibrationEngine::getStabilizationFactor() const {
     return stabilizationFactor_;
 }
 
+// [FIX 5] Remet prevStabilization_ à zéro.
+// À appeler uniquement sur recalibration explicite de l'utilisateur,
+// jamais automatiquement en début de frame.
+void NeuralCalibrationEngine::resetStabilization() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    prevStabilization_ = 0.0f;
+}
+
 float NeuralCalibrationEngine::computeImmersionScore(const std::vector<float>& calibrated) const {
     if (calibrated.empty()) return 0.0f;
 
@@ -104,8 +136,8 @@ void NeuralCalibrationEngine::reduceNeuralNoise(std::vector<float>& signal) cons
     if (signal.size() < 3) return;
 
     std::vector<float> filtered(signal.size());
-    filtered[0] = signal.front();
-    filtered.back() = signal.back();
+    filtered[0]    = signal.front();
+    filtered.back()= signal.back();
 
     for (size_t i = 1; i + 1 < signal.size(); ++i)
         filtered[i] = (signal[i - 1] + signal[i] + signal[i + 1]) / 3.0f;
@@ -113,12 +145,27 @@ void NeuralCalibrationEngine::reduceNeuralNoise(std::vector<float>& signal) cons
     signal.swap(filtered);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// [AMÉLIORATION 5] stabilizeSignal — filtre IIR continu entre les appels
+//
+// AVANT (code original, bugué) :
+//   float prev = 0.0f;   ← reset à chaque frame → biais systématique
+//   for (float& value : signal) {
+//       value = stabilizationFactor_ * prev + (1.0f - stabilizationFactor_) * value;
+//       prev = value;
+//   }
+//
+// APRÈS (correction) :
+//   prevStabilization_ est persistant. Le filtre IIR reprend exactement
+//   là où il s'est arrêté au cycle précédent.
+//   Résultat : plus de chute artificielle vers 0 en début de frame,
+//   motorIntent et attention ne sont plus perturbés.
+// ─────────────────────────────────────────────────────────────────────────────
 void NeuralCalibrationEngine::stabilizeSignal(std::vector<float>& signal) const {
-    float prev = 0.0f;
     for (float& value : signal) {
-        value = stabilizationFactor_ * prev +
-                (1.0f - stabilizationFactor_) * value;
-        prev = value;
+        value = stabilizationFactor_ * prevStabilization_
+              + (1.0f - stabilizationFactor_) * value;
+        prevStabilization_ = value;
     }
 }
 
