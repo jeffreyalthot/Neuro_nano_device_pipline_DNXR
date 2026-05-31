@@ -109,7 +109,9 @@ add_executable(dnxr_runtime_realtime_test
     src/core/NeuroRealtimeScheduler.cpp
     src/utils/DeterministicSessionReplay.cpp
     src/utils/SessionSafetyJournal.cpp
+    src/utils/RuntimeMetrics.cpp
     src/utils/TimeSync.cpp
+    src/utils/Logger.cpp
 )
 add_test(NAME dnxr_runtime_realtime_test COMMAND dnxr_runtime_realtime_test)
 

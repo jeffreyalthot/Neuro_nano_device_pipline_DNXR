@@ -10,6 +10,7 @@ namespace dnxr {
 
 struct VirtualViewFrame;
 struct VisualFieldFrame;
+enum class RuntimeLatencyHealth;
 
 struct XRFrameTimingMetrics {
     float targetFrameMs = 11.111f;
@@ -136,6 +137,9 @@ public:
     XRRenderTelemetrySnapshot getTelemetrySnapshot() const;
     std::vector<float> getTelemetryVector() const;
     XRRenderQoSDecision evaluateQoSDecision() const;
+
+    /// Applies whole-runtime latency health as an external QoS pressure signal.
+    void applyRuntimeLatencyHealth(RuntimeLatencyHealth health) const;
 
     void setVsyncEnabled(bool enabled);
     bool isVsyncEnabled() const;
