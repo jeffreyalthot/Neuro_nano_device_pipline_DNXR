@@ -45,6 +45,23 @@ constexpr float kEnergyNormFactor = 0.6f;
 // atteint ±0.995 (soit 99.5% de la plage max).
 constexpr float kClipThreshold = 0.995f;
 
+bool isCriticalIntentToken(const std::string& token) {
+    return token == "xr.grab" || token == "xr.compose" ||
+           token == "xr.interrupt" || token == "xr.cancel";
+}
+
+bool tokenAllowsMove(const std::string& token) {
+    return token == "xr.move" || token == "xr.compose";
+}
+
+bool tokenAllowsLook(const std::string& token) {
+    return token == "xr.look" || token == "xr.rotate" || token == "xr.compose";
+}
+
+bool tokenAllowsInteract(const std::string& token) {
+    return token == "xr.grab" || token == "xr.compose";
+}
+
 float clamp01(float value) { return std::clamp(value, 0.0f, 1.0f); }
 
 float meanOf(const std::vector<float>& v) {
@@ -415,16 +432,45 @@ CognitiveState DeepImmersionPlatform::runInferenceTick(
 
     const float baseConfidence = clamp01(state.motorIntent * 0.6f + state.attention * 0.4f);
     const NeuralIntentVector intentVector  = intentProtocol_.decode(temporal, baseConfidence);
-    lastDiagnostics_.intentConfidence      = intentVector.confidence;
-    lastDiagnostics_.intentSchemaVersion   = intentVector.schemaVersion;
+    lastDiagnostics_.intentConfidence            = intentVector.confidence;
+    lastDiagnostics_.intentSchemaVersion         = intentVector.schemaVersion;
+    lastDiagnostics_.intentActionToken           = intentVector.actionToken;
+    lastDiagnostics_.intentAmbiguityMargin       = intentVector.ambiguityMargin;
+    lastDiagnostics_.intentAmbiguityDetected     = intentVector.ambiguityDetected;
+    lastDiagnostics_.intentFallbackRecommended   = intentVector.fallbackRecommended;
+
+    const bool confirmationEligible = intentVector.actionToken != "none" &&
+                                      !intentVector.fallbackRecommended &&
+                                      intentVector.confidence >= 0.45f;
+    if (confirmationEligible && intentVector.actionToken == lastIntentToken_) {
+        ++intentConfirmationCount_;
+    } else if (confirmationEligible) {
+        lastIntentToken_ = intentVector.actionToken;
+        intentConfirmationCount_ = 1;
+    } else {
+        lastIntentToken_ = "none";
+        intentConfirmationCount_ = 0;
+    }
+
+    const int requiredConfirmations = isCriticalIntentToken(intentVector.actionToken) ? 2 : 1;
+    const bool executionAuthorized = confirmationEligible && intentConfirmationCount_ >= requiredConfirmations;
+    lastDiagnostics_.intentConfirmationCount = intentConfirmationCount_;
+    lastDiagnostics_.intentExecutionAuthorized = executionAuthorized;
+    lastDiagnostics_.authorizedIntentToken = executionAuthorized ? intentVector.actionToken : "none";
 
     const float jitterComp = clamp01(signalVariance * 0.5f + (1.0f - signalQuality) * 0.5f);
     lastDiagnostics_.jitterCompensation    = jitterComp;
 
-    if (intentVector.confidence < 0.45f) {
-        lastDiagnostics_.fallbackChannel   = "voice_gaze_gesture";
+    if (intentVector.fallbackRecommended || intentVector.confidence < 0.45f) {
+        lastDiagnostics_.fallbackChannel   = intentVector.ambiguityDetected
+                                             ? "voice_gaze_gesture_ambiguity"
+                                             : "voice_gaze_gesture";
         lastDiagnostics_.safetyMode        = "degraded_fallback";
         state.immersionIndex               = clamp01(state.immersionIndex * 0.75f);
+    } else if (!executionAuthorized) {
+        lastDiagnostics_.fallbackChannel   = "intent_confirmation_hold";
+        lastDiagnostics_.safetyMode        = "intent_confirmation_hold";
+        state.immersionIndex               = clamp01(state.immersionIndex * 0.85f);
     } else {
         lastDiagnostics_.fallbackChannel   = "neural_primary";
     }
@@ -470,16 +516,25 @@ XRActionCommand DeepImmersionPlatform::runActionTick(const std::vector<float>& n
     const float pitchU   = std::abs(neuralVectorFrame[6 % n]);
     const float pitchD   = std::abs(neuralVectorFrame[7 % n]);
 
-    const float confidence    = clamp01(state.motorIntent * 0.65f + state.attention * 0.35f);
-    const float safetyLimiter = (lastDiagnostics_.safetyMode == "stability_guard") ? 0.45f : 1.0f;
+    const float confidence = clamp01(state.motorIntent * 0.65f + state.attention * 0.35f);
+    float safetyLimiter = 1.0f;
+    if (lastDiagnostics_.safetyMode == "stability_guard") safetyLimiter = 0.45f;
+    else if (lastDiagnostics_.safetyMode == "degraded_fallback") safetyLimiter = 0.35f;
+    else if (lastDiagnostics_.safetyMode == "intent_confirmation_hold") safetyLimiter = 0.25f;
+    else if (lastDiagnostics_.safetyMode == "addiction_risk_mitigation") safetyLimiter = 0.30f;
 
-    cmd.moveX           = std::clamp((right - left)     * 0.02f * confidence * safetyLimiter, -1.0f, 1.0f);
-    cmd.moveY           = std::clamp((forward - backward)* 0.02f * confidence * safetyLimiter, -1.0f, 1.0f);
-    cmd.lookYaw         = std::clamp((yawR - yawL)      * 0.015f * confidence * safetyLimiter, -1.0f, 1.0f);
-    cmd.lookPitch       = std::clamp((pitchU - pitchD)  * 0.015f * confidence * safetyLimiter, -1.0f, 1.0f);
-    cmd.interactStrength= clamp01((state.motorIntent * 0.6f + state.immersionIndex * 0.4f) * safetyLimiter);
-    cmd.jump            = confidence > 0.64f && state.stress < 0.7f && forward > backward * 1.2f;
-    cmd.grab            = cmd.interactStrength > 0.55f && (right + left) > 0.35f;
+    const std::string& authorizedToken = lastDiagnostics_.authorizedIntentToken;
+    const bool allowMove = lastDiagnostics_.intentExecutionAuthorized && tokenAllowsMove(authorizedToken);
+    const bool allowLook = lastDiagnostics_.intentExecutionAuthorized && tokenAllowsLook(authorizedToken);
+    const bool allowInteract = lastDiagnostics_.intentExecutionAuthorized && tokenAllowsInteract(authorizedToken);
+
+    cmd.moveX           = allowMove ? std::clamp((right - left)     * 0.02f * confidence * safetyLimiter, -1.0f, 1.0f) : 0.0f;
+    cmd.moveY           = allowMove ? std::clamp((forward - backward)* 0.02f * confidence * safetyLimiter, -1.0f, 1.0f) : 0.0f;
+    cmd.lookYaw         = allowLook ? std::clamp((yawR - yawL)      * 0.015f * confidence * safetyLimiter, -1.0f, 1.0f) : 0.0f;
+    cmd.lookPitch       = allowLook ? std::clamp((pitchU - pitchD)  * 0.015f * confidence * safetyLimiter, -1.0f, 1.0f) : 0.0f;
+    cmd.interactStrength= allowInteract ? clamp01((state.motorIntent * 0.6f + state.immersionIndex * 0.4f) * safetyLimiter) : 0.0f;
+    cmd.jump            = allowMove && confidence > 0.64f && state.stress < 0.7f && forward > backward * 1.2f;
+    cmd.grab            = allowInteract && cmd.interactStrength > 0.55f && (right + left) > 0.35f;
 
     return cmd;
 }
@@ -492,7 +547,11 @@ XRFullBodyCommand DeepImmersionPlatform::runFullBodyControlTick(const std::vecto
     auto sample = [&](std::size_t i) { return std::abs(neuralVectorFrame[i % n]); };
 
     const float motorPrecision = clamp01(state.motorIntent * 0.7f + state.attention * 0.3f);
-    const float safetyLimiter  = (lastDiagnostics_.safetyMode == "stability_guard") ? 0.50f : 1.0f;
+    float safetyLimiter = 1.0f;
+    if (lastDiagnostics_.safetyMode == "stability_guard") safetyLimiter = 0.50f;
+    else if (lastDiagnostics_.safetyMode == "degraded_fallback") safetyLimiter = 0.40f;
+    else if (lastDiagnostics_.safetyMode == "intent_confirmation_hold") safetyLimiter = 0.30f;
+    else if (lastDiagnostics_.safetyMode == "addiction_risk_mitigation") safetyLimiter = 0.35f;
 
     float platformGain = 1.0f;
     if      (platformProfile_ == RuntimePlatformProfile::Windows) platformGain = 1.02f;
@@ -500,19 +559,23 @@ XRFullBodyCommand DeepImmersionPlatform::runFullBodyControlTick(const std::vecto
     else if (platformProfile_ == RuntimePlatformProfile::MacOS)   platformGain = 0.98f;
 
     const float gain = motorPrecision * safetyLimiter * platformGain;
+    const std::string& authorizedToken = lastDiagnostics_.authorizedIntentToken;
+    const bool allowMove = lastDiagnostics_.intentExecutionAuthorized && tokenAllowsMove(authorizedToken);
+    const bool allowLook = lastDiagnostics_.intentExecutionAuthorized && tokenAllowsLook(authorizedToken);
+    const bool allowInteract = lastDiagnostics_.intentExecutionAuthorized && tokenAllowsInteract(authorizedToken);
 
-    body.headYaw          = std::clamp((sample(9)  - sample(10)) * 0.02f  * gain, -1.0f, 1.0f);
-    body.headPitch        = std::clamp((sample(11) - sample(12)) * 0.02f  * gain, -1.0f, 1.0f);
-    body.torsoYaw         = std::clamp((sample(13) - sample(14)) * 0.018f * gain, -1.0f, 1.0f);
-    body.torsoLean        = std::clamp((sample(15) - sample(16)) * 0.018f * gain, -1.0f, 1.0f);
-    body.leftArmLift      = clamp01(sample(17) * 0.03f * gain);
-    body.rightArmLift     = clamp01(sample(18) * 0.03f * gain);
-    body.leftHandGrip     = clamp01(sample(19) * 0.04f * gain);
-    body.rightHandGrip    = clamp01(sample(20) * 0.04f * gain);
-    body.leftLegStride    = std::clamp((sample(21) - sample(22)) * 0.02f * gain, -1.0f, 1.0f);
-    body.rightLegStride   = std::clamp((sample(23) - sample(24)) * 0.02f * gain, -1.0f, 1.0f);
-    body.locomotionForward= std::clamp((sample(2)  - sample(3))  * 0.02f * gain, -1.0f, 1.0f);
-    body.locomotionLateral= std::clamp((sample(1)  - sample(0))  * 0.02f * gain, -1.0f, 1.0f);
+    body.headYaw          = allowLook ? std::clamp((sample(9)  - sample(10)) * 0.02f  * gain, -1.0f, 1.0f) : 0.0f;
+    body.headPitch        = allowLook ? std::clamp((sample(11) - sample(12)) * 0.02f  * gain, -1.0f, 1.0f) : 0.0f;
+    body.torsoYaw         = allowLook ? std::clamp((sample(13) - sample(14)) * 0.018f * gain, -1.0f, 1.0f) : 0.0f;
+    body.torsoLean        = allowMove ? std::clamp((sample(15) - sample(16)) * 0.018f * gain, -1.0f, 1.0f) : 0.0f;
+    body.leftArmLift      = allowInteract ? clamp01(sample(17) * 0.03f * gain) : 0.0f;
+    body.rightArmLift     = allowInteract ? clamp01(sample(18) * 0.03f * gain) : 0.0f;
+    body.leftHandGrip     = allowInteract ? clamp01(sample(19) * 0.04f * gain) : 0.0f;
+    body.rightHandGrip    = allowInteract ? clamp01(sample(20) * 0.04f * gain) : 0.0f;
+    body.leftLegStride    = allowMove ? std::clamp((sample(21) - sample(22)) * 0.02f * gain, -1.0f, 1.0f) : 0.0f;
+    body.rightLegStride   = allowMove ? std::clamp((sample(23) - sample(24)) * 0.02f * gain, -1.0f, 1.0f) : 0.0f;
+    body.locomotionForward= allowMove ? std::clamp((sample(2)  - sample(3))  * 0.02f * gain, -1.0f, 1.0f) : 0.0f;
+    body.locomotionLateral= allowMove ? std::clamp((sample(1)  - sample(0))  * 0.02f * gain, -1.0f, 1.0f) : 0.0f;
 
     const float posturalRisk = clamp01(state.stress * 0.6f + (1.0f - state.attention) * 0.4f);
     body.balanceAssist = clamp01((1.0f - motorPrecision) * 0.5f + posturalRisk * 0.5f);

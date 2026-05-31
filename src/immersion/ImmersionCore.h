@@ -55,6 +55,9 @@ public:
 
     // [C] Accès à la dernière frame neurale produite
     NeuralSensoryFrame getLastNeuralFrame() const;
+    VirtualViewFrame getLastVirtualViewFrame() const;
+    VisualFieldFrame getLastVisualFieldFrame() const;
+    std::vector<float> getLastCompositeRenderFrame() const;
 
     // Modulation externe (conservée)
     void applyCognitiveContext(float emotionalLevel, float focusLevel);
@@ -86,8 +89,11 @@ private:
     float    emotionalMod_;
     float    focusMod_;
 
-    // [D] Dernière NeuralSensoryFrame produite
+    // [D] Dernière NeuralSensoryFrame produite + vue XR rendable
     NeuralSensoryFrame lastNeuralFrame_;
+    VirtualViewFrame lastViewFrame_;
+    VisualFieldFrame lastVisualFieldFrame_;
+    std::vector<float> lastCompositeRenderFrame_;
 
     mutable std::mutex mtx_;
     std::function<void(const std::vector<float>&)> onFrameBuilt_;

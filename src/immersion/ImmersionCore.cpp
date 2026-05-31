@@ -41,6 +41,20 @@ float clamp01(float v)        { return std::clamp(v, 0.0f, 1.0f); }
 float smoothStep(float current, float target, float factor) {
     return current + (target - current) * factor;
 }
+
+std::vector<float> composeRenderFrame(
+    const NeuralSensoryFrame& sensory,
+    const VirtualViewFrame& view,
+    const VisualFieldFrame& visualField)
+{
+    std::vector<float> frame = sensory.toVector();
+    const std::vector<float> viewChannels = view.toRenderVector();
+    const std::vector<float> fieldChannels = visualField.toRenderVector();
+    frame.reserve(frame.size() + viewChannels.size() + fieldChannels.size());
+    frame.insert(frame.end(), viewChannels.begin(), viewChannels.end());
+    frame.insert(frame.end(), fieldChannels.begin(), fieldChannels.end());
+    return frame;
+}
 } // namespace
 
 ImmersionCore::ImmersionCore()
@@ -82,6 +96,8 @@ NeuralSensoryFrame ImmersionCore::buildImmersiveFrameFromChip(
     // ── Étape 2 : Récupérer le SenseFrame et le NeuralSceneDescriptor ────
     const SenseFrame             senses = world_.getLastSenseFrame();
     const NeuralSceneDescriptor  scene  = world_.getLastSceneDescriptor();
+    const VirtualViewFrame       view   = world_.buildVirtualViewFrame();
+    const VisualFieldFrame       visualField = world_.buildVisualFieldFrame();
 
     // ── Étape 3 : [C] Boucle de neurofeedback fermée ─────────────────────
     // Le cue du pipeline (ex: "breathe_and_reduce_fx", "micro_rest_window")
@@ -94,14 +110,20 @@ NeuralSensoryFrame ImmersionCore::buildImmersiveFrameFromChip(
 
     // ── Étape 5 : Stocker et diffuser ─────────────────────────────────────
     lastNeuralFrame_ = neuralFrame;
+    lastViewFrame_ = view;
+    lastVisualFieldFrame_ = visualField;
+    lastCompositeRenderFrame_ = composeRenderFrame(neuralFrame, view, visualField);
     ++frameCounter_;
 
-    const std::vector<float> frameVec = neuralFrame.toVector();
-    if (onFrameBuilt_) onFrameBuilt_(frameVec);
+    if (onFrameBuilt_) onFrameBuilt_(lastCompositeRenderFrame_);
 
     Logger::info("[ImmersionCore] NeuralFrame #" + std::to_string(frameCounter_) +
                  " | scene=" + world_.getSceneName() +
                  " | biome=" + scene.biomeName +
+                 " | fov=" + std::to_string(view.fieldOfViewDeg) +
+                 " | visualField=" + std::to_string(visualField.horizontalFovDeg) + "x" +
+                 std::to_string(visualField.verticalFovDeg) +
+                 " | compositeChannels=" + std::to_string(lastCompositeRenderFrame_.size()) +
                  " | intensity=" + std::to_string(lastIntensity_) +
                  " | cue=" + diag.neurofeedbackCue);
 
@@ -207,6 +229,21 @@ std::vector<float> ImmersionCore::buildImmersiveFrame(
 NeuralSensoryFrame ImmersionCore::getLastNeuralFrame() const {
     std::lock_guard<std::mutex> lock(mtx_);
     return lastNeuralFrame_;
+}
+
+VirtualViewFrame ImmersionCore::getLastVirtualViewFrame() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return lastViewFrame_;
+}
+
+VisualFieldFrame ImmersionCore::getLastVisualFieldFrame() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return lastVisualFieldFrame_;
+}
+
+std::vector<float> ImmersionCore::getLastCompositeRenderFrame() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return lastCompositeRenderFrame_;
 }
 
 void ImmersionCore::applyCognitiveContext(float emotionalLevel, float focusLevel) {

@@ -136,6 +136,12 @@ add_executable(dnxr_open_interop_protocol_test
 )
 add_test(NAME dnxr_open_interop_protocol_test COMMAND dnxr_open_interop_protocol_test)
 
+add_executable(dnxr_neural_intent_protocol_test
+    tests/dnxr_neural_intent_protocol_test.cpp
+    src/network/NeuralIntentProtocol.cpp
+)
+add_test(NAME dnxr_neural_intent_protocol_test COMMAND dnxr_neural_intent_protocol_test)
+
 add_executable(dnxr_full_dive_orchestrator_integration_test
     tests/dnxr_full_dive_orchestrator_integration_test.cpp
     src/runtime/FullDiveOrchestrator.cpp
@@ -172,6 +178,7 @@ add_executable(dnxr_neural_chip_immersion_integration_test
     src/immersion/SensoryRenderer.cpp
     src/immersion/VirtualWorldState.cpp
     src/immersion/GameDesignBridge.cpp
+    src/rendering/XRRenderer.cpp
     src/utils/Logger.cpp
 )
 add_test(NAME dnxr_neural_chip_immersion_integration_test COMMAND dnxr_neural_chip_immersion_integration_test)

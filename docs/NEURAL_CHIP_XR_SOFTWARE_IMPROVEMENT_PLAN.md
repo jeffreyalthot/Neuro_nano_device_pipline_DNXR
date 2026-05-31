@@ -44,6 +44,20 @@ Normaliser la grammaire qui mappe les vecteurs neuraux vers les actions XR.
 - Compatibilité ascendante des schémas > 95%.
 - Résolution d'ambiguïté < 50 ms dans le runtime.
 
+### État d'implémentation courant
+- `NeuralIntentProtocol` publie `neuro.intent.embedding.v1.1` par défaut tout en acceptant `v1`.
+- L'ontologie expose les tokens XR `grab`, `rotate`, `interrupt`, `cancel`, `move`, `look` et `compose`.
+- Les intentions ambiguës sont bloquées en `none` avec recommandation de fallback voix/regard/gestuelle avant exécution.
+- Les actions critiques utilisent une confirmation temporelle courte avant autorisation d'exécution (`intent_confirmation_hold`).
+
+
+### Suite vue environnement virtuel
+- `VirtualWorldState` génère désormais une `VirtualViewFrame` caméra/projection/stéréo à partir du monde 3D neural.
+- `ImmersionCore` conserve la dernière vue XR rendable et `XRRenderer` peut la présenter directement via des canaux de rendu normalisés.
+- Le champ visuel interne (`VisualFieldFrame`) ajoute FOV binoculaire, zone fovéale, vision périphérique, profondeur et stabilité rétinienne pour renforcer l'immersion vécue depuis l'intérieur du monde.
+- La sortie immersive est maintenant composable en un paquet atomique 43 canaux (`sensory + view + visual field`) pour éviter une présentation XR fragmentée.
+- Le renderer valide le layout 43 canaux, les valeurs finies, la normalisation et le seuil d'énergie, puis expose compteurs de drop, raison de rejet, temps de frame, moyenne glissante, jitter, deadline manquée et profil qualité adaptatif (`full_quality`, `timing_recovery`, `drop_recovery`) avec compte à rebours de stabilisation avant retour en pleine qualité; un snapshot de télémétrie, un vecteur normalisé à 20 canaux nommés et une décision QoS (`stable`, `throttle`, `fallback`) regroupent validation, timing, qualité, compteurs, énergie et raison de rejet pour les dashboards QoS/contrôleurs ML, les offsets nommés du layout composite évitent les indices magiques côté intégration, et le profil actif est appliqué au paquet de présentation pour réduire la pression GPU tout en renforçant fovéation, confort et stabilité rétinienne.
+
 ## 4) Boucle de feedback neuro-adaptative
 ### Objectif
 Adapter l'immersion en continu selon l'état neuronal en minimisant charge cognitive et cybersickness.

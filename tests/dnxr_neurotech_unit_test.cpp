@@ -72,14 +72,27 @@ int main() {
     assert(!diagnostics.neurofeedbackCue.empty());
     assert(diagnostics.biometricFusionScore >= 0.0f && diagnostics.biometricFusionScore <= 1.0f);
     assert(!diagnostics.safetyMode.empty());
-    assert(diagnostics.safetyMode == "nominal" || diagnostics.safetyMode == "stability_guard" || diagnostics.safetyMode == "degraded_fallback");
+    assert(diagnostics.safetyMode == "nominal" || diagnostics.safetyMode == "stability_guard" ||
+           diagnostics.safetyMode == "degraded_fallback" || diagnostics.safetyMode == "intent_confirmation_hold" ||
+           diagnostics.safetyMode == "addiction_risk_mitigation");
     assert(diagnostics.neuralSignalQuality >= 0.0f && diagnostics.neuralSignalQuality <= 1.0f);
     assert(diagnostics.neuralSignalVariance >= 0.0f && diagnostics.neuralSignalVariance <= 1.0f);
     assert(diagnostics.stressAdaptationGain >= 0.0f && diagnostics.stressAdaptationGain <= 1.0f);
     assert(diagnostics.attentionLock >= 0.0f && diagnostics.attentionLock <= 1.0f);
 
     assert(diagnostics.intentConfidence >= 0.0f && diagnostics.intentConfidence <= 1.0f);
+    assert(diagnostics.intentAmbiguityMargin >= 0.0f && diagnostics.intentAmbiguityMargin <= 1.0f);
+    if (diagnostics.intentAmbiguityDetected) {
+        assert(diagnostics.intentFallbackRecommended);
+    }
+    assert(diagnostics.intentConfirmationCount >= 0);
+    if (diagnostics.intentExecutionAuthorized) {
+        assert(diagnostics.authorizedIntentToken == diagnostics.intentActionToken);
+    } else {
+        assert(diagnostics.authorizedIntentToken == "none");
+    }
     assert(!diagnostics.intentSchemaVersion.empty());
+    assert(!diagnostics.intentActionToken.empty());
     assert(diagnostics.jitterCompensation >= 0.0f && diagnostics.jitterCompensation <= 1.0f);
     assert(!diagnostics.fallbackChannel.empty());
     assert(diagnostics.inducedInfluence >= 0.0f && diagnostics.inducedInfluence <= 1.0f);
