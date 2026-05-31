@@ -30,6 +30,7 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 
 namespace dnxr {
 
@@ -45,7 +46,61 @@ constexpr float kTransitionSpeed    = 0.10f;
 float clamp01(float v)            { return std::max(0.0f, std::min(1.0f, v)); }
 float smoothBlend(float a, float b, float t) { return a + (b - a) * t; }
 
+float normalizeAngleDeg(float angle) {
+    float wrapped = std::fmod(angle + 180.0f, 360.0f);
+    if (wrapped < 0.0f) wrapped += 360.0f;
+    return (wrapped - 180.0f) / 180.0f;
+}
+
+float normalizeSignedRange(float value, float range) {
+    return std::clamp((value / range + 1.0f) * 0.5f, 0.0f, 1.0f);
+}
+
 } // namespace
+
+
+std::vector<float> VirtualViewFrame::toRenderVector() const {
+    return {
+        normalizeSignedRange(cameraX, 25.0f),
+        std::clamp(cameraY / 4.0f, 0.0f, 1.0f),
+        normalizeSignedRange(cameraZ, 25.0f),
+        std::clamp((normalizeAngleDeg(yawDeg) + 1.0f) * 0.5f, 0.0f, 1.0f),
+        std::clamp((pitchDeg + 90.0f) / 180.0f, 0.0f, 1.0f),
+        std::clamp(fieldOfViewDeg / 120.0f, 0.0f, 1.0f),
+        std::clamp(farPlane / 200.0f, 0.0f, 1.0f),
+        std::clamp(stereoSeparation / 0.10f, 0.0f, 1.0f),
+        std::clamp(stereoConvergence / 20.0f, 0.0f, 1.0f),
+        std::clamp(exposure, 0.0f, 1.0f),
+        std::clamp(contrast, 0.0f, 1.0f),
+        std::clamp(saturation, 0.0f, 1.0f),
+        std::clamp(fogDensity, 0.0f, 1.0f),
+        std::clamp(particleDensity, 0.0f, 1.0f),
+        std::clamp(horizonDepth, 0.0f, 1.0f),
+        std::clamp(frameStability, 0.0f, 1.0f)
+    };
+}
+
+
+std::vector<float> VisualFieldFrame::toRenderVector() const {
+    return {
+        std::clamp(horizontalFovDeg / 140.0f, 0.0f, 1.0f),
+        std::clamp(verticalFovDeg / 120.0f, 0.0f, 1.0f),
+        normalizeSignedRange(leftEyeYawOffsetDeg, 8.0f),
+        normalizeSignedRange(rightEyeYawOffsetDeg, 8.0f),
+        std::clamp(focalDepth / 20.0f, 0.0f, 1.0f),
+        std::clamp(fovealRadius, 0.0f, 1.0f),
+        std::clamp(peripheralAwareness, 0.0f, 1.0f),
+        std::clamp(peripheralBlur, 0.0f, 1.0f),
+        std::clamp(vignetteStrength, 0.0f, 1.0f),
+        std::clamp(motionComfort, 0.0f, 1.0f),
+        std::clamp(nearDepthLayer, 0.0f, 1.0f),
+        std::clamp(midDepthLayer, 0.0f, 1.0f),
+        std::clamp(farDepthLayer, 0.0f, 1.0f),
+        std::clamp(gazeFocusX, 0.0f, 1.0f),
+        std::clamp(gazeFocusY, 0.0f, 1.0f),
+        std::clamp(retinalStability, 0.0f, 1.0f)
+    };
+}
 
 VirtualWorldState::VirtualWorldState()
     : sceneName_("NeuralBootChamber"),
@@ -90,6 +145,13 @@ void VirtualWorldState::applyNeuralChipInput(
 
     // [B] Calcul des 5 sens depuis le vecteur cognitif neural
     lastSenseFrame_ = computeNeuralSenses(cognitive);
+    senseBlend_ = clamp01(
+        lastSenseFrame_.visualClarity * 0.25f +
+        lastSenseFrame_.visualDepth * 0.20f +
+        lastSenseFrame_.auditoryImmersion * 0.15f +
+        lastSenseFrame_.hapticDensity * 0.15f +
+        lastSenseFrame_.proprioceptiveLoad * 0.15f +
+        lastSenseFrame_.vestibularStability * 0.10f);
 
     // [C] Descripteur de scène 3D généré depuis le chip
     lastSceneDescriptor_ = buildNeuralSceneDescriptor(cognitive, adaptation);
@@ -449,6 +511,71 @@ std::string      VirtualWorldState::getSceneName()         const { std::lock_gua
 float            VirtualWorldState::getIntensity()         const { return intensity_.load(); }
 bool             VirtualWorldState::isDirty()              const { return dirtyFlag_.load(); }
 SenseFrame       VirtualWorldState::getLastSenseFrame()    const { std::lock_guard<std::mutex> l(mtx_); return lastSenseFrame_; }
+
+VirtualViewFrame VirtualWorldState::buildVirtualViewFrame() const {
+    std::lock_guard<std::mutex> l(mtx_);
+    VirtualViewFrame view;
+    view.cameraX = posX_;
+    view.cameraY = posY_ + 1.65f;
+    view.cameraZ = posZ_;
+    view.yawDeg = yawDeg_;
+    view.pitchDeg = pitchDeg_;
+    view.fieldOfViewDeg = std::clamp(82.0f + lastSceneDescriptor_.renderDistance * 22.0f -
+                                     lastSenseFrame_.vestibularStability * 4.0f,
+                                     70.0f, 110.0f);
+    view.nearPlane = 0.05f;
+    view.farPlane = 25.0f + lastSceneDescriptor_.renderDistance * 175.0f;
+    view.stereoSeparation = 0.058f + lastSenseFrame_.visualDepth * 0.014f;
+    view.stereoConvergence = 2.0f + lastSenseFrame_.visualDepth * 10.0f;
+    view.exposure = clamp01(lastSceneDescriptor_.ambientLuminosity * 0.65f +
+                            lastSenseFrame_.visualBrightness * 0.35f);
+    view.contrast = clamp01(0.35f + lastSenseFrame_.visualClarity * 0.45f +
+                            (1.0f - lastSceneDescriptor_.fogDensity) * 0.20f);
+    view.saturation = lastSceneDescriptor_.colorSaturation;
+    view.fogDensity = lastSceneDescriptor_.fogDensity;
+    view.particleDensity = lastSceneDescriptor_.particleDensity;
+    view.horizonDepth = lastSceneDescriptor_.renderDistance;
+    view.frameStability = clamp01(lastSceneDescriptor_.temporalCoherence * 0.65f +
+                                  lastSenseFrame_.vestibularStability * 0.35f);
+    view.sceneName = sceneName_;
+    view.biomeName = lastSceneDescriptor_.biomeName;
+    view.lightingMode = lastSceneDescriptor_.lightingMode;
+    return view;
+}
+
+
+VisualFieldFrame VirtualWorldState::buildVisualFieldFrame() const {
+    std::lock_guard<std::mutex> l(mtx_);
+    VisualFieldFrame field;
+    const float visualConfidence = clamp01(lastSenseFrame_.visualClarity * 0.50f +
+                                           lastSenseFrame_.visualDepth * 0.30f +
+                                           lastSenseFrame_.vestibularStability * 0.20f);
+    const float fatigueStress = clamp01(lastSceneDescriptor_.fogDensity * 0.55f +
+                                        (1.0f - lastSceneDescriptor_.temporalCoherence) * 0.45f);
+
+    field.horizontalFovDeg = std::clamp(88.0f + lastSceneDescriptor_.renderDistance * 34.0f - fatigueStress * 12.0f,
+                                        70.0f, 122.0f);
+    field.verticalFovDeg = std::clamp(field.horizontalFovDeg * 0.78f + lastSenseFrame_.visualDepth * 8.0f,
+                                      58.0f, 104.0f);
+    field.leftEyeYawOffsetDeg = -std::clamp(1.2f + lastSenseFrame_.visualDepth * 2.1f, 1.0f, 4.0f);
+    field.rightEyeYawOffsetDeg = -field.leftEyeYawOffsetDeg;
+    field.focalDepth = 1.5f + lastSceneDescriptor_.renderDistance * 12.0f;
+    field.fovealRadius = clamp01(0.16f + visualConfidence * 0.22f - fatigueStress * 0.08f);
+    field.peripheralAwareness = clamp01(0.38f + lastSenseFrame_.visualDepth * 0.34f +
+                                        lastSenseFrame_.vestibularStability * 0.28f);
+    field.peripheralBlur = clamp01(0.52f - lastSenseFrame_.visualClarity * 0.36f + fatigueStress * 0.28f);
+    field.vignetteStrength = clamp01(fatigueStress * 0.45f + (1.0f - lastSenseFrame_.vestibularStability) * 0.35f);
+    field.motionComfort = clamp01(lastSenseFrame_.vestibularStability * 0.65f +
+                                  lastSceneDescriptor_.temporalCoherence * 0.35f);
+    field.nearDepthLayer = clamp01(0.12f + lastSenseFrame_.visualDepth * 0.22f);
+    field.midDepthLayer = clamp01(0.38f + lastSceneDescriptor_.renderDistance * 0.28f);
+    field.farDepthLayer = clamp01(0.58f + lastSceneDescriptor_.renderDistance * 0.38f);
+    field.gazeFocusX = clamp01(0.5f + std::sin(yawDeg_ * 0.0174532925f) * 0.12f);
+    field.gazeFocusY = clamp01(0.5f - std::sin(pitchDeg_ * 0.0174532925f) * 0.18f);
+    field.retinalStability = clamp01(field.motionComfort * 0.55f + visualConfidence * 0.45f);
+    return field;
+}
+
 NeuralSceneDescriptor VirtualWorldState::getLastSceneDescriptor() const {
     std::lock_guard<std::mutex> l(mtx_); return lastSceneDescriptor_; }
 

@@ -28,6 +28,7 @@
 #include <atomic>
 #include <functional>
 #include <chrono>
+#include <vector>
 
 namespace dnxr {
 
@@ -78,6 +79,64 @@ struct NeuralSceneDescriptor {
     float temporalCoherence  = 1.0f;  // cohérence temporelle (anti-flicker neural) [0,1]
     std::string biomeName;            // biome généré ("deep_forest", "crystal_void", …)
     std::string lightingMode;         // mode d'éclairage ("neural_dawn", "focus_zenith", …)
+};
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VirtualViewFrame — vue caméra/stéréo de l'environnement virtuel
+// Ce frame est la passerelle concrète vers une image XR rendable : il combine
+// pose de caméra, projection, atmosphère, palette et stabilité perceptive.
+// ─────────────────────────────────────────────────────────────────────────────
+struct VirtualViewFrame {
+    float cameraX = 0.0f;
+    float cameraY = 1.65f;
+    float cameraZ = 0.0f;
+    float yawDeg = 0.0f;
+    float pitchDeg = 0.0f;
+    float fieldOfViewDeg = 90.0f;
+    float nearPlane = 0.05f;
+    float farPlane = 80.0f;
+    float stereoSeparation = 0.064f;
+    float stereoConvergence = 4.0f;
+    float exposure = 0.5f;
+    float contrast = 0.5f;
+    float saturation = 0.7f;
+    float fogDensity = 0.0f;
+    float particleDensity = 0.0f;
+    float horizonDepth = 0.5f;
+    float frameStability = 1.0f;
+    std::string sceneName;
+    std::string biomeName;
+    std::string lightingMode;
+
+    std::vector<float> toRenderVector() const;
+};
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VisualFieldFrame — champ visuel vécu depuis l'intérieur du monde virtuel
+// Il décrit la portion réellement visible par l'utilisateur: frustum binoculaire,
+// zone fovéale, vision périphérique, profondeur et stabilité rétinienne.
+// ─────────────────────────────────────────────────────────────────────────────
+struct VisualFieldFrame {
+    float horizontalFovDeg = 100.0f;
+    float verticalFovDeg = 90.0f;
+    float leftEyeYawOffsetDeg = -1.5f;
+    float rightEyeYawOffsetDeg = 1.5f;
+    float focalDepth = 4.0f;
+    float fovealRadius = 0.22f;
+    float peripheralAwareness = 0.75f;
+    float peripheralBlur = 0.20f;
+    float vignetteStrength = 0.10f;
+    float motionComfort = 0.85f;
+    float nearDepthLayer = 0.25f;
+    float midDepthLayer = 0.55f;
+    float farDepthLayer = 0.80f;
+    float gazeFocusX = 0.5f;
+    float gazeFocusY = 0.5f;
+    float retinalStability = 1.0f;
+
+    std::vector<float> toRenderVector() const;
 };
 
 class VirtualWorldState {
@@ -142,9 +201,11 @@ public:
     std::string getAvatarPoseSummary() const;
     float getFiveSenseBlend() const;
 
-    // Accès au dernier SenseFrame et NeuralSceneDescriptor produits
+    // Accès au dernier SenseFrame, NeuralSceneDescriptor et à la vue XR produits
     SenseFrame             getLastSenseFrame()  const;
     NeuralSceneDescriptor  getLastSceneDescriptor() const;
+    VirtualViewFrame       buildVirtualViewFrame() const;
+    VisualFieldFrame       buildVisualFieldFrame() const;
 
 private:
     void notifyObservers() const;

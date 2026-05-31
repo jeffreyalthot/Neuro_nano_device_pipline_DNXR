@@ -83,9 +83,16 @@ struct NeuroPipelineDiagnostics {
     float neuralSignalVariance = 0.0f;
     float visualHarmonyIndex = 0.0f;
     float intentConfidence = 0.0f;
+    float intentAmbiguityMargin = 0.0f;
+    bool intentAmbiguityDetected = false;
+    bool intentFallbackRecommended = false;
+    bool intentExecutionAuthorized = false;
+    int intentConfirmationCount = 0;
     float jitterCompensation = 0.0f;
     std::string fallbackChannel;
     std::string intentSchemaVersion;
+    std::string intentActionToken{"none"};
+    std::string authorizedIntentToken{"none"};
     float inducedInfluence = 0.0f;
     float decisionDrift = 0.0f;
     float autonomyPreservation = 1.0f;
@@ -156,6 +163,8 @@ private:
     std::size_t historyLimit_;
     NeuroPipelineDiagnostics lastDiagnostics_;
     XRFullBodyCommand lastBodyCommand_;
+    std::string lastIntentToken_{"none"};
+    int intentConfirmationCount_ = 0;
     RuntimePlatformProfile platformProfile_ = RuntimePlatformProfile::Generic;
 };
 
