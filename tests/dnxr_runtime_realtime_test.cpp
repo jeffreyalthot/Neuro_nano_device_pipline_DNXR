@@ -1,9 +1,11 @@
 #include "../src/core/NeuroRealtimeScheduler.h"
 #include "../src/utils/DeterministicSessionReplay.h"
 #include "../src/utils/SessionSafetyJournal.h"
+#include "../src/utils/RuntimeMetrics.h"
 #include "../src/utils/TimeSync.h"
 
 #include <cassert>
+#include <string>
 #include <thread>
 
 int main() {
@@ -32,6 +34,57 @@ int main() {
     assert(!replay.hasNext());
     replay.resetCursor();
     assert(replay.hasNext());
+
+    dnxr::RuntimeMetrics metrics(10.0, 3);
+    metrics.recordCycleMeasurement(4.0);
+    metrics.recordCycleMeasurement(8.0);
+    metrics.recordCycleMeasurement(12.0, false, true, "simulated_guardrail_trip");
+    metrics.recordCycleMeasurement(20.0);
+    const auto metricsSnapshot = metrics.snapshot();
+    assert(metricsSnapshot.totalCycles == 4);
+    assert(metricsSnapshot.lastLatencyMs == 20.0);
+    assert(metricsSnapshot.maxLatencyMs == 20.0);
+    assert(metricsSnapshot.avgLatencyMs == 11.0);
+    assert(metricsSnapshot.jitterMs > 0.0);
+    assert(metricsSnapshot.p95LatencyMs == 20.0);
+    assert(metricsSnapshot.p99LatencyMs == 20.0);
+    assert(metricsSnapshot.latencyBudgetMs == 10.0);
+    assert(metricsSnapshot.latencyBudgetExceededCount == 2);
+    assert(metricsSnapshot.windowBudgetExceededCount == 2);
+    assert(metricsSnapshot.latencyHealthTransitionCount == 2);
+    assert(metricsSnapshot.consecutiveNonStableCycles == 2);
+    assert(metrics.latencyHealthTransitionCount() == 2);
+    assert(metrics.consecutiveNonStableCycles() == 2);
+    assert(metrics.safetyEventCount() == 1);
+    assert(metricsSnapshot.safetyEventCount == 1);
+    assert(metricsSnapshot.latencyHealth == dnxr::RuntimeLatencyHealth::Fallback);
+    assert(metrics.latencyHealth() == dnxr::RuntimeLatencyHealth::Fallback);
+    assert(std::string(dnxr::runtimeLatencyHealthToString(metrics.latencyHealth())) == "fallback");
+    const std::string metricsPayload = dnxr::runtimeMetricsSnapshotToEventPayload(metricsSnapshot);
+    assert(metricsPayload.find("metrics:latency_health=fallback") != std::string::npos);
+    assert(metricsPayload.find("|total_cycles=4") != std::string::npos);
+    assert(metricsPayload.find("|safety_events=1") != std::string::npos);
+    assert(metricsPayload.find("|latency_budget_ms=10.000000") != std::string::npos);
+    assert(metricsPayload.find("|budget_exceeded_total=2") != std::string::npos);
+    assert(metricsPayload.find("|budget_exceeded=2") != std::string::npos);
+    assert(metricsPayload.find("|health_transitions=2") != std::string::npos);
+    assert(metricsPayload.find("|non_stable_streak=2") != std::string::npos);
+    metrics.recordCycleMeasurement(4.0);
+    metrics.recordCycleMeasurement(4.0);
+    metrics.recordCycleMeasurement(4.0);
+    const auto recoveredMetricsSnapshot = metrics.snapshot();
+    assert(recoveredMetricsSnapshot.latencyHealth == dnxr::RuntimeLatencyHealth::Stable);
+    assert(recoveredMetricsSnapshot.latencyHealthTransitionCount == 3);
+    assert(recoveredMetricsSnapshot.consecutiveNonStableCycles == 0);
+    assert(recoveredMetricsSnapshot.windowBudgetExceededCount == 0);
+    metrics.setLatencyBudgetMs(3.0);
+    const auto reconfiguredMetricsSnapshot = metrics.snapshot();
+    assert(reconfiguredMetricsSnapshot.latencyBudgetMs == 3.0);
+    assert(reconfiguredMetricsSnapshot.latencyHealth == dnxr::RuntimeLatencyHealth::Throttle);
+    assert(reconfiguredMetricsSnapshot.latencyHealthTransitionCount == 4);
+    assert(reconfiguredMetricsSnapshot.consecutiveNonStableCycles == 0);
+    assert(reconfiguredMetricsSnapshot.windowBudgetExceededCount == 3);
+    assert(std::string(dnxr::runtimeLatencyHealthToString(reconfiguredMetricsSnapshot.latencyHealth)) == "throttle");
 
     dnxr::TimeSync::reset();
     const auto ts1 = dnxr::TimeSync::nowMs();

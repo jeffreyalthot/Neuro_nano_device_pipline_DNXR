@@ -11,6 +11,7 @@
 
 #include "NeuroRealtimeScheduler.h"
 #include "../utils/DeterministicSessionReplay.h"
+#include "../utils/RuntimeMetrics.h"
 #include "../network/NeuralCryptoTransport.h"
 #include "../safety/NeuralIdentityVault.h"
 
@@ -42,6 +43,8 @@ public:
     /// Expose quelques compteurs runtime.
     uint64_t getCycleCount() const;
     uint64_t getDroppedFrames() const;
+    RuntimeMetricsSnapshot getRuntimeMetricsSnapshot() const;
+    RuntimeLatencyHealth getRuntimeLatencyHealth() const;
 
     /// Attache un callback pour rapporter les états du pipeline à un superviseur.
     void setRuntimeEventCallback(const std::function<void(const std::string&)>& cb);
@@ -49,6 +52,8 @@ public:
 private:
     void throttle(const std::chrono::high_resolution_clock::time_point& start);
     void throttleEmergency();
+    bool shouldApplyRendererQoS(const RuntimeMetricsSnapshot& snapshot) const;
+    void publishRuntimeMetrics(const RuntimeMetricsSnapshot& snapshot);
 
     // Initialisation centralisée des modules
     void initializeModules();
@@ -59,6 +64,8 @@ private:
     int frameBudgetMs_;
     uint64_t droppedFrames_;
     NeuroRealtimeScheduler scheduler_;
+    RuntimeMetrics runtimeMetrics_;
+    mutable std::mutex metricsMutex_;
     DeterministicSessionReplay replay_;
     NeuralCryptoTransport crypto_;
     std::unique_ptr<class SessionSafetyJournal> safetyJournal_;

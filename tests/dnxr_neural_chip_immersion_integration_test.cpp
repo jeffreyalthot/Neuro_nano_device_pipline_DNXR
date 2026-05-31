@@ -2,6 +2,7 @@
 #include "../src/immersion/ImmersionCore.h"
 #include "../src/immersion/SensoryRenderer.h"
 #include "../src/rendering/XRRenderer.h"
+#include "../src/utils/RuntimeMetrics.h"
 
 #include <cassert>
 #include <cmath>
@@ -145,6 +146,20 @@ int main() {
     assert(!stableDecision.throttleRecommended);
     assert(!stableDecision.fallbackRecommended);
     assert(std::string(stableDecision.qosMode) == "stable");
+
+    dnxr::XRRenderer runtimeQoSRenderer;
+    runtimeQoSRenderer.applyRuntimeLatencyHealth(dnxr::RuntimeLatencyHealth::Throttle);
+    const dnxr::XRRenderQualityProfile runtimeThrottleQuality = runtimeQoSRenderer.getAdaptiveQualityProfile();
+    assert(runtimeThrottleQuality.degradedQuality);
+    assert(runtimeThrottleQuality.reprojectionEnabled);
+    assert(std::string(runtimeThrottleQuality.qualityMode) == "timing_recovery");
+    assert(runtimeThrottleQuality.recoveryFramesRemaining == 2U);
+    runtimeQoSRenderer.applyRuntimeLatencyHealth(dnxr::RuntimeLatencyHealth::Fallback);
+    const dnxr::XRRenderQualityProfile runtimeFallbackQuality = runtimeQoSRenderer.getAdaptiveQualityProfile();
+    assert(runtimeFallbackQuality.degradedQuality);
+    assert(std::string(runtimeFallbackQuality.qualityMode) == "drop_recovery");
+    assert(runtimeFallbackQuality.recoveryFramesRemaining == 3U);
+    assert(runtimeFallbackQuality.resolutionScale < runtimeThrottleQuality.resolutionScale);
 
     std::vector<float> invalidComposite = rendererComposite;
     invalidComposite.push_back(0.5F);

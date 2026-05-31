@@ -117,6 +117,7 @@ RuntimeController::RuntimeController()
       frameBudgetMs_(11),   // ~90 Hz
       droppedFrames_(0),
       scheduler_(20.0),
+      runtimeMetrics_(static_cast<double>(frameBudgetMs_), 256),
       cycleCounter_(0),
       lastState_("init") {
     safetyJournal_ = std::make_unique<SessionSafetyJournal>();
@@ -243,6 +244,21 @@ void RuntimeController::shutdownModules() {
 
 void RuntimeController::runSingleCycle(double timestamp) {
     SchedulerTickReport tickReport = scheduler_.beginTick();
+    auto finishCycle = [&](bool safeDecision, bool emergencyActive, const std::string& reason) {
+        scheduler_.endTick(tickReport);
+        RuntimeMetricsSnapshot snapshot;
+        {
+            std::lock_guard<std::mutex> lock(metricsMutex_);
+            runtimeMetrics_.recordCycleMeasurement(
+                tickReport.totalMs,
+                safeDecision,
+                emergencyActive,
+                reason);
+            snapshot = runtimeMetrics_.snapshot();
+        }
+        publishRuntimeMetrics(snapshot);
+        return snapshot;
+    };
 
     // Lecture biométrique
     const auto tAcq = std::chrono::steady_clock::now();
@@ -250,6 +266,8 @@ void RuntimeController::runSingleCycle(double timestamp) {
     if (!guard_->enforce(telemetry)) {
         emergency_->trigger();
         Logger::warn("⚠️  Physiological guard triggered.");
+        finishCycle(false, true, "physiological_guard_triggered");
+        ++cycleCounter_;
         throttleEmergency();
         return;
     }
@@ -263,6 +281,8 @@ void RuntimeController::runSingleCycle(double timestamp) {
     scheduler_.endTask("acquisition", tAcq, tickReport);
     if (raw.empty()) {
         Logger::warn("⚠️  Empty neural signal frame.");
+        finishCycle(false, false, "empty_neural_signal_frame");
+        ++cycleCounter_;
         return;
     }
 
@@ -301,7 +321,7 @@ void RuntimeController::runSingleCycle(double timestamp) {
     if (!inferenceOk) {
         ++droppedFrames_;
         Logger::warn("⚠️ Inference budget exceeded — frame degraded, skipping render. task=inference");
-        scheduler_.endTick(tickReport);
+        finishCycle(true, false, "inference_budget_exceeded");
         ++cycleCounter_;
         return;  // cycle dégradé : on saute le rendu pour ne pas aggraver le jitter
     }
@@ -362,7 +382,7 @@ void RuntimeController::runSingleCycle(double timestamp) {
         Logger::error("[SafetyGovernor] Emergency stop before render | " +
                       safetyDecision.reason + " | " + safetyDecision.auditRecord +
                       " | journal=" + safetyAudit.eventHash);
-        scheduler_.endTick(tickReport);
+        finishCycle(false, true, "safety_governor:" + safetyDecision.reason);
         ++cycleCounter_;
         return;
     }
@@ -413,7 +433,7 @@ void RuntimeController::runSingleCycle(double timestamp) {
         emergency_->trigger();
         Logger::error("[NeuralChipHAL] Safe stimulus command rejected before node dispatch. journal=" +
                       rejectionAudit.eventHash);
-        scheduler_.endTick(tickReport);
+        finishCycle(false, true, "unsafe_stimulus_rejected");
         ++cycleCounter_;
         return;
     }
@@ -421,14 +441,16 @@ void RuntimeController::runSingleCycle(double timestamp) {
     auto down = bridge_->downlink(frame);
     nodes_->writeNeuralStimulus(down);
 
-    scheduler_.endTick(tickReport);
+    const RuntimeMetricsSnapshot metricsSnapshot = finishCycle(true, false, "nominal_runtime");
 
     if (!tickReport.withinBudget) {
         ++droppedFrames_;
         Logger::warn("⚠️ Runtime frame budget exceeded total_ms="
                      + std::to_string(tickReport.totalMs)
                      + " jitter_ms=" + std::to_string(tickReport.jitterMs)
-                     + " over_budget_tasks=" + std::to_string(tickReport.overBudgetTaskCount));
+                     + " over_budget_tasks=" + std::to_string(tickReport.overBudgetTaskCount)
+                     + " p99_ms=" + std::to_string(metricsSnapshot.p99LatencyMs)
+                     + " latency_health=" + runtimeLatencyHealthToString(metricsSnapshot.latencyHealth));
     }
 
     ++cycleCounter_;
@@ -468,6 +490,8 @@ void RuntimeController::throttleEmergency() {
 
 void RuntimeController::setFrameBudgetMs(int ms) {
     frameBudgetMs_ = std::max(1, ms);
+    std::lock_guard<std::mutex> lock(metricsMutex_);
+    runtimeMetrics_.setLatencyBudgetMs(static_cast<double>(frameBudgetMs_));
 }
 
 int RuntimeController::getFrameBudgetMs() const {
@@ -482,7 +506,69 @@ std::string RuntimeController::getLastState() const {
 uint64_t RuntimeController::getCycleCount()    const { return cycleCounter_; }
 uint64_t RuntimeController::getDroppedFrames() const { return droppedFrames_; }
 
+RuntimeMetricsSnapshot RuntimeController::getRuntimeMetricsSnapshot() const {
+    std::lock_guard<std::mutex> lock(metricsMutex_);
+    return runtimeMetrics_.snapshot();
+}
+
+RuntimeLatencyHealth RuntimeController::getRuntimeLatencyHealth() const {
+    std::lock_guard<std::mutex> lock(metricsMutex_);
+    return runtimeMetrics_.latencyHealth();
+}
+
+bool RuntimeController::shouldApplyRendererQoS(const RuntimeMetricsSnapshot& snapshot) const {
+    if (snapshot.latencyHealth == RuntimeLatencyHealth::Stable) {
+        return true;
+    }
+    if (snapshot.latencyHealth == RuntimeLatencyHealth::Fallback) {
+        return true;
+    }
+    return snapshot.consecutiveNonStableCycles >= 2U || snapshot.windowBudgetExceededCount >= 2U;
+}
+
+void RuntimeController::publishRuntimeMetrics(const RuntimeMetricsSnapshot& snapshot) {
+    const bool applyRendererQoS = shouldApplyRendererQoS(snapshot);
+    const char* rendererQosMode = "unavailable";
+    const char* rendererQualityMode = "unavailable";
+
+    if (renderer_) {
+        if (applyRendererQoS) {
+            renderer_->applyRuntimeLatencyHealth(snapshot.latencyHealth);
+        }
+        rendererQosMode = renderer_->evaluateQoSDecision().qosMode;
+        rendererQualityMode = renderer_->getAdaptiveQualityProfile().qualityMode;
+    }
+
+    std::function<void(const std::string&)> callback;
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        callback = eventCallback_;
+    }
+
+    if (callback) {
+        callback(
+            runtimeMetricsSnapshotToEventPayload(snapshot) +
+            "|renderer_qos_applied=" + (applyRendererQoS ? "1" : "0") +
+            "|renderer_qos=" + rendererQosMode +
+            "|renderer_quality=" + rendererQualityMode);
+    }
+
+    if (snapshot.latencyHealth != RuntimeLatencyHealth::Stable) {
+        Logger::warn(
+            std::string("[RuntimeMetrics] latency_health=") + runtimeLatencyHealthToString(snapshot.latencyHealth) +
+            " p95_ms=" + std::to_string(snapshot.p95LatencyMs) +
+            " p99_ms=" + std::to_string(snapshot.p99LatencyMs) +
+            " window_budget_exceeded=" + std::to_string(snapshot.windowBudgetExceededCount) +
+            " health_transitions=" + std::to_string(snapshot.latencyHealthTransitionCount) +
+            " non_stable_streak=" + std::to_string(snapshot.consecutiveNonStableCycles) +
+            " renderer_qos_applied=" + (applyRendererQoS ? "1" : "0") +
+            " renderer_qos=" + rendererQosMode +
+            " renderer_quality=" + rendererQualityMode);
+    }
+}
+
 void RuntimeController::setRuntimeEventCallback(const std::function<void(const std::string&)>& cb) {
+    std::lock_guard<std::mutex> lock(mtx_);
     eventCallback_ = cb;
 }
 

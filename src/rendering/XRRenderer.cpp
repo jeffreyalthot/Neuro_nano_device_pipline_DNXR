@@ -4,6 +4,7 @@
 
 #include "../immersion/VirtualWorldState.h"
 #include "../utils/Logger.h"
+#include "../utils/RuntimeMetrics.h"
 
 #include <algorithm>
 #include <chrono>
@@ -351,6 +352,28 @@ std::vector<float> XRRenderer::getTelemetryVector() const {
     telemetry[kTelemetryRecoveryFramesChannel] = std::clamp(static_cast<float>(snapshot.quality.recoveryFramesRemaining) / 3.0f, 0.0f, 1.0f);
     telemetry[kTelemetryQualityModeChannel] = qualityModeToken(snapshot.quality.qualityMode);
     return telemetry;
+}
+
+
+void XRRenderer::applyRuntimeLatencyHealth(RuntimeLatencyHealth health) const {
+    switch (health) {
+    case RuntimeLatencyHealth::Fallback:
+        qualityRecoveryFrames_ = std::max(qualityRecoveryFrames_, 3U);
+        setDropRecoveryProfile(adaptiveQuality_);
+        adaptiveQuality_.recoveryFramesRemaining = qualityRecoveryFrames_;
+        return;
+    case RuntimeLatencyHealth::Throttle:
+        qualityRecoveryFrames_ = std::max(qualityRecoveryFrames_, 2U);
+        setTimingRecoveryProfile(adaptiveQuality_);
+        adaptiveQuality_.recoveryFramesRemaining = qualityRecoveryFrames_;
+        return;
+    case RuntimeLatencyHealth::Stable:
+        if (qualityRecoveryFrames_ == 0U) {
+            setFullQualityProfile(adaptiveQuality_);
+            adaptiveQuality_.recoveryFramesRemaining = 0U;
+        }
+        return;
+    }
 }
 
 XRRenderQoSDecision XRRenderer::evaluateQoSDecision() const {
