@@ -15,6 +15,7 @@ int main() {
       "max_vestibular_intensity": 0.2,
       "max_chemical_intensity": 0.2,
       "max_body_intensity": 0.4,
+      "max_proprioceptive_intensity": 0.4,
       "max_delta_per_frame": 0.12,
       "heartbeat_timeout_ms": 100.0,
       "latency_budget_ms": 12.0,
@@ -29,7 +30,7 @@ int main() {
     assert(profile.profile == "unit_test_profile");
     assert(profile.configVersion == 7);
     assert(profile.maxInducedVectorNorm == 0.10f);
-    assert(profile.maxVestibularIntensity <= profile.maxHapticIntensity);
+    assert(profile.maxVestibularIntensity <= profile.maxProprioceptiveIntensity);
     assert(profile.maxChemicalIntensity == 0.2f);
     assert(profile.maxBodyIntensity == 0.4f);
     assert(profile.maxDeltaPerFrame == 0.12f);

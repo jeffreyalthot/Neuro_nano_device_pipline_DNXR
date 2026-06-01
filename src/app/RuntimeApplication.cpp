@@ -10,6 +10,7 @@
 #include "../rendering/XRRenderer.h"
 #include "../runtime/RuntimeState.h"
 #include "../runtime/RuntimeTypes.h"
+#include "../security/SecretProvider.h"
 #include "../safety/EmergencyShutdown.h"
 #include "../safety/PhysiologicalGuard.h"
 #include "../safety/StabilityMonitor.h"
@@ -65,7 +66,7 @@ int RuntimeApplication::run() {
     XRHeadsetInterface headset({
         config_.xrEndpoint,
         config_.xrDeviceId,
-        config_.xrAuthToken,
+        SecretProvider::resolve("xr_auth_token", config_.xrAuthTokenEnv).value,
         config_.simulationMode,
         config_.xrTargetFramerate,
         120.0f,

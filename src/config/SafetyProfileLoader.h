@@ -14,6 +14,7 @@ struct SafetyRuntimeProfile {
     float maxVestibularIntensity = 0.35f;
     float maxChemicalIntensity = 0.35f;
     float maxBodyIntensity = 0.60f;
+    float maxProprioceptiveIntensity = 0.60f;
     float maxDeltaPerFrame = 0.18f;
     double heartbeatTimeoutMs = 250.0;
     double latencyBudgetMs = 25.0;
@@ -22,6 +23,10 @@ struct SafetyRuntimeProfile {
     int maxSessionMinutes = 30;
     bool physiologyEnforcement = true;
     bool emergencyStopEnabled = true;
+    float minFullDiveStability = 0.35f;
+    float minTemporalCoherence = 0.25f;
+    float minVestibularStability = 0.25f;
+    float minMotorPredictionAccuracy = 0.25f;
 };
 
 class SafetyProfileLoader {

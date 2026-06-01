@@ -30,8 +30,8 @@ int main() {
     decision.allowRender = true;
 
     dnxr::SafeNeuralStimulusCommand command =
-        envelope.buildCommand(frame.sequenceId, {1.0F, -1.0F, 0.3F, 0.9F, 0.1F, 0.8F, 0.1F, 0.6F, 0.6F, 0.7F}, decision);
-    assert(command.allowHardwareWrite);
+        envelope.buildCommand(frame.sequenceId, {1.0F, -1.0F, 0.3F, 0.9F, 0.1F, 0.8F, 0.1F, 0.6F, 0.6F, 0.7F, 0.5F, 0.5F}, decision);
+    assert(command.allowStimulusDispatch);
     assert(command.boundedChannels[0] <= 0.15F);
     assert(command.modalityIntensities.size() == dnxr::NeuralStimulusSafetyEnvelope::modalityCount());
     assert(command.fiveSenseCoverage);
@@ -43,17 +43,17 @@ int main() {
     assert(dnxr::NeuralStimulusSafetyEnvelope::modalityForChannel(8U) ==
            dnxr::SensoryModality::ChemicalTasteSmell);
     assert(dnxr::NeuralStimulusSafetyEnvelope::modalityForChannel(9U) ==
-           dnxr::SensoryModality::ProprioceptiveVestibular);
+           dnxr::SensoryModality::Proprioceptive);
     assert(hal.writeSafeStimulus(command));
     assert(hal.lastAcceptedStimulus().sequenceId == frame.sequenceId);
 
     decision.riskScore = 0.95F;
     command = envelope.buildCommand(frame.sequenceId + 1U, {0.1F, 0.2F}, decision);
-    assert(!command.allowHardwareWrite);
+    assert(!command.allowStimulusDispatch);
     assert(!command.fiveSenseCoverage);
     assert(!hal.writeSafeStimulus(command));
 
-    command.allowHardwareWrite = true;
+    command.allowStimulusDispatch = true;
     command.riskScore = 0.2F;
     command.modalityIntensities.clear();
     assert(!hal.writeSafeStimulus(command));

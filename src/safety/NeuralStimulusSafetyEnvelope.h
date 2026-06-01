@@ -19,6 +19,8 @@ struct UserNeuralCalibrationProfile {
     float maxChemicalIntensity = 0.35f;
     float maxBodyIntensity = 0.60f;
     float maxDeltaPerFrame = 0.20f;
+    float maxVestibularIntensity = 0.35f;
+    float maxProprioceptiveIntensity = 0.60f;
 };
 
 enum class SensoryModality : std::size_t {
@@ -26,8 +28,9 @@ enum class SensoryModality : std::size_t {
     Auditory = 1,
     HapticTouch = 2,
     ChemicalTasteSmell = 3,
-    ProprioceptiveVestibular = 4,
-    Count = 5
+    Proprioceptive = 4,
+    Vestibular = 5,
+    Count = 6
 };
 
 struct NeuralStimulusModalityBudget {

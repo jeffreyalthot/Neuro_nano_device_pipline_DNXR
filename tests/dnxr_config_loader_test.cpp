@@ -21,7 +21,7 @@ int main() {
         "simulation_dropout_every_cycles": 4294967297,
         "xr_endpoint": "wss://xr.test",
         "xr_device_id": "headset-test",
-        "xr_auth_token": "token-test",
+        "xr_auth_token_env": "DNXR_TEST_XR_TOKEN",
         "xr_target_framerate": 999,
         "xr_async_telemetry": false,
         "simulated_signal": [0.1, 0.2, 0.3]
@@ -42,7 +42,7 @@ int main() {
     assert(config.simulationDropoutEveryCycles == 4294967297ULL);
     assert(config.xrEndpoint == "wss://xr.test");
     assert(config.xrDeviceId == "headset-test");
-    assert(config.xrAuthToken == "token-test");
+    assert(config.xrAuthTokenEnv == "DNXR_TEST_XR_TOKEN");
     assert(config.xrTargetFramerate == 240U);
     assert(!config.xrAsyncTelemetry);
     assert(config.simulatedSignal.size() == 3U);

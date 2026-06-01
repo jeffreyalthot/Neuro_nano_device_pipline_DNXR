@@ -6,6 +6,7 @@
   "max_audio_intensity": 0.85,
   "max_haptic_intensity": 0.70,
   "max_vestibular_intensity": 0.35,
+  "max_proprioceptive_intensity": 0.60,
   "max_chemical_intensity": 0.35,
   "max_body_intensity": 0.60,
   "max_delta_per_frame": 0.18,
@@ -15,5 +16,9 @@
   "max_cognitive_load": 0.75,
   "max_drift_score": 0.85,
   "physiology_enforcement": true,
-  "emergency_stop_enabled": true
+  "emergency_stop_enabled": true,
+  "min_full_dive_stability": 0.35,
+  "min_temporal_coherence": 0.25,
+  "min_vestibular_stability": 0.25,
+  "min_motor_prediction_accuracy": 0.25
 }

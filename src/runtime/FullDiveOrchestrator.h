@@ -3,14 +3,23 @@
 #include <memory>
 
 namespace neuroxr {
-
-class FullDiveSynchronizationEngine;
 class DistributedConsciousnessNetwork;
 class RecursiveMemoryReconstructionEngine;
 class SubjectiveTimeDilationEngine;
 class NeuralQuantumEntanglementEngine;
 class AffectiveResonanceMatrix;
 class SubconsciousSimulationEngine;
+}
+
+namespace dnxr {
+
+class FullDiveSynchronizationEngine;
+using ::neuroxr::AffectiveResonanceMatrix;
+using ::neuroxr::DistributedConsciousnessNetwork;
+using ::neuroxr::NeuralQuantumEntanglementEngine;
+using ::neuroxr::RecursiveMemoryReconstructionEngine;
+using ::neuroxr::SubjectiveTimeDilationEngine;
+using ::neuroxr::SubconsciousSimulationEngine;
 
 struct FullDiveState {
 
@@ -115,4 +124,9 @@ private:
     FullDiveState state_;
 };
 
+} // namespace dnxr
+
+namespace neuroxr {
+using FullDiveState = ::dnxr::FullDiveState;
+using FullDiveOrchestrator = ::dnxr::FullDiveOrchestrator;
 }

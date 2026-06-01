@@ -7,6 +7,8 @@
 #include <thread>
 #include <vector>
 
+#include "../config/SafetyProfileLoader.h"
+
 #include "../neuro/BrainStateTopology.h"
 #include "../neural/NeuralOscillationModel.h"
 #include "../neural/MotorPredictionLoop.h"
@@ -26,7 +28,21 @@
 
 #include "../time/SubjectiveTimeEngine.h"
 
-namespace neuroxr {
+namespace dnxr {
+
+using ::neuroxr::AffectiveRealityEngine;
+using ::neuroxr::BrainStateTopology;
+using ::neuroxr::ImmersiveMemoryPersistenceEngine;
+using ::neuroxr::MotorPredictionLoop;
+using ::neuroxr::NeuralOscillationModel;
+using ::neuroxr::NeuralPerceptionSynthesizer;
+using ::neuroxr::OscillationBand;
+using ::neuroxr::PersistentNeuroCognitiveTwin;
+using ::neuroxr::SocialPresenceEngine;
+using ::neuroxr::SubjectiveContinuityEngine;
+using ::neuroxr::SubjectiveTimeEngine;
+using ::neuroxr::SyntheticProprioceptionLayer;
+using ::neuroxr::VestibularEmulationEngine;
 
 struct FullDiveRuntimeState {
 
@@ -59,6 +75,8 @@ struct FullDiveRuntimeState {
     bool neuralOverloadDetected;
 };
 
+struct FullDiveRuntimeInput;
+
 class FullDiveSynchronizationEngine {
 public:
 
@@ -74,6 +92,10 @@ public:
 
     void update(
         float deltaTime);
+
+    void updateFromRuntime(const FullDiveRuntimeInput& input);
+
+    void configureSafetyThresholds(const SafetyRuntimeProfile& profile);
 
     void synchronizeNeuralSystems();
 
@@ -152,25 +174,13 @@ private:
 
     FullDiveRuntimeState
     runtimeState_;
-};
 
-} // namespace neuroxr
-
-namespace dnxr {
-
-struct FullDiveRuntimeState : public ::neuroxr::FullDiveRuntimeState {
-    FullDiveRuntimeState() = default;
-    FullDiveRuntimeState(const ::neuroxr::FullDiveRuntimeState& state)
-        : ::neuroxr::FullDiveRuntimeState(state) {}
-};
-
-class FullDiveSynchronizationEngine final : public ::neuroxr::FullDiveSynchronizationEngine {
-public:
-    using ::neuroxr::FullDiveSynchronizationEngine::FullDiveSynchronizationEngine;
-
-    FullDiveRuntimeState getState() const {
-        return FullDiveRuntimeState(::neuroxr::FullDiveSynchronizationEngine::getState());
-    }
+    SafetyRuntimeProfile safetyProfile_;
 };
 
 } // namespace dnxr
+
+namespace neuroxr {
+using FullDiveRuntimeState = ::dnxr::FullDiveRuntimeState;
+using FullDiveSynchronizationEngine = ::dnxr::FullDiveSynchronizationEngine;
+}

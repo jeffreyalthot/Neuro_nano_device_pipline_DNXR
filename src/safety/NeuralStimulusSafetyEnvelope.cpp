@@ -58,7 +58,10 @@ SensoryModality NeuralStimulusSafetyEnvelope::modalityForChannel(std::size_t ind
     if (index <= 8U) {
         return SensoryModality::ChemicalTasteSmell;
     }
-    return SensoryModality::ProprioceptiveVestibular;
+    if (index <= 10U) {
+        return SensoryModality::Proprioceptive;
+    }
+    return SensoryModality::Vestibular;
 }
 
 float NeuralStimulusSafetyEnvelope::channelLimit(std::size_t index) const {
@@ -71,12 +74,15 @@ float NeuralStimulusSafetyEnvelope::channelLimit(std::size_t index) const {
             return profile_.maxHapticIntensity;
         case SensoryModality::ChemicalTasteSmell:
             return profile_.maxChemicalIntensity;
-        case SensoryModality::ProprioceptiveVestibular:
+        case SensoryModality::Proprioceptive:
+            return profile_.maxProprioceptiveIntensity;
+        case SensoryModality::Vestibular:
+            return profile_.maxVestibularIntensity;
         case SensoryModality::Count:
-            return profile_.maxBodyIntensity;
+            return profile_.maxVestibularIntensity;
     }
 
-    return profile_.maxBodyIntensity;
+    return profile_.maxVestibularIntensity;
 }
 
 std::vector<float> NeuralStimulusSafetyEnvelope::applyEnvelope(
@@ -147,7 +153,7 @@ SafeNeuralStimulusCommand NeuralStimulusSafetyEnvelope::buildCommand(
     command.riskScore = std::clamp(decision.riskScore, 0.0f, 1.0f);
     command.safetyMode = decision.reason.empty() ? "unknown" : decision.reason;
     command.calibrationProfileId = profile_.calibrationProfileId;
-    command.allowHardwareWrite = decision.allowRender &&
+    command.allowStimulusDispatch = decision.allowRender &&
                                  !decision.requiresEmergencyStop &&
                                  command.riskScore < 0.90f &&
                                  !command.boundedChannels.empty() &&

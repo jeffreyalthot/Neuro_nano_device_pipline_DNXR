@@ -40,6 +40,8 @@
 #include "../hardware/NeuralChipHAL.h"
 #include "../neurotech/DeepImmersionPlatform.h"
 #include "../security/SecretProvider.h"
+#include "../runtime/FullDiveRuntimeInput.h"
+#include "../runtime/FullDiveSafetyBridge.h"
 #include "../utils/Logger.h"
 #include "../utils/SessionSafetyJournal.h"
 #include "../utils/TimeSync.h"
@@ -202,12 +204,15 @@ void RuntimeController::initializeModules() {
             safetyProfile.maxHapticIntensity,
             safetyProfile.maxChemicalIntensity,
             safetyProfile.maxBodyIntensity,
-            safetyProfile.maxDeltaPerFrame});
+            safetyProfile.maxDeltaPerFrame,
+            safetyProfile.maxVestibularIntensity,
+            safetyProfile.maxProprioceptiveIntensity});
     neuralTransportSecret_ = SecretProvider::resolve("neural_transport_session", "DNXR_NEURAL_TRANSPORT_KEY");
     neuralChipHal_ = std::make_unique<SimulatedNeuralChipHAL>(64);
     neuralChipHal_->connect("runtime_simulated_neural_chip");
     deepImmersion_= std::make_unique<DeepImmersionPlatform>();
     fullDiveSynchronization_ = std::make_unique<dnxr::FullDiveSynchronizationEngine>();
+    fullDiveSynchronization_->configureSafetyThresholds(safetyProfile);
 
     deepImmersion_->setConsentPolicy({true, true, false, "runtime_default"});
 
@@ -601,16 +606,31 @@ void RuntimeController::runSingleCycle(double timestamp) {
     replay_.record({clean, timestamp});
 
     if (fullDiveSynchronization_) {
-        fullDiveSynchronization_->update(static_cast<float>(frameBudgetMs_) / 1000.0f);
-        const auto fullDiveState = fullDiveSynchronization_->getState();
-        if (fullDiveState.emergencyExitTriggered ||
-            fullDiveState.neuralOverloadDetected ||
-            fullDiveState.consciousnessDesynchronization) {
+        RuntimeMetricsSnapshot metricsSnapshot;
+        {
+            std::lock_guard<std::mutex> lock(metricsMutex_);
+            metricsSnapshot = runtimeMetrics_.snapshot();
+        }
+        FullDiveRuntimeInput fullDiveInput;
+        fullDiveInput.cognitive = cognitive;
+        fullDiveInput.biometric = bio;
+        fullDiveInput.diagnostics = diag;
+        fullDiveInput.calibrationDrift = calibrationDrift;
+        fullDiveInput.safetyDecision = safetyDecision;
+        fullDiveInput.realityAnchorPlan = anchorPlan;
+        fullDiveInput.sensorySync = sensorySync;
+        fullDiveInput.runtimeMetrics = metricsSnapshot;
+        fullDiveInput.deltaTimeSeconds = static_cast<double>(frameBudgetMs_) / 1000.0;
+        fullDiveSynchronization_->updateFromRuntime(fullDiveInput);
+
+        FullDiveSafetyBridge fullDiveBridge;
+        const auto fullDiveSnapshot = fullDiveBridge.evaluate(*fullDiveSynchronization_);
+        if (fullDiveSnapshot.safetyInterventionRequired) {
             emergency_->trigger();
             if (safetyStateMachine_) {
-                safetyStateMachine_->latchEmergency("full_dive_synchronization_guard");
+                fullDiveBridge.apply(fullDiveSnapshot, *safetyStateMachine_);
             }
-            finishCycle(false, true, "full_dive_synchronization_guard");
+            finishCycle(false, true, fullDiveSnapshot.reason);
             ++cycleCounter_;
             return;
         }
