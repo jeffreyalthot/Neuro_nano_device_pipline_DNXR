@@ -99,7 +99,7 @@ public:
 
     void triggerEmergencyExit();
 
-    const FullDiveRuntimeState&
+    FullDiveRuntimeState
     getState() const;
 
 private:
@@ -112,7 +112,7 @@ private:
 
     std::thread runtimeThread_;
 
-    std::mutex runtimeMutex_;
+    mutable std::mutex runtimeMutex_;
 
     BrainStateTopology
     brainTopology_;
@@ -154,4 +154,9 @@ private:
     runtimeState_;
 };
 
-}
+} // namespace neuroxr
+
+namespace dnxr {
+using FullDiveRuntimeState = ::neuroxr::FullDiveRuntimeState;
+using FullDiveSynchronizationEngine = ::neuroxr::FullDiveSynchronizationEngine;
+} // namespace dnxr

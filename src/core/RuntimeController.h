@@ -15,6 +15,7 @@
 #include "../utils/RuntimeTraceRecorder.h"
 #include "../network/NeuralCryptoTransport.h"
 #include "../safety/NeuralIdentityVault.h"
+#include "../runtime/FullDiveSynchronizationEngine.h"
 
 namespace dnxr {
 
@@ -99,9 +100,12 @@ private:
     std::unique_ptr<class RealityAnchorSystem> realityAnchor_;
     std::unique_ptr<class EnergyThermalOptimizer> thermalOptimizer_;
     std::unique_ptr<class SafetyGovernor> safetyGovernor_;
+    std::unique_ptr<class SafetyStateMachine> safetyStateMachine_;
+    std::unique_ptr<class IndependentWatchdog> independentWatchdog_;
     std::unique_ptr<class NeuralStimulusSafetyEnvelope> stimulusEnvelope_;
     std::unique_ptr<class SimulatedNeuralChipHAL> neuralChipHal_;
     std::unique_ptr<class DeepImmersionPlatform> deepImmersion_;
+    std::unique_ptr<neuroxr::FullDiveSynchronizationEngine> fullDiveSynchronization_;
 
     mutable std::mutex mtx_;
 };

@@ -31,6 +31,9 @@
 #include "../safety/CognitiveReversibilitySystem.h"
 #include "../safety/RealityAnchorSystem.h"
 #include "../safety/SafetyGovernor.h"
+#include "../safety/SafetyStateMachine.h"
+#include "../safety/IndependentWatchdog.h"
+#include "../config/SafetyProfileLoader.h"
 #include "../safety/NeuralStimulusSafetyEnvelope.h"
 #include "../safety/NeuroRightsPolicy.h"
 #include "../signal/EnergyThermalOptimizer.h"
@@ -73,8 +76,6 @@ bool envFlagEnabled(const char* key) {
 // et constitue un risque pour l'autonomie cognitive (neurorights).
 // Valeur choisie : √(4 × 0.05²) ≈ 0.10 — permet des composantes ≤ 0.05.
 // ─────────────────────────────────────────────────────────────────────────────
-constexpr float kMaxInducedVectorNorm = 0.12f;
-
 float computeL2Norm(const std::vector<float>& v) {
     float sum = 0.0f;
     for (float x : v) sum += x * x;
@@ -177,11 +178,15 @@ void RuntimeController::initializeModules() {
     realityAnchor_ = std::make_unique<RealityAnchorSystem>();
     thermalOptimizer_ = std::make_unique<EnergyThermalOptimizer>();
     safetyGovernor_ = std::make_unique<SafetyGovernor>();
+    safetyStateMachine_ = std::make_unique<SafetyStateMachine>();
+    safetyStateMachine_->bootSelfTestPassed();
+    independentWatchdog_ = std::make_unique<IndependentWatchdog>(250.0, 25.0);
     stimulusEnvelope_ = std::make_unique<NeuralStimulusSafetyEnvelope>(
         UserNeuralCalibrationProfile{"runtime_default_calibration", 0.85f, 0.80f, 0.70f, 0.35f, 0.60f, 0.18f});
     neuralChipHal_ = std::make_unique<SimulatedNeuralChipHAL>(64);
     neuralChipHal_->connect("runtime_simulated_neural_chip");
     deepImmersion_= std::make_unique<DeepImmersionPlatform>();
+    fullDiveSynchronization_ = std::make_unique<neuroxr::FullDiveSynchronizationEngine>();
 
     deepImmersion_->setConsentPolicy({true, true, false, "runtime_default"});
 
@@ -195,14 +200,15 @@ void RuntimeController::initializeModules() {
     //   2. Être loggée avec son hash pour traçabilité
     //   3. Être couverte par la politique de consentement
     // ─────────────────────────────────────────────────────────────────────
+    const SafetyRuntimeProfile safetyProfile = SafetyProfileLoader::loadFromFile();
     const std::vector<float> inducedVector = {0.05f, -0.02f, 0.03f, 0.01f};
 
     const float ivNorm = computeL2Norm(inducedVector);
-    if (ivNorm > kMaxInducedVectorNorm) {
+    if (ivNorm > safetyProfile.maxInducedVectorNorm) {
         throw std::runtime_error(
             "inducedVector L2 norm exceeds allowed threshold ("
             + std::to_string(ivNorm) + " > "
-            + std::to_string(kMaxInducedVectorNorm)
+            + std::to_string(safetyProfile.maxInducedVectorNorm)
             + "). Adjust the vector or update kMaxInducedVectorNorm "
             "with documented justification.");
     }
@@ -216,13 +222,13 @@ void RuntimeController::initializeModules() {
             true,
             false,
             ivNorm,
-            kMaxInducedVectorNorm});
+            safetyProfile.maxInducedVectorNorm});
     if (!influenceRights.allowed) {
         throw std::runtime_error("inducedVector denied by NeuroRightsPolicy: " + influenceRights.reason);
     }
 
     Logger::info("inducedVector validated: norm=" + std::to_string(ivNorm)
-                 + " threshold=" + std::to_string(kMaxInducedVectorNorm)
+                 + " threshold=" + std::to_string(safetyProfile.maxInducedVectorNorm)
                  + " " + auditHash(inducedVector)
                  + " " + influenceRights.auditTag);
 
@@ -262,9 +268,12 @@ void RuntimeController::shutdownModules() {
     realityAnchor_.reset();
     thermalOptimizer_.reset();
     safetyGovernor_.reset();
+    safetyStateMachine_.reset();
+    independentWatchdog_.reset();
     stimulusEnvelope_.reset();
     neuralChipHal_.reset();
     deepImmersion_.reset();
+    fullDiveSynchronization_.reset();
 }
 
 void RuntimeController::runSingleCycle(double timestamp) {
@@ -299,6 +308,10 @@ void RuntimeController::runSingleCycle(double timestamp) {
     // Lecture biométrique
     const auto tAcq = std::chrono::steady_clock::now();
     const auto telemetry = headset_->pullBioTelemetry();
+    if (independentWatchdog_) {
+        independentWatchdog_->heartbeat("runtime_cycle");
+        independentWatchdog_->heartbeat("acquisition");
+    }
     if (!guard_->enforce(telemetry)) {
         emergency_->trigger();
         Logger::warn("⚠️  Physiological guard triggered.");
@@ -470,6 +483,16 @@ void RuntimeController::runSingleCycle(double timestamp) {
         safetyDecision.reason + "|" + safetyDecision.auditRecord,
         safetyDecision.riskScore);
 
+    if (safetyStateMachine_) {
+        const SafetyStateTransition safetyTransition = safetyStateMachine_->observeSafetyDecision(safetyDecision);
+        if (safetyTransition.latched) {
+            emergency_->trigger();
+            finishCycle(false, true, "safety_state_machine:" + safetyTransition.reason);
+            ++cycleCounter_;
+            return;
+        }
+    }
+
     if (safetyDecision.requiresEmergencyStop || !safetyDecision.allowRender) {
         emergency_->trigger();
         Logger::error("[SafetyGovernor] Emergency stop before render | " +
@@ -498,6 +521,20 @@ void RuntimeController::runSingleCycle(double timestamp) {
         calibrationDrift.blockCriticalActions ? calibrationDrift.driftScore : 0.0f);
 
     const RealityAnchorPlan anchorPlan = realityAnchor_->evaluate(anchorContext, safetyDecision);
+
+    if (safetyStateMachine_) {
+        const SafetyStateTransition anchorTransition = safetyStateMachine_->observeRealityAnchorPlan(anchorPlan);
+        if (anchorTransition.latched) {
+            emergency_->trigger();
+            safetyJournal_->record(
+                "reality_anchor_state_transition",
+                anchorTransition.reason,
+                anchorPlan.riskScore);
+            finishCycle(false, true, "safety_state_machine:" + anchorTransition.reason);
+            ++cycleCounter_;
+            return;
+        }
+    }
 
     if (anchorPlan.requiresEmergencyStop || !anchorPlan.allowRender) {
         emergency_->trigger();
@@ -534,6 +571,22 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
     replay_.record({clean, timestamp});
 
+    if (fullDiveSynchronization_) {
+        fullDiveSynchronization_->update(static_cast<float>(frameBudgetMs_) / 1000.0f);
+        const auto fullDiveState = fullDiveSynchronization_->getState();
+        if (fullDiveState.emergencyExitTriggered ||
+            fullDiveState.neuralOverloadDetected ||
+            fullDiveState.consciousnessDesynchronization) {
+            emergency_->trigger();
+            if (safetyStateMachine_) {
+                safetyStateMachine_->latchEmergency("full_dive_synchronization_guard");
+            }
+            finishCycle(false, true, "full_dive_synchronization_guard");
+            ++cycleCounter_;
+            return;
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // [AMÉLIORATION 3] endTask("render") : même logique d'abandon actif.
     // Si le rendu dépasse son budget, on loggue mais on continue pour ne
@@ -546,6 +599,25 @@ void RuntimeController::runSingleCycle(double timestamp) {
     if (!renderOk) {
         Logger::warn("⚠️ Render budget exceeded — jitter risk. task=render");
         ++droppedFrames_;
+    }
+
+    if (independentWatchdog_) {
+        independentWatchdog_->heartbeat("renderer");
+        const WatchdogAssessment watchdog = independentWatchdog_->assess(
+            tickReport.totalMs,
+            !raw.empty(),
+            safetyDecision.riskScore,
+            diag.decisionDrift);
+        if (watchdog.requiresEmergencyStop) {
+            emergency_->trigger();
+            if (safetyStateMachine_) {
+                safetyStateMachine_->latchEmergency("watchdog:" + watchdog.reason);
+            }
+            Logger::error("[IndependentWatchdog] " + watchdog.reason);
+            finishCycle(false, true, "watchdog:" + watchdog.reason);
+            ++cycleCounter_;
+            return;
+        }
     }
 
     headset_->pushSensoryFrame(frame);

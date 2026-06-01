@@ -125,12 +125,7 @@ runtimeLoop() {
 
         previous = current;
 
-        {
-            std::lock_guard<std::mutex>
-            guard(runtimeMutex_);
-
-            update(deltaTime);
-        }
+        update(deltaTime);
 
         std::this_thread::sleep_for(
             std::chrono::milliseconds(1));
@@ -140,6 +135,10 @@ runtimeLoop() {
 void FullDiveSynchronizationEngine::
 update(
     float deltaTime) {
+
+    std::lock_guard<std::mutex>
+    guard(runtimeMutex_);
+
 
     brainTopology_.simulate(
         deltaTime);
@@ -331,17 +330,25 @@ detectConsciousnessDesynchronization() {
 void FullDiveSynchronizationEngine::
 triggerEmergencyExit() {
 
-    runtimeState_.emergencyExitTriggered =
-        true;
+    {
+        std::lock_guard<std::mutex>
+        guard(runtimeMutex_);
+
+        runtimeState_.emergencyExitTriggered =
+            true;
+    }
 
     stop();
 }
 
-const FullDiveRuntimeState&
+FullDiveRuntimeState
 FullDiveSynchronizationEngine::
 getState() const {
+
+    std::lock_guard<std::mutex>
+    guard(runtimeMutex_);
 
     return runtimeState_;
 }
 
-}
+} // namespace neuroxr
