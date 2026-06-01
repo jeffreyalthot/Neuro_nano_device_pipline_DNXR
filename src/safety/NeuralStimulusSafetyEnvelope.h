@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -41,16 +42,23 @@ public:
         std::uint64_t sequenceId,
         const std::vector<float>& sensoryFrame,
         const SafetyDecision& decision,
+        double deltaTimeSeconds = 1.0 / 60.0,
         StimulusCoveragePolicy coveragePolicy = StimulusCoveragePolicy::AnySafeChannel,
         const std::vector<SensoryModality>& requiredModalities = {});
+    SafeNeuralStimulusCommand buildCommand(
+        std::uint64_t sequenceId,
+        const std::vector<float>& sensoryFrame,
+        const SafetyDecision& decision,
+        StimulusCoveragePolicy coveragePolicy,
+        const std::vector<SensoryModality>& requiredModalities);
 
     void setCalibrationProfile(const UserNeuralCalibrationProfile& profile);
-    const UserNeuralCalibrationProfile& calibrationProfile() const;
-    const std::vector<float>& lastBoundedChannels() const;
-    const NeuralStimulusModalityBudget& lastModalityBudget() const;
-    const SensoryExposureReport& lastExposureReport() const;
+    UserNeuralCalibrationProfile calibrationProfile() const;
+    std::vector<float> lastBoundedChannels() const;
+    NeuralStimulusModalityBudget lastModalityBudget() const;
+    SensoryExposureReport lastExposureReport() const;
     void setFrameSchema(const SensoryFrameSchema& schema);
-    const SensoryFrameSchema& frameSchema() const;
+    SensoryFrameSchema frameSchema() const;
 
     static constexpr std::size_t modalityCount() {
         return static_cast<std::size_t>(SensoryModality::Count);
@@ -64,6 +72,7 @@ private:
     void updateModalityBudget(const std::vector<float>& boundedChannels);
 
 private:
+    mutable std::mutex mutex_;
     UserNeuralCalibrationProfile profile_;
     std::vector<float> lastBoundedChannels_;
     SensoryFrameSchema frameSchema_;

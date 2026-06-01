@@ -36,9 +36,22 @@ void raise(
     }
 }
 
+std::string appendFullDiveReason(const std::string& base, const std::string& reason) {
+    if (reason.empty()) {
+        return base;
+    }
+    if (base.empty()) {
+        return "full_dive:" + reason;
+    }
+    return base + "|full_dive:" + reason;
+}
+
 } // namespace
 
-FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluate(const FullDiveSynchronizationEngine& engine) const {
+FullDiveSafetyBridge::FullDiveSafetyBridge(FullDiveInterventionMemory memory)
+    : memory_(memory) {}
+
+FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluate(const FullDiveSynchronizationEngine& engine) {
     FullDiveRuntimeSnapshot snapshot;
     snapshot.state = engine.getState();
 
@@ -68,11 +81,39 @@ FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluate(const FullDiveSynchroniza
               "full_dive:reality_anchor");
     }
 
-    if (snapshot.state.temporalCoherence < 0.20f && snapshot.state.vestibularStability < 0.20f) {
-        raise(snapshot, FullDiveInterventionLevel::Lockout, 1.0f,
-              "full_dive_repeated_anchor_failure_lockout", "full_dive:lockout");
+    const auto now = std::chrono::steady_clock::now();
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    if (snapshot.safetyInterventionRequired()) {
+        const bool cooldownActive = lastInterventionAt_ != std::chrono::steady_clock::time_point{} &&
+            std::chrono::duration<double>(now - lastInterventionAt_).count() < memory_.cooldownSeconds;
+        if (cooldownActive && snapshot.intervention == FullDiveInterventionLevel::ReduceIntensity) {
+            snapshot.reason = "full_dive_reduce_intensity_cooldown";
+            snapshot.traceTag = "full_dive:reduce_intensity_cooldown";
+        }
+
+        rememberLocked(snapshot.intervention, now);
+        lastInterventionAt_ = now;
     }
 
+    const std::uint32_t anchorsInWindow = countWindowLocked(FullDiveInterventionLevel::RealityAnchor, now);
+    const std::uint32_t emergenciesInSession = memory_.emergencyStopCount;
+    const bool repeatedVestibularCollapse = snapshot.state.vestibularStability < 0.20f && anchorsInWindow >= 2U;
+
+    if (snapshot.intervention == FullDiveInterventionLevel::RealityAnchor && anchorsInWindow >= 3U) {
+        raise(snapshot, FullDiveInterventionLevel::EmergencyStop, std::max(snapshot.severity, 0.95f),
+              "full_dive_repeated_anchor_failure_emergency_stop", "full_dive:repeated_anchor_emergency");
+        rememberLocked(FullDiveInterventionLevel::EmergencyStop, now);
+    }
+
+    if ((snapshot.intervention == FullDiveInterventionLevel::EmergencyStop && emergenciesInSession >= 2U) ||
+        (repeatedVestibularCollapse && emergenciesInSession >= 1U)) {
+        raise(snapshot, FullDiveInterventionLevel::Lockout, 1.0f,
+              "full_dive_repeated_incident_lockout", "full_dive:lockout");
+        rememberLocked(FullDiveInterventionLevel::Lockout, now);
+    }
+
+    snapshot.memory = memory_;
     return snapshot;
 }
 
@@ -98,6 +139,104 @@ void FullDiveSafetyBridge::apply(const FullDiveRuntimeSnapshot& snapshot, Safety
                            snapshot.intervention != FullDiveInterventionLevel::Lockout;
     decision.requiresEmergencyStop = false;
     stateMachine.observeSafetyDecision(decision);
+}
+
+SafetyDecision FullDiveSafetyBridge::mergeIntoDecision(
+    const FullDiveRuntimeSnapshot& snapshot,
+    const SafetyDecision& baseDecision) const {
+
+    SafetyDecision fused = baseDecision;
+    if (!snapshot.safetyInterventionRequired()) {
+        return fused;
+    }
+
+    fused.action = toSafetyAction(snapshot.intervention);
+    fused.riskScore = std::max(fused.riskScore, std::clamp(snapshot.severity, 0.0f, 1.0f));
+    fused.reason = appendFullDiveReason(fused.reason, snapshot.reason);
+    fused.auditRecord = appendFullDiveReason(fused.auditRecord, snapshot.traceTag);
+
+    switch (snapshot.intervention) {
+    case FullDiveInterventionLevel::None:
+        break;
+    case FullDiveInterventionLevel::ReduceIntensity:
+        fused.intensityScale *= std::clamp(1.0f - snapshot.severity, 0.25f, 1.0f);
+        break;
+    case FullDiveInterventionLevel::Decompress:
+        fused.intensityScale *= std::clamp(1.0f - (snapshot.severity * 0.5f), 0.35f, 1.0f);
+        break;
+    case FullDiveInterventionLevel::RealityAnchor:
+        fused.intensityScale *= std::clamp(1.0f - (snapshot.severity * 0.35f), 0.45f, 1.0f);
+        break;
+    case FullDiveInterventionLevel::EmergencyStop:
+        fused.allowRender = false;
+        fused.requiresEmergencyStop = true;
+        fused.intensityScale = 0.0f;
+        break;
+    case FullDiveInterventionLevel::Lockout:
+        fused.allowRender = false;
+        fused.requiresEmergencyStop = true;
+        fused.intensityScale = 0.0f;
+        break;
+    }
+
+    fused.intensityScale = std::clamp(fused.intensityScale, 0.0f, 1.0f);
+    return fused;
+}
+
+FullDiveInterventionMemory FullDiveSafetyBridge::memory() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return memory_;
+}
+
+void FullDiveSafetyBridge::resetMemory() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    memory_ = FullDiveInterventionMemory{};
+    incidents_.clear();
+    lastInterventionAt_ = {};
+}
+
+void FullDiveSafetyBridge::rememberLocked(
+    FullDiveInterventionLevel level,
+    std::chrono::steady_clock::time_point now) {
+
+    incidents_.push_back({level, now});
+    const auto window = std::chrono::duration<double>(memory_.windowSeconds);
+    while (!incidents_.empty() && now - incidents_.front().timestamp > window) {
+        incidents_.pop_front();
+    }
+
+    switch (level) {
+    case FullDiveInterventionLevel::None:
+        break;
+    case FullDiveInterventionLevel::ReduceIntensity:
+        ++memory_.reduceIntensityCount;
+        break;
+    case FullDiveInterventionLevel::Decompress:
+        ++memory_.decompressionCount;
+        break;
+    case FullDiveInterventionLevel::RealityAnchor:
+        ++memory_.realityAnchorCount;
+        break;
+    case FullDiveInterventionLevel::EmergencyStop:
+        ++memory_.emergencyStopCount;
+        break;
+    case FullDiveInterventionLevel::Lockout:
+        ++memory_.lockoutCount;
+        break;
+    }
+}
+
+std::uint32_t FullDiveSafetyBridge::countWindowLocked(
+    FullDiveInterventionLevel level,
+    std::chrono::steady_clock::time_point now) const {
+
+    const auto window = std::chrono::duration<double>(memory_.windowSeconds);
+    return static_cast<std::uint32_t>(std::count_if(
+        incidents_.begin(),
+        incidents_.end(),
+        [&](const InterventionIncident& incident) {
+            return incident.level == level && now - incident.timestamp <= window;
+        }));
 }
 
 } // namespace dnxr
