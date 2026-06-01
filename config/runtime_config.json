@@ -1,0 +1,22 @@
+{
+  "config_version": 1,
+  "profile": "simulation_safe",
+  "target_loop_ms": 20,
+  "max_cycles_per_second": 50,
+  "max_runtime_cycles": 0,
+  "headless": false,
+  "dashboard_enabled": true,
+  "simulation_mode": true,
+  "signal_source": "simulated",
+  "simulation_scenario": "nominal_focus",
+  "simulation_channel_count": 5,
+  "simulation_noise_amplitude": 0.02,
+  "simulation_dropout_every_cycles": 0,
+  "replay_signal_path": "replays/session_001.dnxr_signal.csv",
+  "xr_endpoint": "wss://xr.local",
+  "xr_device_id": "headset-sim-001",
+  "xr_auth_token": "simulation-token-placeholder",
+  "xr_target_framerate": 90,
+  "xr_async_telemetry": true,
+  "simulated_signal": [0.2, 0.4, 0.6, 0.3, 0.1]
+}
