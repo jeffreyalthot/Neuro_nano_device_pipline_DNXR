@@ -109,6 +109,7 @@ private:
     std::unique_ptr<class SimulatedNeuralChipHAL> neuralChipHal_;
     std::unique_ptr<class DeepImmersionPlatform> deepImmersion_;
     std::unique_ptr<dnxr::FullDiveSynchronizationEngine> fullDiveSynchronization_;
+    std::unique_ptr<class FullDiveSafetyBridge> fullDiveBridge_;
 
     mutable std::mutex mtx_;
 };

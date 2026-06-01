@@ -23,35 +23,38 @@ NeuralStimulusSafetyEnvelope::NeuralStimulusSafetyEnvelope(
 void NeuralStimulusSafetyEnvelope::setCalibrationProfile(
     const UserNeuralCalibrationProfile& profile) {
 
+    std::lock_guard<std::mutex> lock(mutex_);
     profile_ = profile;
     lastBoundedChannels_.clear();
     lastModalityBudget_ = NeuralStimulusModalityBudget{};
 }
 
-const UserNeuralCalibrationProfile&
+UserNeuralCalibrationProfile
 NeuralStimulusSafetyEnvelope::calibrationProfile() const {
-
+    std::lock_guard<std::mutex> lock(mutex_);
     return profile_;
 }
 
-const std::vector<float>&
+std::vector<float>
 NeuralStimulusSafetyEnvelope::lastBoundedChannels() const {
-
+    std::lock_guard<std::mutex> lock(mutex_);
     return lastBoundedChannels_;
 }
 
-const NeuralStimulusModalityBudget&
+NeuralStimulusModalityBudget
 NeuralStimulusSafetyEnvelope::lastModalityBudget() const {
-
+    std::lock_guard<std::mutex> lock(mutex_);
     return lastModalityBudget_;
 }
 
-const SensoryExposureReport&
+SensoryExposureReport
 NeuralStimulusSafetyEnvelope::lastExposureReport() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return lastExposureReport_;
 }
 
 void NeuralStimulusSafetyEnvelope::setFrameSchema(const SensoryFrameSchema& schema) {
+    std::lock_guard<std::mutex> lock(mutex_);
     frameSchema_ = schema.valid() ? schema : SensoryFrameSchema::defaultSixSenseSchema();
     lastBoundedChannels_.clear();
     lastModalityBudget_ = NeuralStimulusModalityBudget{};
@@ -59,7 +62,8 @@ void NeuralStimulusSafetyEnvelope::setFrameSchema(const SensoryFrameSchema& sche
     lastExposureReport_ = SensoryExposureReport{};
 }
 
-const SensoryFrameSchema& NeuralStimulusSafetyEnvelope::frameSchema() const {
+SensoryFrameSchema NeuralStimulusSafetyEnvelope::frameSchema() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return frameSchema_;
 }
 
@@ -180,8 +184,11 @@ SafeNeuralStimulusCommand NeuralStimulusSafetyEnvelope::buildCommand(
     std::uint64_t sequenceId,
     const std::vector<float>& sensoryFrame,
     const SafetyDecision& decision,
+    double deltaTimeSeconds,
     StimulusCoveragePolicy coveragePolicy,
     const std::vector<SensoryModality>& requiredModalities) {
+
+    std::lock_guard<std::mutex> lock(mutex_);
 
     SafeNeuralStimulusCommand command;
     command.sequenceId = sequenceId;
@@ -198,7 +205,7 @@ SafeNeuralStimulusCommand NeuralStimulusSafetyEnvelope::buildCommand(
     command.riskScore = std::clamp(decision.riskScore, 0.0f, 1.0f);
     command.safetyMode = decision.reason.empty() ? "unknown" : decision.reason;
     command.calibrationProfileId = profile_.calibrationProfileId;
-    lastExposureReport_ = exposureBudget_.observe(lastModalityBudget_.peakIntensity, 1.0 / 60.0);
+    lastExposureReport_ = exposureBudget_.observe(lastModalityBudget_.peakIntensity, deltaTimeSeconds);
     command.exposureBudgetOk = lastExposureReport_.withinBudget;
     const bool coverageOk = coveragePolicySatisfied(command, coveragePolicy, requiredModalities);
     command.allowStimulusDispatch = decision.allowRender &&
@@ -208,6 +215,23 @@ SafeNeuralStimulusCommand NeuralStimulusSafetyEnvelope::buildCommand(
                                  coverageOk &&
                                  command.exposureBudgetOk;
     return command;
+}
+
+
+SafeNeuralStimulusCommand NeuralStimulusSafetyEnvelope::buildCommand(
+    std::uint64_t sequenceId,
+    const std::vector<float>& sensoryFrame,
+    const SafetyDecision& decision,
+    StimulusCoveragePolicy coveragePolicy,
+    const std::vector<SensoryModality>& requiredModalities) {
+
+    return buildCommand(
+        sequenceId,
+        sensoryFrame,
+        decision,
+        1.0 / 60.0,
+        coveragePolicy,
+        requiredModalities);
 }
 
 } // namespace dnxr

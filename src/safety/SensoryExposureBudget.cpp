@@ -26,7 +26,8 @@ SensoryExposureReport SensoryExposureBudget::observe(
     const std::array<float, modalityCount>& modalityLoad,
     double deltaTimeSeconds) {
 
-    const float dt = static_cast<float>(std::clamp(deltaTimeSeconds, 0.001, 1.0));
+    std::lock_guard<std::mutex> lock(mutex_);
+    const float dt = static_cast<float>(std::clamp(deltaTimeSeconds, 0.0, 1.0));
     report_.withinBudget = true;
     report_.severity = 0.0f;
     report_.reason = "sensory_exposure_nominal";
@@ -78,16 +79,19 @@ SensoryExposureReport SensoryExposureBudget::observe(
 }
 
 void SensoryExposureBudget::reset() {
+    std::lock_guard<std::mutex> lock(mutex_);
     report_ = SensoryExposureReport{};
     vestibularCooldownRemainingSeconds_ = 0.0;
     proprioceptiveCooldownRemainingSeconds_ = 0.0;
 }
 
 void SensoryExposureBudget::setLimits(const SensoryExposureLimits& limits) {
+    std::lock_guard<std::mutex> lock(mutex_);
     limits_ = limits;
 }
 
-const SensoryExposureReport& SensoryExposureBudget::lastReport() const {
+SensoryExposureReport SensoryExposureBudget::lastReport() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return report_;
 }
 

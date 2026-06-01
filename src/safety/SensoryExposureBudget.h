@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <mutex>
 #include <string>
 
 #include "../immersion/SensoryFrameSchema.h"
@@ -36,9 +37,10 @@ public:
         double deltaTimeSeconds);
     void reset();
     void setLimits(const SensoryExposureLimits& limits);
-    const SensoryExposureReport& lastReport() const;
+    SensoryExposureReport lastReport() const;
 
 private:
+    mutable std::mutex mutex_;
     SensoryExposureLimits limits_;
     SensoryExposureReport report_;
     double vestibularCooldownRemainingSeconds_ = 0.0;

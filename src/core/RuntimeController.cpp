@@ -212,6 +212,7 @@ void RuntimeController::initializeModules() {
     neuralChipHal_->connect("runtime_simulated_neural_chip");
     deepImmersion_= std::make_unique<DeepImmersionPlatform>();
     fullDiveSynchronization_ = std::make_unique<dnxr::FullDiveSynchronizationEngine>();
+    fullDiveBridge_ = std::make_unique<FullDiveSafetyBridge>();
     fullDiveSynchronization_->setUpdateMode(dnxr::FullDiveUpdateMode::RuntimeDriven);
     fullDiveSynchronization_->configureSafetyThresholds(safetyProfile);
 
@@ -300,6 +301,7 @@ void RuntimeController::shutdownModules() {
     neuralChipHal_.reset();
     deepImmersion_.reset();
     fullDiveSynchronization_.reset();
+    fullDiveBridge_.reset();
 }
 
 void RuntimeController::runSingleCycle(double timestamp) {
@@ -606,7 +608,9 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
     replay_.record({clean, timestamp});
 
-    if (fullDiveSynchronization_) {
+    SafetyDecision fusedSafetyDecision = safetyDecision;
+
+    if (fullDiveSynchronization_ && fullDiveBridge_) {
         RuntimeMetricsSnapshot metricsSnapshot;
         {
             std::lock_guard<std::mutex> lock(metricsMutex_);
@@ -617,15 +621,15 @@ void RuntimeController::runSingleCycle(double timestamp) {
         fullDiveInput.biometric = bio;
         fullDiveInput.diagnostics = diag;
         fullDiveInput.calibrationDrift = calibrationDrift;
-        fullDiveInput.safetyDecision = safetyDecision;
+        fullDiveInput.safetyDecision = fusedSafetyDecision;
         fullDiveInput.realityAnchorPlan = anchorPlan;
         fullDiveInput.sensorySync = sensorySync;
         fullDiveInput.runtimeMetrics = metricsSnapshot;
         fullDiveInput.deltaTimeSeconds = static_cast<double>(frameBudgetMs_) / 1000.0;
         fullDiveSynchronization_->updateFromRuntime(fullDiveInput);
 
-        FullDiveSafetyBridge fullDiveBridge;
-        const auto fullDiveSnapshot = fullDiveBridge.evaluate(*fullDiveSynchronization_);
+        const auto fullDiveSnapshot = fullDiveBridge_->evaluate(*fullDiveSynchronization_);
+        fusedSafetyDecision = fullDiveBridge_->mergeIntoDecision(fullDiveSnapshot, fusedSafetyDecision);
         if (fullDiveSnapshot.safetyInterventionRequired()) {
             if (safetyJournal_) {
                 SessionAuditMetadata metadata;
@@ -642,7 +646,7 @@ void RuntimeController::runSingleCycle(double timestamp) {
                     metadata);
             }
             if (safetyStateMachine_) {
-                fullDiveBridge.apply(fullDiveSnapshot, *safetyStateMachine_);
+                fullDiveBridge_->apply(fullDiveSnapshot, *safetyStateMachine_);
             }
             if (fullDiveSnapshot.intervention == FullDiveInterventionLevel::EmergencyStop ||
                 fullDiveSnapshot.intervention == FullDiveInterventionLevel::Lockout) {
@@ -682,7 +686,7 @@ void RuntimeController::runSingleCycle(double timestamp) {
         const WatchdogAssessment watchdog = independentWatchdog_->assess(
             tickReport.totalMs,
             !raw.empty(),
-            safetyDecision.riskScore,
+            fusedSafetyDecision.riskScore,
             diag.decisionDrift);
         if (watchdog.requiresEmergencyStop) {
             emergency_->trigger();
@@ -699,7 +703,11 @@ void RuntimeController::runSingleCycle(double timestamp) {
     headset_->pushSensoryFrame(frame);
 
     const SafeNeuralStimulusCommand stimulusCommand =
-        stimulusEnvelope_->buildCommand(cycleCounter_, frame, safetyDecision);
+        stimulusEnvelope_->buildCommand(
+            cycleCounter_,
+            frame,
+            fusedSafetyDecision,
+            std::max(0.0, tickReport.totalMs / 1000.0));
     if (independentWatchdog_) {
         independentWatchdog_->heartbeat("stimulus");
     }
