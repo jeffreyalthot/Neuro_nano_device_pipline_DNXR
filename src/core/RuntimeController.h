@@ -12,6 +12,7 @@
 #include "NeuroRealtimeScheduler.h"
 #include "../utils/DeterministicSessionReplay.h"
 #include "../utils/RuntimeMetrics.h"
+#include "../utils/RuntimeTraceRecorder.h"
 #include "../network/NeuralCryptoTransport.h"
 #include "../safety/NeuralIdentityVault.h"
 
@@ -45,6 +46,9 @@ public:
     uint64_t getDroppedFrames() const;
     RuntimeMetricsSnapshot getRuntimeMetricsSnapshot() const;
     RuntimeLatencyHealth getRuntimeLatencyHealth() const;
+    std::vector<RuntimeTraceEvent> getRuntimeTraceEvents() const;
+    std::string getLatestRuntimeTraceId() const;
+    bool saveRuntimeTraceJsonl(const std::string& path) const;
 
     /// Attache un callback pour rapporter les états du pipeline à un superviseur.
     void setRuntimeEventCallback(const std::function<void(const std::string&)>& cb);
@@ -65,6 +69,8 @@ private:
     uint64_t droppedFrames_;
     NeuroRealtimeScheduler scheduler_;
     RuntimeMetrics runtimeMetrics_;
+    RuntimeTraceRecorder traceRecorder_;
+    mutable std::mutex traceMutex_;
     mutable std::mutex metricsMutex_;
     DeterministicSessionReplay replay_;
     NeuralCryptoTransport crypto_;
@@ -83,11 +89,14 @@ private:
     std::unique_ptr<class FeatureVectorizer> vec_;
     std::unique_ptr<class StateInferenceEngine> brain_;
     std::unique_ptr<class NeuralCalibrationEngine> calib_;
+    std::unique_ptr<class CalibrationDriftMonitor> calibrationDriftMonitor_;
     std::unique_ptr<class ImmersionCore> immersion_;
+    std::unique_ptr<class MultisensoryClock> multisensoryClock_;
     std::unique_ptr<class XRRenderer> renderer_;
     std::unique_ptr<class PhysiologicalGuard> guard_;
     std::unique_ptr<class EmergencyShutdown> emergency_;
     std::unique_ptr<class CognitiveReversibilitySystem> reversibility_;
+    std::unique_ptr<class RealityAnchorSystem> realityAnchor_;
     std::unique_ptr<class EnergyThermalOptimizer> thermalOptimizer_;
     std::unique_ptr<class SafetyGovernor> safetyGovernor_;
     std::unique_ptr<class NeuralStimulusSafetyEnvelope> stimulusEnvelope_;

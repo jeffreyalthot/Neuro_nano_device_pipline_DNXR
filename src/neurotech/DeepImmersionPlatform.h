@@ -88,6 +88,8 @@ struct NeuroPipelineDiagnostics {
     bool intentFallbackRecommended = false;
     bool intentExecutionAuthorized = false;
     int intentConfirmationCount = 0;
+    int intentRiskLevel = 0;
+    std::string intentRiskReason;
     float jitterCompensation = 0.0f;
     std::string fallbackChannel;
     std::string intentSchemaVersion;
