@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -37,10 +38,14 @@ public:
 
     void setHeartbeatTimeoutMs(double timeoutMs);
     void setLatencyBudgetMs(double latencyBudgetMs);
+    void requireSubsystem(const std::string& subsystem);
+    void requireSubsystems(const std::vector<std::string>& subsystems);
 
 private:
+    mutable std::mutex mutex_;
     double heartbeatTimeoutMs_;
     double latencyBudgetMs_;
+    std::vector<std::string> requiredSubsystems_;
     std::map<std::string, std::chrono::steady_clock::time_point> heartbeats_;
 };
 

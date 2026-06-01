@@ -15,6 +15,7 @@
 #include "../utils/RuntimeTraceRecorder.h"
 #include "../network/NeuralCryptoTransport.h"
 #include "../safety/NeuralIdentityVault.h"
+#include "../security/RuntimeSecret.h"
 #include "../runtime/FullDiveSynchronizationEngine.h"
 
 namespace dnxr {
@@ -59,6 +60,7 @@ private:
     void throttleEmergency();
     bool shouldApplyRendererQoS(const RuntimeMetricsSnapshot& snapshot) const;
     void publishRuntimeMetrics(const RuntimeMetricsSnapshot& snapshot);
+    void publishRuntimeEvent(const std::string& payload);
 
     // Initialisation centralisée des modules
     void initializeModules();
@@ -67,7 +69,7 @@ private:
 private:
     std::atomic<bool> runtimeRunning_;
     int frameBudgetMs_;
-    uint64_t droppedFrames_;
+    std::atomic<uint64_t> droppedFrames_;
     NeuroRealtimeScheduler scheduler_;
     RuntimeMetrics runtimeMetrics_;
     RuntimeTraceRecorder traceRecorder_;
@@ -77,9 +79,10 @@ private:
     NeuralCryptoTransport crypto_;
     std::unique_ptr<class SessionSafetyJournal> safetyJournal_;
     NeuralIdentityVault identityVault_;
-    uint64_t cycleCounter_;
+    std::atomic<uint64_t> cycleCounter_;
     std::string lastState_;
 
+    RuntimeSecret neuralTransportSecret_;
     std::function<void(const std::string&)> eventCallback_;
 
     // Pré-instanciations pour réutilisation inter-frames
@@ -105,7 +108,7 @@ private:
     std::unique_ptr<class NeuralStimulusSafetyEnvelope> stimulusEnvelope_;
     std::unique_ptr<class SimulatedNeuralChipHAL> neuralChipHal_;
     std::unique_ptr<class DeepImmersionPlatform> deepImmersion_;
-    std::unique_ptr<neuroxr::FullDiveSynchronizationEngine> fullDiveSynchronization_;
+    std::unique_ptr<dnxr::FullDiveSynchronizationEngine> fullDiveSynchronization_;
 
     mutable std::mutex mtx_;
 };

@@ -56,6 +56,10 @@ public:
     virtual NeuralChipStatus status() const = 0;
 };
 
+#if !DNXR_SIMULATION_ONLY
+class RealNeuralChipHAL;
+#endif
+
 class SimulatedNeuralChipHAL final : public NeuralChipHAL {
 public:
     explicit SimulatedNeuralChipHAL(

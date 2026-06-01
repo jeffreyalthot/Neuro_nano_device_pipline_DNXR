@@ -157,6 +157,20 @@ private:
 } // namespace neuroxr
 
 namespace dnxr {
-using FullDiveRuntimeState = ::neuroxr::FullDiveRuntimeState;
-using FullDiveSynchronizationEngine = ::neuroxr::FullDiveSynchronizationEngine;
+
+struct FullDiveRuntimeState : public ::neuroxr::FullDiveRuntimeState {
+    FullDiveRuntimeState() = default;
+    FullDiveRuntimeState(const ::neuroxr::FullDiveRuntimeState& state)
+        : ::neuroxr::FullDiveRuntimeState(state) {}
+};
+
+class FullDiveSynchronizationEngine final : public ::neuroxr::FullDiveSynchronizationEngine {
+public:
+    using ::neuroxr::FullDiveSynchronizationEngine::FullDiveSynchronizationEngine;
+
+    FullDiveRuntimeState getState() const {
+        return FullDiveRuntimeState(::neuroxr::FullDiveSynchronizationEngine::getState());
+    }
+};
+
 } // namespace dnxr

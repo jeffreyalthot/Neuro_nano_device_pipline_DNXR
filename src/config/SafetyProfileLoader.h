@@ -12,6 +12,11 @@ struct SafetyRuntimeProfile {
     float maxAudioIntensity = 0.85f;
     float maxHapticIntensity = 0.70f;
     float maxVestibularIntensity = 0.35f;
+    float maxChemicalIntensity = 0.35f;
+    float maxBodyIntensity = 0.60f;
+    float maxDeltaPerFrame = 0.18f;
+    double heartbeatTimeoutMs = 250.0;
+    double latencyBudgetMs = 25.0;
     float maxCognitiveLoad = 0.75f;
     float maxDriftScore = 0.85f;
     int maxSessionMinutes = 30;

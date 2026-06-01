@@ -25,11 +25,24 @@ SimulatedNeuralChipHAL::SimulatedNeuralChipHAL(
       nextSequenceId_(1),
       phase_(0.0f) {
 
+#if DNXR_SIMULATION_ONLY
+    if (mode_ != NeuralChipRuntimeMode::Simulation) {
+        throw std::runtime_error(
+            "DNXR_SIMULATION_ONLY forbids hardware-in-loop and clinical neural chip modes");
+    }
+#endif
+
     status_.simulation = (mode_ == NeuralChipRuntimeMode::Simulation);
     status_.statusMessage = "disconnected";
 }
 
 void SimulatedNeuralChipHAL::connect(const std::string& deviceIdentifier) {
+#if DNXR_SIMULATION_ONLY
+    if (mode_ != NeuralChipRuntimeMode::Simulation) {
+        throw std::runtime_error("DNXR_SIMULATION_ONLY only permits simulated neural chip connections");
+    }
+#endif
+
     if (deviceIdentifier.empty()) {
         throw std::invalid_argument("NeuralChipHAL device identifier missing");
     }
