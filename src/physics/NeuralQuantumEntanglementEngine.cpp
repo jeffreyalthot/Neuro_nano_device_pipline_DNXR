@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace neuroxr {
+namespace dnxr {
 
 NeuralQuantumEntanglementEngine::
 NeuralQuantumEntanglementEngine() {

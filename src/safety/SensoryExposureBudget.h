@@ -14,6 +14,9 @@ struct SensoryExposureLimits {
     std::array<float, static_cast<std::size_t>(SensoryModality::Count)> sessionExposure{};
     float vestibularCooldownSeconds = 2.0f;
     float proprioceptiveCooldownSeconds = 1.0f;
+    float vestibularInstantPeakLimit = 0.35f;
+    float proprioceptiveInstantPeakLimit = 0.60f;
+    float smoothingTimeConstantSeconds = 1.0f;
 
     SensoryExposureLimits();
 };

@@ -37,7 +37,9 @@ SensoryExposureReport SensoryExposureBudget::observe(
 
     for (std::size_t i = 0; i < modalityCount; ++i) {
         const float load = std::clamp(std::isfinite(modalityLoad[i]) ? modalityLoad[i] : 0.0f, 0.0f, 1.0f);
-        report_.loadPerSecond[i] = (report_.loadPerSecond[i] * 0.85f) + (load * 0.15f);
+        const float tau = finitePositiveOr(limits_.smoothingTimeConstantSeconds, 1.0f);
+        const float alpha = dt > 0.0f ? std::clamp(1.0f - std::exp(-dt / tau), 0.0f, 1.0f) : 0.0f;
+        report_.loadPerSecond[i] = (report_.loadPerSecond[i] * (1.0f - alpha)) + (load * alpha);
         report_.sessionExposure[i] += load * dt;
 
         const float perSecondLimit = finitePositiveOr(limits_.loadPerSecond[i], 1.0f);
@@ -54,12 +56,14 @@ SensoryExposureReport SensoryExposureBudget::observe(
 
     const auto vestibular = static_cast<std::size_t>(SensoryModality::Vestibular);
     const auto proprioceptive = static_cast<std::size_t>(SensoryModality::Proprioceptive);
-    if (modalityLoad[vestibular] > limits_.loadPerSecond[vestibular]) {
+    const float vestibularInstantLoad = std::clamp(std::isfinite(modalityLoad[vestibular]) ? modalityLoad[vestibular] : 0.0f, 0.0f, 1.0f);
+    const float proprioceptiveInstantLoad = std::clamp(std::isfinite(modalityLoad[proprioceptive]) ? modalityLoad[proprioceptive] : 0.0f, 0.0f, 1.0f);
+    if (vestibularInstantLoad > finitePositiveOr(limits_.vestibularInstantPeakLimit, 0.35f)) {
         vestibularCooldownRemainingSeconds_ = std::max(
             vestibularCooldownRemainingSeconds_,
             static_cast<double>(limits_.vestibularCooldownSeconds));
     }
-    if (modalityLoad[proprioceptive] > limits_.loadPerSecond[proprioceptive]) {
+    if (proprioceptiveInstantLoad > finitePositiveOr(limits_.proprioceptiveInstantPeakLimit, 0.60f)) {
         proprioceptiveCooldownRemainingSeconds_ = std::max(
             proprioceptiveCooldownRemainingSeconds_,
             static_cast<double>(limits_.proprioceptiveCooldownSeconds));

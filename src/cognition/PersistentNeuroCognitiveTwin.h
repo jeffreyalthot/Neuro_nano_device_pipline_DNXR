@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 struct CognitiveSnapshot {
 
@@ -108,4 +108,8 @@ private:
     NeuroCognitiveState state_;
 };
 
+}
+
+namespace neuroxr {
+using namespace ::dnxr;
 }

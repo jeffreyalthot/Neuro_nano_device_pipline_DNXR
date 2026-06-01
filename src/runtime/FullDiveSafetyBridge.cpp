@@ -51,7 +51,7 @@ std::string appendFullDiveReason(const std::string& base, const std::string& rea
 FullDiveSafetyBridge::FullDiveSafetyBridge(FullDiveInterventionMemory memory)
     : memory_(memory) {}
 
-FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluate(const FullDiveSynchronizationEngine& engine) {
+FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluateInstant(const FullDiveSynchronizationEngine& engine) const {
     FullDiveRuntimeSnapshot snapshot;
     snapshot.state = engine.getState();
 
@@ -81,6 +81,13 @@ FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluate(const FullDiveSynchroniza
               "full_dive:reality_anchor");
     }
 
+    std::lock_guard<std::mutex> lock(mutex_);
+    snapshot.memory = memory_;
+    return snapshot;
+}
+
+FullDiveRuntimeSnapshot FullDiveSafetyBridge::observeAndEscalate(const FullDiveRuntimeSnapshot& instantSnapshot) {
+    FullDiveRuntimeSnapshot snapshot = instantSnapshot;
     const auto now = std::chrono::steady_clock::now();
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -96,14 +103,16 @@ FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluate(const FullDiveSynchroniza
         lastInterventionAt_ = now;
     }
 
-    const std::uint32_t anchorsInWindow = countWindowLocked(FullDiveInterventionLevel::RealityAnchor, now);
-    const std::uint32_t emergenciesInSession = memory_.emergencyStopCount;
+    std::uint32_t anchorsInWindow = countWindowLocked(FullDiveInterventionLevel::RealityAnchor, now);
+    std::uint32_t emergenciesInSession = memory_.emergencyStopCount;
     const bool repeatedVestibularCollapse = snapshot.state.vestibularStability < 0.20f && anchorsInWindow >= 2U;
 
     if (snapshot.intervention == FullDiveInterventionLevel::RealityAnchor && anchorsInWindow >= 3U) {
         raise(snapshot, FullDiveInterventionLevel::EmergencyStop, std::max(snapshot.severity, 0.95f),
               "full_dive_repeated_anchor_failure_emergency_stop", "full_dive:repeated_anchor_emergency");
         rememberLocked(FullDiveInterventionLevel::EmergencyStop, now);
+        emergenciesInSession = memory_.emergencyStopCount;
+        anchorsInWindow = countWindowLocked(FullDiveInterventionLevel::RealityAnchor, now);
     }
 
     if ((snapshot.intervention == FullDiveInterventionLevel::EmergencyStop && emergenciesInSession >= 2U) ||
@@ -115,6 +124,14 @@ FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluate(const FullDiveSynchroniza
 
     snapshot.memory = memory_;
     return snapshot;
+}
+
+FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluateAndRemember(const FullDiveSynchronizationEngine& engine) {
+    return observeAndEscalate(evaluateInstant(engine));
+}
+
+FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluate(const FullDiveSynchronizationEngine& engine) {
+    return evaluateAndRemember(engine);
 }
 
 void FullDiveSafetyBridge::apply(const FullDiveRuntimeSnapshot& snapshot, SafetyStateMachine& stateMachine) const {

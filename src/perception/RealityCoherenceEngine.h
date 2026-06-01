@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 enum class PerceptualLayer {
 
@@ -140,4 +140,8 @@ private:
     state_;
 };
 
+}
+
+namespace neuroxr {
+using namespace ::dnxr;
 }

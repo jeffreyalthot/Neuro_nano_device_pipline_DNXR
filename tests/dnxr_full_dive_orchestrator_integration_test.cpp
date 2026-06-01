@@ -21,12 +21,12 @@ bool withinUnitInterval(float value) {
 
 int main() {
     neuroxr::FullDiveSynchronizationEngine synchronization;
-    neuroxr::DistributedConsciousnessNetwork network;
-    neuroxr::RecursiveMemoryReconstructionEngine memory;
-    neuroxr::SubjectiveTimeDilationEngine time;
-    neuroxr::NeuralQuantumEntanglementEngine quantum;
-    neuroxr::AffectiveResonanceMatrix emotion;
-    neuroxr::SubconsciousSimulationEngine subconscious;
+    dnxr::DistributedConsciousnessNetwork network;
+    dnxr::RecursiveMemoryReconstructionEngine memory;
+    dnxr::SubjectiveTimeDilationEngine time;
+    dnxr::NeuralQuantumEntanglementEngine quantum;
+    dnxr::AffectiveResonanceMatrix emotion;
+    dnxr::SubconsciousSimulationEngine subconscious;
 
     const std::vector<float> signature = {0.2F, 0.4F, 0.6F, 0.8F};
     network.registerNode(

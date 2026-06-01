@@ -131,6 +131,15 @@ if(DNXR_BUILD_TESTS)
         dnxr_safety_state_machine_concurrency_test
         dnxr_open_interop_protocol_test
         dnxr_neural_intent_protocol_test
+        dnxr_runtime_acquisition_stage_test
+        dnxr_runtime_safety_stage_test
+        dnxr_runtime_full_dive_stage_test
+        dnxr_runtime_stimulus_stage_test
+        dnxr_runtime_memory_growth_test
+        dnxr_runtime_1h_stability_test
+        dnxr_vestibular_exposure_budget_long_test
+        dnxr_full_dive_intervention_window_long_test
+        dnxr_watchdog_stale_subsystem_long_test
         dnxr_full_dive_orchestrator_integration_test
         dnxr_neural_chip_immersion_integration_test
     )
@@ -148,4 +157,13 @@ if(DNXR_BUILD_TESTS)
     set_tests_properties(dnxr_stimulus_envelope_concurrency_test PROPERTIES LABELS "concurrency;safety")
     set_tests_properties(dnxr_vestibular_exposure_budget_concurrency_test PROPERTIES LABELS "concurrency;safety")
     set_tests_properties(dnxr_runtime_10k_cycles_test PROPERTIES LABELS "long_fast")
+    set_tests_properties(dnxr_runtime_acquisition_stage_test PROPERTIES LABELS "unit;runtime;stage")
+    set_tests_properties(dnxr_runtime_safety_stage_test PROPERTIES LABELS "unit;runtime;stage;safety")
+    set_tests_properties(dnxr_runtime_full_dive_stage_test PROPERTIES LABELS "unit;runtime;stage;full_dive")
+    set_tests_properties(dnxr_runtime_stimulus_stage_test PROPERTIES LABELS "unit;runtime;stage;safety")
+    set_tests_properties(dnxr_runtime_memory_growth_test PROPERTIES LABELS "long_real;soak;memory" DISABLED TRUE)
+    set_tests_properties(dnxr_runtime_1h_stability_test PROPERTIES LABELS "long_real;soak" DISABLED TRUE)
+    set_tests_properties(dnxr_vestibular_exposure_budget_long_test PROPERTIES LABELS "long_real;soak;safety" DISABLED TRUE)
+    set_tests_properties(dnxr_full_dive_intervention_window_long_test PROPERTIES LABELS "long_real;soak;full_dive;safety" DISABLED TRUE)
+    set_tests_properties(dnxr_watchdog_stale_subsystem_long_test PROPERTIES LABELS "long_real;soak;safety" DISABLED TRUE)
 endif()

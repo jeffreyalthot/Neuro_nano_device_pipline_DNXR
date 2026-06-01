@@ -3,7 +3,7 @@
 #include <array>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 struct SyntheticPerceptionFrame {
 
@@ -51,4 +51,8 @@ private:
     SyntheticPerceptionFrame frame_;
 };
 
+}
+
+namespace neuroxr {
+using namespace ::dnxr;
 }

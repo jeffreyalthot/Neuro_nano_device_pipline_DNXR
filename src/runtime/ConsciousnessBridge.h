@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 enum class ConsciousnessLayer {
 
@@ -80,4 +80,8 @@ private:
     state_;
 };
 
+}
+
+namespace neuroxr {
+using namespace ::dnxr;
 }
