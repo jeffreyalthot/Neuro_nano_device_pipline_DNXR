@@ -3,9 +3,9 @@
 #include "../src/replay/ReplayVerifier.h"
 #include "../src/runtime/RuntimeState.h"
 
-#include <cassert>
 #include <cstdio>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -34,6 +34,21 @@ dnxr::RuntimeFrame makeFrame(std::uint64_t cycle, float offset) {
     return frame;
 }
 
+bool require(bool condition, const std::string& message) {
+    if (!condition) {
+        std::cerr << "dnxr_replay_determinism_test: " << message << '\n';
+        return false;
+    }
+    return true;
+}
+
+bool parseFails(const std::string& encodedFrame) {
+    bool parseOk = true;
+    const auto parsed = dnxr::parseRuntimeFrame(encodedFrame, parseOk);
+    (void)parsed;
+    return !parseOk;
+}
+
 } // namespace
 
 int main() {
@@ -45,51 +60,89 @@ int main() {
     state.commitFrame(frame0);
     state.commitFrame(frame1);
     state.commitFrame(frame2);
-    assert(state.hasFrame());
-    assert(state.history().size() == 2U);
-    assert(state.currentFrame().cycleId == 2U);
+    if (!require(state.hasFrame(), "runtime state should have a current frame") ||
+        !require(state.history().size() == 2U, "runtime history should keep the requested depth") ||
+        !require(state.currentFrame().cycleId == 2U, "current frame should be the newest committed frame")) {
+        return 1;
+    }
 
     const std::string encoded = dnxr::serializeRuntimeFrame(frame1);
     bool parseOk = false;
     const auto decoded = dnxr::parseRuntimeFrame(encoded, parseOk);
-    assert(parseOk);
-    assert(dnxr::runtimeFrameHash(decoded) == dnxr::runtimeFrameHash(frame1));
+    if (!require(parseOk, "serialized frame should parse successfully") ||
+        !require(dnxr::runtimeFrameHash(decoded) == dnxr::runtimeFrameHash(frame1),
+                 "serialized frame should round-trip with the same hash")) {
+        return 1;
+    }
 
     dnxr::ReplayRecorder recorder;
     recorder.record(frame0);
     recorder.record(frame1);
     recorder.record(frame2);
     const std::string replayPath = "build/dnxr_replay_determinism_test.dnxr_replay";
-    assert(recorder.saveToFile(replayPath));
+    if (!require(recorder.saveToFile(replayPath), "recorder should save replay file")) {
+        return 1;
+    }
 
     dnxr::ReplayPlayer player;
-    assert(player.loadFromFile(replayPath));
-    assert(player.size() == 3U);
-    assert(player.frameHashes().size() == 3U);
-    assert(player.hasNext());
-    assert(player.next().cycleId == 0U);
+    if (!require(player.loadFromFile(replayPath), "player should load saved replay file") ||
+        !require(player.size() == 3U, "loaded replay should contain three frames") ||
+        !require(player.frameHashes().size() == 3U, "loaded replay should contain three frame hashes") ||
+        !require(player.hasNext(), "loaded replay should be iterable") ||
+        !require(player.next().cycleId == 0U, "first replay frame should have cycle id 0")) {
+        std::remove(replayPath.c_str());
+        return 1;
+    }
     player.reset();
-    assert(player.next().cycleId == 0U);
+    if (!require(player.next().cycleId == 0U, "reset replay should start at cycle id 0")) {
+        std::remove(replayPath.c_str());
+        return 1;
+    }
 
     const auto verification = dnxr::ReplayVerifier::verify(recorder.frames(), player.frames());
-    assert(verification.deterministic);
-    assert(verification.comparedFrames == 3U);
-    assert(verification.message == "deterministic_replay_match");
+    if (!require(verification.deterministic, "saved replay should verify as deterministic") ||
+        !require(verification.comparedFrames == 3U, "verification should compare all frames") ||
+        !require(verification.message == "deterministic_replay_match", "verification should report a match")) {
+        std::remove(replayPath.c_str());
+        return 1;
+    }
 
     auto mutated = player.frames();
+    if (!require(mutated.size() > 1U && !mutated[1].features.empty(),
+                 "loaded replay must contain a mutable second frame feature")) {
+        std::remove(replayPath.c_str());
+        return 1;
+    }
     mutated[1].features[0] += 0.01f;
     const auto mismatch = dnxr::ReplayVerifier::verify(recorder.frames(), mutated);
-    assert(!mismatch.deterministic);
-    assert(mismatch.firstMismatchIndex == 1U);
-    assert(mismatch.message == "frame_hash_mismatch");
+    if (!require(!mismatch.deterministic, "mutated replay should not verify as deterministic") ||
+        !require(mismatch.firstMismatchIndex == 1U, "mismatch should identify the second frame") ||
+        !require(mismatch.message == "frame_hash_mismatch", "mismatch should report a frame hash failure")) {
+        std::remove(replayPath.c_str());
+        return 1;
+    }
 
-
-    bool invalidParseOk = true;
-    const auto invalidNaNFrame = dnxr::parseRuntimeFrame(
-        "9|1009|nan|0.1|0.2|nominal|0.3|xr.look|0.4|allow_render|10|0|1.0|1.0|0.0|1.0|1.0|stable",
-        invalidParseOk);
-    (void)invalidNaNFrame;
-    assert(!invalidParseOk);
+    if (!require(parseFails(
+             "9|1009|nan|0.1|0.2|nominal|0.3|xr.look|0.4|allow_render|10|0|1.0|1.0|0.0|1.0|1.0|stable"),
+             "parser should reject non-finite vector values") ||
+        !require(parseFails(
+             "9|1009|0.1|0.1|0.2|nominal|0.3|xr.look|0.4|allow_render|10|0|nan|1.0|0.0|1.0|1.0|stable"),
+             "parser should reject non-finite last latency") ||
+        !require(parseFails(
+             "9|1009|0.1|0.1|0.2|nominal|0.3|xr.look|0.4|allow_render|10|0|1.0|inf|0.0|1.0|1.0|stable"),
+             "parser should reject non-finite average latency") ||
+        !require(parseFails(
+             "9|1009|0.1|0.1|0.2|nominal|0.3|xr.look|0.4|allow_render|10|0|1.0|1.0|-inf|1.0|1.0|stable"),
+             "parser should reject non-finite jitter") ||
+        !require(parseFails(
+             "9|1009|0.1|0.1|0.2|nominal|0.3|xr.look|0.4|allow_render|10|0|1.0|1.0|0.0|nan|1.0|stable"),
+             "parser should reject non-finite p95 latency") ||
+        !require(parseFails(
+             "9|1009|0.1|0.1|0.2|nominal|0.3|xr.look|0.4|allow_render|10|0|1.0|1.0|0.0|1.0|inf|stable"),
+             "parser should reject non-finite p99 latency")) {
+        std::remove(replayPath.c_str());
+        return 1;
+    }
 
     dnxr::RuntimeFrame tamperedFrame = frame0;
     tamperedFrame.rawSignal = {0.1f, 0.2f};
@@ -101,7 +154,12 @@ int main() {
         tampered << "frame_fake|9|1009|nan|0.1|0.2|nominal|0.3|xr.look|0.4|allow_render|10|0|1.0|1.0|0.0|1.0|1.0|stable\n";
     }
     dnxr::ReplayPlayer tamperedPlayer;
-    assert(!tamperedPlayer.loadFromFile(tamperedReplayPath));
+    if (!require(!tamperedPlayer.loadFromFile(tamperedReplayPath),
+                 "tampered replay containing non-finite data should be rejected")) {
+        std::remove(tamperedReplayPath.c_str());
+        std::remove(replayPath.c_str());
+        return 1;
+    }
     std::remove(tamperedReplayPath.c_str());
 
     std::remove(replayPath.c_str());

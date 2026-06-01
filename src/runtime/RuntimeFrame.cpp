@@ -90,6 +90,16 @@ std::vector<float> parseVector(const std::string& value, bool& ok) {
     return out;
 }
 
+bool parseFiniteDouble(const std::string& token, double& out) {
+    std::size_t parsedCharacters = 0U;
+    const double parsedValue = std::stod(token, &parsedCharacters);
+    if (parsedCharacters != token.size() || !std::isfinite(parsedValue)) {
+        return false;
+    }
+    out = parsedValue;
+    return true;
+}
+
 std::vector<std::string> splitFields(const std::string& line) {
     std::vector<std::string> fields;
     std::stringstream stream(line);
@@ -155,11 +165,13 @@ RuntimeFrame parseRuntimeFrame(const std::string& line, bool& ok) {
         frame.safetyDecision = decodeString(fields[9]);
         frame.metricsSnapshot.totalCycles = static_cast<std::uint64_t>(std::stoull(fields[10]));
         frame.metricsSnapshot.safetyEventCount = static_cast<std::uint64_t>(std::stoull(fields[11]));
-        frame.metricsSnapshot.lastLatencyMs = std::stod(fields[12]);
-        frame.metricsSnapshot.avgLatencyMs = std::stod(fields[13]);
-        frame.metricsSnapshot.jitterMs = std::stod(fields[14]);
-        frame.metricsSnapshot.p95LatencyMs = std::stod(fields[15]);
-        frame.metricsSnapshot.p99LatencyMs = std::stod(fields[16]);
+        if (!parseFiniteDouble(fields[12], frame.metricsSnapshot.lastLatencyMs) ||
+            !parseFiniteDouble(fields[13], frame.metricsSnapshot.avgLatencyMs) ||
+            !parseFiniteDouble(fields[14], frame.metricsSnapshot.jitterMs) ||
+            !parseFiniteDouble(fields[15], frame.metricsSnapshot.p95LatencyMs) ||
+            !parseFiniteDouble(fields[16], frame.metricsSnapshot.p99LatencyMs)) {
+            return frame;
+        }
         if (fields[17] == "throttle") {
             frame.metricsSnapshot.latencyHealth = RuntimeLatencyHealth::Throttle;
         } else if (fields[17] == "fallback") {

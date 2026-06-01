@@ -22,13 +22,17 @@
 #include "../signal/FeatureVectorizer.h"
 #include "../cognition/StateInferenceEngine.h"
 #include "../calibration/NeuralCalibrationEngine.h"
+#include "../calibration/CalibrationDriftMonitor.h"
 #include "../immersion/ImmersionCore.h"
+#include "../immersion/MultisensoryClock.h"
 #include "../rendering/XRRenderer.h"
 #include "../safety/PhysiologicalGuard.h"
 #include "../safety/EmergencyShutdown.h"
 #include "../safety/CognitiveReversibilitySystem.h"
+#include "../safety/RealityAnchorSystem.h"
 #include "../safety/SafetyGovernor.h"
 #include "../safety/NeuralStimulusSafetyEnvelope.h"
+#include "../safety/NeuroRightsPolicy.h"
 #include "../signal/EnergyThermalOptimizer.h"
 #include "../hardware/NeuralChipHAL.h"
 #include "../neurotech/DeepImmersionPlatform.h"
@@ -163,11 +167,14 @@ void RuntimeController::initializeModules() {
     vec_          = std::make_unique<FeatureVectorizer>();
     brain_        = std::make_unique<StateInferenceEngine>();
     calib_        = std::make_unique<NeuralCalibrationEngine>();
+    calibrationDriftMonitor_ = std::make_unique<CalibrationDriftMonitor>();
     immersion_    = std::make_unique<ImmersionCore>();
+    multisensoryClock_ = std::make_unique<MultisensoryClock>();
     renderer_     = std::make_unique<XRRenderer>();
     guard_        = std::make_unique<PhysiologicalGuard>();
     emergency_    = std::make_unique<EmergencyShutdown>();
     reversibility_= std::make_unique<CognitiveReversibilitySystem>();
+    realityAnchor_ = std::make_unique<RealityAnchorSystem>();
     thermalOptimizer_ = std::make_unique<EnergyThermalOptimizer>();
     safetyGovernor_ = std::make_unique<SafetyGovernor>();
     stimulusEnvelope_ = std::make_unique<NeuralStimulusSafetyEnvelope>(
@@ -200,9 +207,24 @@ void RuntimeController::initializeModules() {
             "with documented justification.");
     }
 
+    const NeuroRightsDecision influenceRights = NeuroRightsPolicy::simulationDefault().evaluate(
+        NeuroRightsRequest{
+            NeuroPermissionScope::CognitiveInfluence,
+            "RuntimeController",
+            "runtime_induced_vector",
+            true,
+            true,
+            false,
+            ivNorm,
+            kMaxInducedVectorNorm});
+    if (!influenceRights.allowed) {
+        throw std::runtime_error("inducedVector denied by NeuroRightsPolicy: " + influenceRights.reason);
+    }
+
     Logger::info("inducedVector validated: norm=" + std::to_string(ivNorm)
                  + " threshold=" + std::to_string(kMaxInducedVectorNorm)
-                 + " " + auditHash(inducedVector));
+                 + " " + auditHash(inducedVector)
+                 + " " + influenceRights.auditTag);
 
     deepImmersion_->setInducedVector(inducedVector);
 
@@ -230,11 +252,14 @@ void RuntimeController::shutdownModules() {
     vec_.reset();
     brain_.reset();
     calib_.reset();
+    calibrationDriftMonitor_.reset();
     immersion_.reset();
+    multisensoryClock_.reset();
     renderer_.reset();
     guard_.reset();
     emergency_.reset();
     reversibility_.reset();
+    realityAnchor_.reset();
     thermalOptimizer_.reset();
     safetyGovernor_.reset();
     stimulusEnvelope_.reset();
@@ -255,6 +280,17 @@ void RuntimeController::runSingleCycle(double timestamp) {
                 emergencyActive,
                 reason);
             snapshot = runtimeMetrics_.snapshot();
+        }
+        {
+            std::lock_guard<std::mutex> traceLock(traceMutex_);
+            traceRecorder_.record(
+                cycleCounter_,
+                "RuntimeController",
+                safeDecision ? "cycle_complete" : "cycle_degraded",
+                tickReport.totalMs,
+                emergencyActive ? 1.0f : 0.0f,
+                !safeDecision || emergencyActive,
+                reason);
         }
         publishRuntimeMetrics(snapshot);
         return snapshot;
@@ -346,6 +382,39 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
     constexpr float kUserSensitivity = 1.05f;
     auto calibrated = calib_->calibrateForImmersion(features, kUserSensitivity, timestamp);
+    if (cycleCounter_ == 0U) {
+        calibrationDriftMonitor_->setBaseline(calibrationDriftMonitor_->buildBaseline(
+            calibrated,
+            diag.neuralSignalQuality,
+            timestamp,
+            "runtime_baseline"));
+    }
+    const CalibrationDriftAssessment calibrationDrift = calibrationDriftMonitor_->assess(
+        calibrated,
+        diag.neuralSignalQuality,
+        diag.intentConfidence,
+        cognitive.fatigue,
+        timestamp);
+    if (calibrationDrift.requiresRecalibration) {
+        Logger::warn("[CalibrationDriftMonitor] " + calibrationDrift.reason +
+                     " drift=" + std::to_string(calibrationDrift.driftScore) +
+                     " velocity=" + std::to_string(calibrationDrift.driftVelocity) +
+                     " age_s=" + std::to_string(calibrationDrift.calibrationAgeSeconds));
+        {
+            std::lock_guard<std::mutex> traceLock(traceMutex_);
+            traceRecorder_.record(
+                cycleCounter_,
+                "CalibrationDriftMonitor",
+                "recalibration_recommended",
+                calibrationDrift.calibrationAgeSeconds,
+                calibrationDrift.driftScore,
+                calibrationDrift.blockCriticalActions,
+                calibrationDrift.reason);
+        }
+        if (calibrationDrift.blockCriticalActions) {
+            calib_->resetStabilization();
+        }
+    }
 
     const XRFullBodyCommand bodyCommand =
         deepImmersion_->runFullBodyControlTick(clean, cognitive);
@@ -361,6 +430,30 @@ void RuntimeController::runSingleCycle(double timestamp) {
     if (!frame.empty() && !calibrated.empty()) {
         const float calibrationAnchor = calibrated.front();
         frame[0] = (frame[0] * 0.85f) + (calibrationAnchor * 0.15f);
+    }
+
+    const MultisensoryAlignmentReport sensorySync = multisensoryClock_->alignVector(
+        frame,
+        cycleCounter_,
+        (static_cast<double>(cycleCounter_) * static_cast<double>(frameBudgetMs_)),
+        2.0);
+    frame = sensorySync.alignedFrame;
+    if (sensorySync.degradationApplied) {
+        {
+            std::lock_guard<std::mutex> traceLock(traceMutex_);
+            traceRecorder_.record(
+                cycleCounter_,
+                "MultisensoryClock",
+                "alignment_degraded",
+                sensorySync.maxObservedPhaseErrorMs,
+                1.0f - sensorySync.recommendedIntensityScale,
+                true,
+                sensorySync.reason);
+        }
+        Logger::warn("[MultisensoryClock] " + sensorySync.reason +
+                     " phase_ms=" + std::to_string(sensorySync.maxObservedPhaseErrorMs) +
+                     " confidence=" + std::to_string(sensorySync.confidence) +
+                     " scale=" + std::to_string(sensorySync.recommendedIntensityScale));
     }
 
     const SafetyDecision safetyDecision = safetyGovernor_->evaluate({
@@ -387,20 +480,56 @@ void RuntimeController::runSingleCycle(double timestamp) {
         return;
     }
 
+    RealityAnchorContext anchorContext;
+    anchorContext.userAlias = "runtime_user";
+    anchorContext.sessionId = "runtime_session";
+    anchorContext.realEnvironmentLabel = "simulation_lab";
+    anchorContext.sessionElapsedSeconds =
+        (static_cast<double>(cycleCounter_) * static_cast<double>(frameBudgetMs_)) / 1000.0;
+    anchorContext.consentActive = diag.autonomyPreservation >= 0.20f;
+    anchorContext.emergencyActive = !emergency_->isStable();
+    anchorContext.identityContinuity = diag.autonomyPreservation;
+    anchorContext.temporalOrientation = cognitive.attention;
+    anchorContext.realWorldOrientation = bio.postureStability;
+    anchorContext.sensoryOverload = std::max(
+        std::max(
+            std::clamp(cognitive.stress + cognitive.fatigue, 0.0f, 1.0f),
+            sensorySync.degradationApplied ? 1.0f - sensorySync.recommendedIntensityScale : 0.0f),
+        calibrationDrift.blockCriticalActions ? calibrationDrift.driftScore : 0.0f);
+
+    const RealityAnchorPlan anchorPlan = realityAnchor_->evaluate(anchorContext, safetyDecision);
+
+    if (anchorPlan.requiresEmergencyStop || !anchorPlan.allowRender) {
+        emergency_->trigger();
+        const auto anchorAudit = safetyJournal_->record(
+            "reality_anchor_stop",
+            anchorPlan.traceTag + "|" + anchorPlan.recoveryAction,
+            anchorPlan.riskScore);
+        Logger::error("[RealityAnchorSystem] Emergency anchor before render | " +
+                      anchorPlan.traceTag + " | journal=" + anchorAudit.eventHash);
+        finishCycle(false, true, anchorPlan.traceTag);
+        ++cycleCounter_;
+        return;
+    }
+
     frame = safetyGovernor_->applyDecisionToFrame(frame, safetyDecision);
-    if (safetyDecision.action != SafetyAction::Continue) {
+    frame = realityAnchor_->applyPlanToFrame(frame, anchorPlan);
+    if (safetyDecision.action != SafetyAction::Continue || anchorPlan.mode != RealityAnchorMode::Maintain) {
         Logger::warn("[SafetyGovernor] action=" + safetyDecision.reason +
                      " risk=" + std::to_string(safetyDecision.riskScore) +
-                     " scale=" + std::to_string(safetyDecision.intensityScale));
+                     " scale=" + std::to_string(safetyDecision.intensityScale) +
+                     " anchor=" + anchorPlan.traceTag);
     }
 
     frame = thermalOptimizer_->optimize(frame, cognitive.immersionIndex);
 
     if (safetyDecision.action == SafetyAction::Decompress ||
         safetyDecision.action == SafetyAction::RealityAnchor ||
+        anchorPlan.mode == RealityAnchorMode::RealityAnchor ||
         reversibility_->shouldStartReturnToReality(normalizedRiskTelemetry)) {
         frame = reversibility_->runDecompression(frame);
-        Logger::warn("[CognitiveReversibility] Return-to-reality decompression applied.");
+        Logger::warn("[CognitiveReversibility] Return-to-reality decompression applied. anchor=" +
+                     anchorPlan.traceTag);
     }
 
     replay_.record({clean, timestamp});
@@ -514,6 +643,22 @@ RuntimeMetricsSnapshot RuntimeController::getRuntimeMetricsSnapshot() const {
 RuntimeLatencyHealth RuntimeController::getRuntimeLatencyHealth() const {
     std::lock_guard<std::mutex> lock(metricsMutex_);
     return runtimeMetrics_.latencyHealth();
+}
+
+
+std::vector<RuntimeTraceEvent> RuntimeController::getRuntimeTraceEvents() const {
+    std::lock_guard<std::mutex> lock(traceMutex_);
+    return traceRecorder_.events();
+}
+
+std::string RuntimeController::getLatestRuntimeTraceId() const {
+    std::lock_guard<std::mutex> lock(traceMutex_);
+    return traceRecorder_.latestTraceId();
+}
+
+bool RuntimeController::saveRuntimeTraceJsonl(const std::string& path) const {
+    std::lock_guard<std::mutex> lock(traceMutex_);
+    return traceRecorder_.saveJsonl(path);
 }
 
 bool RuntimeController::shouldApplyRendererQoS(const RuntimeMetricsSnapshot& snapshot) const {

@@ -17,6 +17,8 @@
 
 #include "DeepImmersionPlatform.h"
 
+#include "../safety/IntentRiskClassifier.h"
+
 #include <algorithm>
 #include <numeric>
 #include <cmath>
@@ -44,11 +46,6 @@ constexpr float kEnergyNormFactor = 0.6f;
 // Seuil de clip pour la nouvelle plage : un sample est "clippé" s'il
 // atteint ±0.995 (soit 99.5% de la plage max).
 constexpr float kClipThreshold = 0.995f;
-
-bool isCriticalIntentToken(const std::string& token) {
-    return token == "xr.grab" || token == "xr.compose" ||
-           token == "xr.interrupt" || token == "xr.cancel";
-}
 
 bool tokenAllowsMove(const std::string& token) {
     return token == "xr.move" || token == "xr.compose";
@@ -452,20 +449,38 @@ CognitiveState DeepImmersionPlatform::runInferenceTick(
         intentConfirmationCount_ = 0;
     }
 
-    const int requiredConfirmations = isCriticalIntentToken(intentVector.actionToken) ? 2 : 1;
-    const bool executionAuthorized = confirmationEligible && intentConfirmationCount_ >= requiredConfirmations;
+    const IntentRiskDecision intentRisk = IntentRiskClassifier{}.evaluate(IntentRiskInput{
+        intentVector.actionToken,
+        intentVector.confidence,
+        intentVector.ambiguityMargin,
+        intentVector.ambiguityDetected,
+        intentVector.fallbackRecommended,
+        intentConfirmationCount_,
+        signalQuality,
+        influence.autonomyPreservation,
+        state.stress,
+        state.fatigue,
+        consentManager_.isAllowed("intent")});
+
+    const bool executionAuthorized = confirmationEligible && intentRisk.authorized;
     lastDiagnostics_.intentConfirmationCount = intentConfirmationCount_;
+    lastDiagnostics_.intentRiskLevel = intentRisk.riskLevel;
+    lastDiagnostics_.intentRiskReason = intentRisk.reason;
     lastDiagnostics_.intentExecutionAuthorized = executionAuthorized;
     lastDiagnostics_.authorizedIntentToken = executionAuthorized ? intentVector.actionToken : "none";
 
     const float jitterComp = clamp01(signalVariance * 0.5f + (1.0f - signalQuality) * 0.5f);
     lastDiagnostics_.jitterCompensation    = jitterComp;
 
-    if (intentVector.fallbackRecommended || intentVector.confidence < 0.45f) {
+    if (intentRisk.requiresRealityAnchor) {
+        lastDiagnostics_.fallbackChannel   = "reality_anchor_consent";
+        lastDiagnostics_.safetyMode        = intentRisk.safetyMode;
+        state.immersionIndex               = clamp01(state.immersionIndex * 0.55f);
+    } else if (intentRisk.requiresFallback || intentVector.fallbackRecommended || intentVector.confidence < 0.45f) {
         lastDiagnostics_.fallbackChannel   = intentVector.ambiguityDetected
                                              ? "voice_gaze_gesture_ambiguity"
                                              : "voice_gaze_gesture";
-        lastDiagnostics_.safetyMode        = "degraded_fallback";
+        lastDiagnostics_.safetyMode        = intentRisk.safetyMode == "nominal" ? "degraded_fallback" : intentRisk.safetyMode;
         state.immersionIndex               = clamp01(state.immersionIndex * 0.75f);
     } else if (!executionAuthorized) {
         lastDiagnostics_.fallbackChannel   = "intent_confirmation_hold";
