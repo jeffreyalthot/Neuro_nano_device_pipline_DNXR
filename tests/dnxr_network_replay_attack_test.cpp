@@ -19,7 +19,7 @@ int main() {
     assert(dnxr::PacketSigner::verify("session", 7U, "nonce", signedPayload, signature, "audit_key"));
     assert(!dnxr::PacketSigner::verify("session", 8U, "nonce", signedPayload, signature, "audit_key"));
 
-    dnxr::NeuralCryptoTransport transport;
+    dnxr::SimulationCryptoTransport transport;
     auto sender = transport.createSession("avatar_alpha", "session-secret-001", 60000);
     auto receiver = transport.createSession("avatar_alpha", "session-secret-001", 60000);
 

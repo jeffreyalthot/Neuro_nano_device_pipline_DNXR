@@ -7,7 +7,9 @@
 #include <vector>
 
 #include "SafetyGovernor.h"
+#include "SensoryExposureBudget.h"
 #include "../hardware/NeuralChipHAL.h"
+#include "../immersion/SensoryFrameSchema.h"
 
 namespace dnxr {
 
@@ -21,16 +23,6 @@ struct UserNeuralCalibrationProfile {
     float maxDeltaPerFrame = 0.20f;
     float maxVestibularIntensity = 0.35f;
     float maxProprioceptiveIntensity = 0.60f;
-};
-
-enum class SensoryModality : std::size_t {
-    Visual = 0,
-    Auditory = 1,
-    HapticTouch = 2,
-    ChemicalTasteSmell = 3,
-    Proprioceptive = 4,
-    Vestibular = 5,
-    Count = 6
 };
 
 struct NeuralStimulusModalityBudget {
@@ -48,12 +40,17 @@ public:
     SafeNeuralStimulusCommand buildCommand(
         std::uint64_t sequenceId,
         const std::vector<float>& sensoryFrame,
-        const SafetyDecision& decision);
+        const SafetyDecision& decision,
+        StimulusCoveragePolicy coveragePolicy = StimulusCoveragePolicy::AnySafeChannel,
+        const std::vector<SensoryModality>& requiredModalities = {});
 
     void setCalibrationProfile(const UserNeuralCalibrationProfile& profile);
     const UserNeuralCalibrationProfile& calibrationProfile() const;
     const std::vector<float>& lastBoundedChannels() const;
     const NeuralStimulusModalityBudget& lastModalityBudget() const;
+    const SensoryExposureReport& lastExposureReport() const;
+    void setFrameSchema(const SensoryFrameSchema& schema);
+    const SensoryFrameSchema& frameSchema() const;
 
     static constexpr std::size_t modalityCount() {
         return static_cast<std::size_t>(SensoryModality::Count);
@@ -62,13 +59,17 @@ public:
 
 private:
     float channelLimit(std::size_t index) const;
+    bool coveragePolicySatisfied(SafeNeuralStimulusCommand& command, StimulusCoveragePolicy policy, const std::vector<SensoryModality>& requiredModalities) const;
     std::vector<float> applyEnvelope(const std::vector<float>& sensoryFrame);
     void updateModalityBudget(const std::vector<float>& boundedChannels);
 
 private:
     UserNeuralCalibrationProfile profile_;
     std::vector<float> lastBoundedChannels_;
+    SensoryFrameSchema frameSchema_;
     NeuralStimulusModalityBudget lastModalityBudget_;
+    SensoryExposureBudget exposureBudget_;
+    SensoryExposureReport lastExposureReport_;
 };
 
 } // namespace dnxr

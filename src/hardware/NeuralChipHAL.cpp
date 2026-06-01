@@ -122,8 +122,22 @@ bool SimulatedNeuralChipHAL::validateCommand(
         return false;
     }
 
-    if (command.modalityIntensities.size() != 6U || !command.fiveSenseCoverage) {
+    if (command.modalityIntensities.size() != 6U || !command.exposureBudgetOk) {
         return false;
+    }
+
+    if (command.coveragePolicy == StimulusCoveragePolicy::FullMultisensoryFrame &&
+        !command.fiveSenseCoverage) {
+        return false;
+    }
+
+    if (command.coveragePolicy == StimulusCoveragePolicy::RequiredModalities) {
+        for (const auto modality : command.requiredModalities) {
+            const auto index = static_cast<std::size_t>(modality);
+            if (index >= command.modalityIntensities.size() || command.modalityIntensities[index] <= 0.0f) {
+                return false;
+            }
+        }
     }
 
     for (float intensity : command.modalityIntensities) {

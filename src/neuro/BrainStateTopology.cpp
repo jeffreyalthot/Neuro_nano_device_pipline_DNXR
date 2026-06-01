@@ -3,7 +3,7 @@
 #include <cmath>
 #include <random>
 
-namespace neuroxr {
+namespace dnxr {
 
 BrainStateTopology::BrainStateTopology() {
     initialize();

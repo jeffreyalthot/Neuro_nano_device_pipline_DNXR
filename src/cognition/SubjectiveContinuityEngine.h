@@ -3,7 +3,7 @@
 #include <deque>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 struct ContinuityFrame {
 
@@ -65,4 +65,10 @@ private:
     SubjectiveState state_;
 };
 
+}
+
+namespace neuroxr {
+using ContinuityFrame = ::dnxr::ContinuityFrame;
+using SubjectiveState = ::dnxr::SubjectiveState;
+using SubjectiveContinuityEngine = ::dnxr::SubjectiveContinuityEngine;
 }

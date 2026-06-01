@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 enum class CorticalRegionType {
     VISUAL,
@@ -92,4 +92,11 @@ private:
     std::vector<CorticalRegion> regions_;
 };
 
+}
+
+namespace neuroxr {
+using CorticalRegionType = ::dnxr::CorticalRegionType;
+using NeuralNode = ::dnxr::NeuralNode;
+using CorticalRegion = ::dnxr::CorticalRegion;
+using BrainStateTopology = ::dnxr::BrainStateTopology;
 }

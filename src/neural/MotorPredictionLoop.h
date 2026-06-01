@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace neuroxr {
+namespace dnxr {
 
 struct MotorState {
 
@@ -75,4 +75,10 @@ private:
     MotorPredictionFrame frame_;
 };
 
+}
+
+namespace neuroxr {
+using MotorState = ::dnxr::MotorState;
+using MotorPredictionFrame = ::dnxr::MotorPredictionFrame;
+using MotorPredictionLoop = ::dnxr::MotorPredictionLoop;
 }

@@ -8,6 +8,10 @@ option(DNXR_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 option(DNXR_ENABLE_TSAN "Enable ThreadSanitizer" OFF)
 option(DNXR_SIMULATION_ONLY "Force simulation-only runtime guardrails" ON)
 
+if(DNXR_ENABLE_TSAN AND DNXR_ENABLE_ASAN)
+    message(FATAL_ERROR "DNXR_ENABLE_TSAN and DNXR_ENABLE_ASAN cannot be enabled together")
+endif()
+
 # Runtime portability for Windows builds.
 option(DNXR_WINDOWS_PORTABLE_RUNTIME "Statically link C/C++ runtime on Windows to avoid missing DLL entry points" ON)
 if(WIN32 AND DNXR_WINDOWS_PORTABLE_RUNTIME)
@@ -118,6 +122,9 @@ if(DNXR_BUILD_TESTS)
         dnxr_network_replay_attack_test
         dnxr_neural_chip_hal_test
         dnxr_vestibular_budget_boundary_test
+        dnxr_sensory_frame_schema_test
+        dnxr_vestibular_exposure_budget_test
+        dnxr_full_dive_bridge_intervention_test
         dnxr_safety_state_machine_concurrency_test
         dnxr_open_interop_protocol_test
         dnxr_neural_intent_protocol_test
@@ -131,5 +138,8 @@ if(DNXR_BUILD_TESTS)
 
     set_tests_properties(dnxr_safety_state_machine_concurrency_test PROPERTIES LABELS "concurrency;safety")
     set_tests_properties(dnxr_vestibular_budget_boundary_test PROPERTIES LABELS "unit;safety")
+    set_tests_properties(dnxr_sensory_frame_schema_test PROPERTIES LABELS "unit;safety")
+    set_tests_properties(dnxr_vestibular_exposure_budget_test PROPERTIES LABELS "unit;safety")
+    set_tests_properties(dnxr_full_dive_bridge_intervention_test PROPERTIES LABELS "unit;safety;full_dive")
     set_tests_properties(dnxr_runtime_10k_cycles_test PROPERTIES LABELS "long")
 endif()

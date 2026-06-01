@@ -140,7 +140,13 @@ update(
     std::lock_guard<std::mutex>
     guard(runtimeMutex_);
 
+    updateInternalSimulationLocked(deltaTime);
+    computeRuntimeStabilityLocked();
+    detectNeuralOverloadLocked();
+    detectConsciousnessDesynchronizationLocked();
+}
 
+void FullDiveSynchronizationEngine::updateInternalSimulationLocked(float deltaTime) {
     brainTopology_.simulate(
         deltaTime);
 
@@ -180,12 +186,6 @@ update(
     synchronizeMemoryPersistence();
 
     synchronizeSocialPresence();
-
-    computeRuntimeStability();
-
-    detectNeuralOverload();
-
-    detectConsciousnessDesynchronization();
 }
 
 void FullDiveSynchronizationEngine::
@@ -266,6 +266,10 @@ synchronizeSocialPresence() {
 
 void FullDiveSynchronizationEngine::
 computeRuntimeStability() {
+    computeRuntimeStabilityLocked();
+}
+
+void FullDiveSynchronizationEngine::computeRuntimeStabilityLocked() {
 
     runtimeState_.fullDiveStability =
 
@@ -310,6 +314,10 @@ computeRuntimeStability() {
 
 void FullDiveSynchronizationEngine::
 detectNeuralOverload() {
+    detectNeuralOverloadLocked();
+}
+
+void FullDiveSynchronizationEngine::detectNeuralOverloadLocked() {
 
     runtimeState_.neuralOverloadDetected =
         runtimeState_.fullDiveStability <
@@ -318,6 +326,10 @@ detectNeuralOverload() {
 
 void FullDiveSynchronizationEngine::
 detectConsciousnessDesynchronization() {
+    detectConsciousnessDesynchronizationLocked();
+}
+
+void FullDiveSynchronizationEngine::detectConsciousnessDesynchronizationLocked() {
 
     runtimeState_.consciousnessDesynchronization =
 
@@ -363,10 +375,17 @@ void FullDiveSynchronizationEngine::configureSafetyThresholds(const SafetyRuntim
     safetyProfile_ = profile;
 }
 
-void FullDiveSynchronizationEngine::updateFromRuntime(const FullDiveRuntimeInput& input) {
-    update(static_cast<float>(input.deltaTimeSeconds));
-
+void FullDiveSynchronizationEngine::setUpdateMode(FullDiveUpdateMode mode) {
     std::lock_guard<std::mutex> guard(runtimeMutex_);
+    updateMode_ = mode;
+}
+
+FullDiveUpdateMode FullDiveSynchronizationEngine::updateMode() const {
+    std::lock_guard<std::mutex> guard(runtimeMutex_);
+    return updateMode_;
+}
+
+void FullDiveSynchronizationEngine::applyRuntimeInputLocked(const FullDiveRuntimeInput& input) {
     const float latencyPressure = input.runtimeMetrics.latencyBudgetMs > 0.0
         ? clamp01(static_cast<float>(input.runtimeMetrics.lastLatencyMs / input.runtimeMetrics.latencyBudgetMs))
         : 0.0f;
@@ -375,25 +394,51 @@ void FullDiveSynchronizationEngine::updateFromRuntime(const FullDiveRuntimeInput
     const float sensoryConfidence = clamp01(input.sensorySync.confidence * input.sensorySync.recommendedIntensityScale);
     const float biometricStability = clamp01((input.biometric.postureStability + input.biometric.eyeFocus) * 0.5f);
 
-    runtimeState_.subjectivePresence = clamp01((runtimeState_.subjectivePresence * 0.55f) +
-                                               (input.cognitive.immersionIndex * 0.25f) +
-                                               (sensoryConfidence * 0.20f));
-    runtimeState_.corticalStability = clamp01((runtimeState_.corticalStability * 0.60f) +
-                                              (input.diagnostics.neuralSignalQuality * 0.25f) +
-                                              ((1.0f - input.calibrationDrift.driftScore) * 0.15f));
-    runtimeState_.motorPredictionAccuracy = clamp01(runtimeState_.motorPredictionAccuracy *
-        (0.85f + clamp01(input.diagnostics.intentConfidence) * 0.15f));
-    runtimeState_.vestibularStability = clamp01((runtimeState_.vestibularStability * 0.70f) +
-                                                (biometricStability * 0.20f) +
-                                                ((1.0f - latencyPressure) * 0.10f));
-    runtimeState_.temporalCoherence = clamp01((runtimeState_.temporalCoherence * 0.70f) +
-                                              ((input.sensorySync.synchronized ? 1.0f : 0.0f) * 0.20f) +
-                                              ((1.0f - latencyPressure) * 0.10f));
+    const float simulationWeight = updateMode_ == FullDiveUpdateMode::Hybrid ? 0.35f : 0.0f;
+    const float runtimeWeight = 1.0f - simulationWeight;
+
+    runtimeState_.subjectivePresence = clamp01((runtimeState_.subjectivePresence * simulationWeight) +
+                                               (input.cognitive.immersionIndex * 0.45f * runtimeWeight) +
+                                               (sensoryConfidence * 0.55f * runtimeWeight));
+    runtimeState_.corticalStability = clamp01((runtimeState_.corticalStability * simulationWeight) +
+                                              (input.diagnostics.neuralSignalQuality * 0.65f * runtimeWeight) +
+                                              ((1.0f - input.calibrationDrift.driftScore) * 0.35f * runtimeWeight));
+    runtimeState_.motorPredictionAccuracy = clamp01((runtimeState_.motorPredictionAccuracy * simulationWeight) +
+                                                    (clamp01(input.diagnostics.intentConfidence) * runtimeWeight));
+    runtimeState_.vestibularStability = clamp01((runtimeState_.vestibularStability * simulationWeight) +
+                                                (biometricStability * 0.70f * runtimeWeight) +
+                                                ((1.0f - latencyPressure) * 0.30f * runtimeWeight));
+    runtimeState_.temporalCoherence = clamp01((runtimeState_.temporalCoherence * simulationWeight) +
+                                              ((input.sensorySync.synchronized ? 1.0f : 0.0f) * 0.70f * runtimeWeight) +
+                                              ((1.0f - latencyPressure) * 0.30f * runtimeWeight));
+    runtimeState_.neuralSynchronization = clamp01((runtimeState_.neuralSynchronization * simulationWeight) +
+                                                  (input.diagnostics.neuralSignalQuality * runtimeWeight));
+    runtimeState_.immersionDepth = clamp01((runtimeState_.immersionDepth * simulationWeight) +
+                                           (input.cognitive.immersionIndex * safetyScale * anchorSafety * runtimeWeight));
+    runtimeState_.emotionalResonance = clamp01((runtimeState_.emotionalResonance * simulationWeight) +
+                                               (std::abs(input.cognitive.emotionValence) * runtimeWeight));
+    runtimeState_.memoryIntegrity = clamp01((runtimeState_.memoryIntegrity * simulationWeight) +
+                                            ((1.0f - input.calibrationDrift.driftScore) * runtimeWeight));
+    runtimeState_.socialBelievability = clamp01((runtimeState_.socialBelievability * simulationWeight) +
+                                                (sensoryConfidence * runtimeWeight));
     runtimeState_.fullDiveStability = clamp01(runtimeState_.fullDiveStability *
         safetyScale * anchorSafety * (1.0f - clamp01(input.calibrationDrift.driftScore) * 0.25f));
+}
 
-    detectNeuralOverload();
-    detectConsciousnessDesynchronization();
+void FullDiveSynchronizationEngine::updateFromRuntime(const FullDiveRuntimeInput& input) {
+    std::lock_guard<std::mutex> guard(runtimeMutex_);
+
+    if (updateMode_ == FullDiveUpdateMode::SimulationOnly || updateMode_ == FullDiveUpdateMode::Hybrid) {
+        updateInternalSimulationLocked(static_cast<float>(input.deltaTimeSeconds));
+    }
+
+    if (updateMode_ == FullDiveUpdateMode::RuntimeDriven || updateMode_ == FullDiveUpdateMode::Hybrid) {
+        applyRuntimeInputLocked(input);
+    }
+
+    computeRuntimeStabilityLocked();
+    detectNeuralOverloadLocked();
+    detectConsciousnessDesynchronizationLocked();
 }
 
 } // namespace dnxr

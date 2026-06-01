@@ -17,7 +17,8 @@ float finiteOrZero(float value) {
 
 NeuralStimulusSafetyEnvelope::NeuralStimulusSafetyEnvelope(
     UserNeuralCalibrationProfile profile)
-    : profile_(std::move(profile)) {}
+    : profile_(std::move(profile)),
+      frameSchema_(SensoryFrameSchema::defaultSixSenseSchema()) {}
 
 void NeuralStimulusSafetyEnvelope::setCalibrationProfile(
     const UserNeuralCalibrationProfile& profile) {
@@ -45,27 +46,29 @@ NeuralStimulusSafetyEnvelope::lastModalityBudget() const {
     return lastModalityBudget_;
 }
 
+const SensoryExposureReport&
+NeuralStimulusSafetyEnvelope::lastExposureReport() const {
+    return lastExposureReport_;
+}
+
+void NeuralStimulusSafetyEnvelope::setFrameSchema(const SensoryFrameSchema& schema) {
+    frameSchema_ = schema.valid() ? schema : SensoryFrameSchema::defaultSixSenseSchema();
+    lastBoundedChannels_.clear();
+    lastModalityBudget_ = NeuralStimulusModalityBudget{};
+    exposureBudget_.reset();
+    lastExposureReport_ = SensoryExposureReport{};
+}
+
+const SensoryFrameSchema& NeuralStimulusSafetyEnvelope::frameSchema() const {
+    return frameSchema_;
+}
+
 SensoryModality NeuralStimulusSafetyEnvelope::modalityForChannel(std::size_t index) {
-    if (index <= 2U) {
-        return SensoryModality::Visual;
-    }
-    if (index <= 4U) {
-        return SensoryModality::Auditory;
-    }
-    if (index <= 6U) {
-        return SensoryModality::HapticTouch;
-    }
-    if (index <= 8U) {
-        return SensoryModality::ChemicalTasteSmell;
-    }
-    if (index <= 10U) {
-        return SensoryModality::Proprioceptive;
-    }
-    return SensoryModality::Vestibular;
+    return SensoryFrameSchema::legacyModalityForChannel(index);
 }
 
 float NeuralStimulusSafetyEnvelope::channelLimit(std::size_t index) const {
-    switch (modalityForChannel(index)) {
+    switch (frameSchema_.modalityForChannel(index)) {
         case SensoryModality::Visual:
             return profile_.maxVisualIntensity;
         case SensoryModality::Auditory:
@@ -98,7 +101,7 @@ std::vector<float> NeuralStimulusSafetyEnvelope::applyEnvelope(
     const float maxDelta = std::clamp(profile_.maxDeltaPerFrame, 0.01f, 1.0f);
 
     for (std::size_t i = 0; i < sensoryFrame.size(); ++i) {
-        const float limit = std::clamp(channelLimit(i), 0.0f, 1.0f);
+        const float limit = std::clamp(channelLimit(i) / frameSchema_.safetyWeightForChannel(i), 0.0f, 1.0f);
         const float target = std::clamp(finiteOrZero(sensoryFrame[i]), -limit, limit);
         const float previous = lastBoundedChannels_[i];
         const float delta = std::clamp(target - previous, -maxDelta, maxDelta);
@@ -117,7 +120,7 @@ void NeuralStimulusSafetyEnvelope::updateModalityBudget(
     float total = 0.0f;
 
     for (std::size_t i = 0; i < boundedChannels.size(); ++i) {
-        const auto modality = static_cast<std::size_t>(modalityForChannel(i));
+        const auto modality = static_cast<std::size_t>(frameSchema_.modalityForChannel(i));
         const float intensity = std::abs(finiteOrZero(boundedChannels[i]));
         budget.peakIntensity[modality] = std::max(budget.peakIntensity[modality], intensity);
         ++budget.channelCount[modality];
@@ -135,10 +138,50 @@ void NeuralStimulusSafetyEnvelope::updateModalityBudget(
     lastModalityBudget_ = budget;
 }
 
+bool NeuralStimulusSafetyEnvelope::coveragePolicySatisfied(
+    SafeNeuralStimulusCommand& command,
+    StimulusCoveragePolicy policy,
+    const std::vector<SensoryModality>& requiredModalities) const {
+
+    const auto hasModality = [this](SensoryModality modality) {
+        const auto index = static_cast<std::size_t>(modality);
+        return index < lastModalityBudget_.channelCount.size() &&
+               lastModalityBudget_.channelCount[index] > 0U &&
+               lastModalityBudget_.peakIntensity[index] > 0.0f;
+    };
+
+    switch (policy) {
+    case StimulusCoveragePolicy::AnySafeChannel:
+        command.coverageReason = command.boundedChannels.empty()
+            ? "coverage_no_safe_channels"
+            : "coverage_any_safe_channel";
+        return !command.boundedChannels.empty();
+    case StimulusCoveragePolicy::RequiredModalities:
+        for (const auto modality : requiredModalities) {
+            if (!hasModality(modality)) {
+                command.coverageReason = "coverage_missing_required_modality";
+                return false;
+            }
+        }
+        command.coverageReason = "coverage_required_modalities";
+        return true;
+    case StimulusCoveragePolicy::FullMultisensoryFrame:
+        command.coverageReason = command.fiveSenseCoverage
+            ? "coverage_full_multisensory_frame"
+            : "coverage_missing_full_multisensory_frame";
+        return command.fiveSenseCoverage;
+    }
+
+    command.coverageReason = "coverage_unknown_policy";
+    return false;
+}
+
 SafeNeuralStimulusCommand NeuralStimulusSafetyEnvelope::buildCommand(
     std::uint64_t sequenceId,
     const std::vector<float>& sensoryFrame,
-    const SafetyDecision& decision) {
+    const SafetyDecision& decision,
+    StimulusCoveragePolicy coveragePolicy,
+    const std::vector<SensoryModality>& requiredModalities) {
 
     SafeNeuralStimulusCommand command;
     command.sequenceId = sequenceId;
@@ -149,15 +192,21 @@ SafeNeuralStimulusCommand NeuralStimulusSafetyEnvelope::buildCommand(
         lastModalityBudget_.peakIntensity.end());
     command.aggregateSensoryLoad = lastModalityBudget_.aggregateLoad;
     command.fiveSenseCoverage = lastModalityBudget_.hasFiveSenseCoverage;
+    command.coveragePolicy = coveragePolicy;
+    command.requiredModalities = requiredModalities;
     command.intensityScale = std::clamp(decision.intensityScale, 0.0f, 1.0f);
     command.riskScore = std::clamp(decision.riskScore, 0.0f, 1.0f);
     command.safetyMode = decision.reason.empty() ? "unknown" : decision.reason;
     command.calibrationProfileId = profile_.calibrationProfileId;
+    lastExposureReport_ = exposureBudget_.observe(lastModalityBudget_.peakIntensity, 1.0 / 60.0);
+    command.exposureBudgetOk = lastExposureReport_.withinBudget;
+    const bool coverageOk = coveragePolicySatisfied(command, coveragePolicy, requiredModalities);
     command.allowStimulusDispatch = decision.allowRender &&
                                  !decision.requiresEmergencyStop &&
                                  command.riskScore < 0.90f &&
                                  !command.boundedChannels.empty() &&
-                                 command.fiveSenseCoverage;
+                                 coverageOk &&
+                                 command.exposureBudgetOk;
     return command;
 }
 

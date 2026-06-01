@@ -212,6 +212,7 @@ void RuntimeController::initializeModules() {
     neuralChipHal_->connect("runtime_simulated_neural_chip");
     deepImmersion_= std::make_unique<DeepImmersionPlatform>();
     fullDiveSynchronization_ = std::make_unique<dnxr::FullDiveSynchronizationEngine>();
+    fullDiveSynchronization_->setUpdateMode(dnxr::FullDiveUpdateMode::RuntimeDriven);
     fullDiveSynchronization_->configureSafetyThresholds(safetyProfile);
 
     deepImmersion_->setConsentPolicy({true, true, false, "runtime_default"});
@@ -625,14 +626,40 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
         FullDiveSafetyBridge fullDiveBridge;
         const auto fullDiveSnapshot = fullDiveBridge.evaluate(*fullDiveSynchronization_);
-        if (fullDiveSnapshot.safetyInterventionRequired) {
-            emergency_->trigger();
+        if (fullDiveSnapshot.safetyInterventionRequired()) {
+            if (safetyJournal_) {
+                SessionAuditMetadata metadata;
+                metadata.runtimeCycle = cycleCounter_;
+                metadata.safetyAction = fullDiveSnapshot.traceTag;
+                metadata.renderAllowed = fullDiveSnapshot.intervention != FullDiveInterventionLevel::EmergencyStop &&
+                                         fullDiveSnapshot.intervention != FullDiveInterventionLevel::Lockout;
+                metadata.emergencyStop = fullDiveSnapshot.intervention == FullDiveInterventionLevel::EmergencyStop ||
+                                         fullDiveSnapshot.intervention == FullDiveInterventionLevel::Lockout;
+                safetyJournal_->record(
+                    "full_dive_intervention",
+                    fullDiveSnapshot.traceTag + "|" + fullDiveSnapshot.reason,
+                    fullDiveSnapshot.severity,
+                    metadata);
+            }
             if (safetyStateMachine_) {
                 fullDiveBridge.apply(fullDiveSnapshot, *safetyStateMachine_);
             }
-            finishCycle(false, true, fullDiveSnapshot.reason);
-            ++cycleCounter_;
-            return;
+            if (fullDiveSnapshot.intervention == FullDiveInterventionLevel::EmergencyStop ||
+                fullDiveSnapshot.intervention == FullDiveInterventionLevel::Lockout) {
+                emergency_->trigger();
+                finishCycle(false, true, fullDiveSnapshot.reason);
+                ++cycleCounter_;
+                return;
+            }
+            if (fullDiveSnapshot.intervention == FullDiveInterventionLevel::Decompress ||
+                fullDiveSnapshot.intervention == FullDiveInterventionLevel::RealityAnchor) {
+                frame = reversibility_->runDecompression(frame);
+            }
+            if (fullDiveSnapshot.intervention == FullDiveInterventionLevel::ReduceIntensity) {
+                for (float& channel : frame) {
+                    channel *= std::clamp(1.0f - fullDiveSnapshot.severity, 0.25f, 1.0f);
+                }
+            }
         }
     }
 

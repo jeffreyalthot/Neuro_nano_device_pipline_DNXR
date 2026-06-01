@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace neuroxr {
+namespace dnxr {
 
 SyntheticProprioceptionLayer::
 SyntheticProprioceptionLayer() {

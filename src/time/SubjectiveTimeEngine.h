@@ -3,7 +3,7 @@
 #include <deque>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 struct SubjectiveTimeFrame {
 
@@ -67,4 +67,10 @@ private:
     SubjectiveTemporalState state_;
 };
 
+}
+
+namespace neuroxr {
+using SubjectiveTimeFrame = ::dnxr::SubjectiveTimeFrame;
+using SubjectiveTemporalState = ::dnxr::SubjectiveTemporalState;
+using SubjectiveTimeEngine = ::dnxr::SubjectiveTimeEngine;
 }
