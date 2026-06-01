@@ -63,9 +63,9 @@ int main() {
     assert(!hal.status().connected);
     assert(hal.readFrame().channels.empty());
 
-    dnxr::SimulatedNeuralChipHAL locked(4, dnxr::NeuralChipRuntimeMode::ClinicalLocked);
     bool rejected = false;
     try {
+        dnxr::SimulatedNeuralChipHAL locked(4, dnxr::NeuralChipRuntimeMode::ClinicalLocked);
         locked.connect("locked_chip");
     } catch (const std::runtime_error&) {
         rejected = true;

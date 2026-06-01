@@ -39,6 +39,7 @@
 #include "../signal/EnergyThermalOptimizer.h"
 #include "../hardware/NeuralChipHAL.h"
 #include "../neurotech/DeepImmersionPlatform.h"
+#include "../security/SecretProvider.h"
 #include "../utils/Logger.h"
 #include "../utils/SessionSafetyJournal.h"
 #include "../utils/TimeSync.h"
@@ -137,15 +138,17 @@ RuntimeController::~RuntimeController() {
 void RuntimeController::initializeModules() {
     // Safety guardrail: this repository remains simulation-only.
     // Any attempt to switch to real hardware mode is blocked at runtime.
+#if DNXR_SIMULATION_ONLY
     if (envFlagEnabled("DNXR_ALLOW_REAL_HARDWARE")) {
         throw std::runtime_error(
             "DNXR_ALLOW_REAL_HARDWARE is not permitted in this build. "
             "This project is simulation-only and not authorized for clinical/hardware use.");
     }
+#endif
 
     nodes_ = std::make_unique<NanoNodeInterface>(NanoNodeRuntimeConfig{
         envOrDefault("DNXR_NANO_ENDPOINT",   "grpc://nano-cluster.local:7443"),
-        envOrDefault("DNXR_NANO_AUTH_TOKEN", "token-placeholder"),
+        SecretProvider::resolve("nano_auth_token", "DNXR_NANO_AUTH_TOKEN").value,
         100000U,
         true
     });
@@ -153,14 +156,14 @@ void RuntimeController::initializeModules() {
     bridge_ = std::make_unique<HostComputerBridge>(HostBridgeRuntimeConfig{
         envOrDefault("DNXR_HOST_UPSTREAM_ENDPOINT",   "grpc://host.local:9443/up"),
         envOrDefault("DNXR_HOST_DOWNSTREAM_ENDPOINT", "grpc://host.local:9443/down"),
-        envOrDefault("DNXR_HOST_AUTH_TOKEN", "token-placeholder"),
+        SecretProvider::resolve("host_auth_token", "DNXR_HOST_AUTH_TOKEN").value,
         true
     });
 
     headset_ = std::make_unique<XRHeadsetInterface>(XRHeadsetRuntimeConfig{
         envOrDefault("DNXR_XR_ENDPOINT",    "wss://xr-headset.local:8443"),
         envOrDefault("DNXR_XR_DEVICE_ID",   "headset-placeholder"),
-        envOrDefault("DNXR_XR_AUTH_TOKEN",  "token-placeholder"),
+        SecretProvider::resolve("xr_auth_token", "DNXR_XR_AUTH_TOKEN").value,
         true
     });
 
@@ -178,15 +181,33 @@ void RuntimeController::initializeModules() {
     realityAnchor_ = std::make_unique<RealityAnchorSystem>();
     thermalOptimizer_ = std::make_unique<EnergyThermalOptimizer>();
     safetyGovernor_ = std::make_unique<SafetyGovernor>();
+    const SafetyRuntimeProfile safetyProfile = SafetyProfileLoader::loadFromFile();
     safetyStateMachine_ = std::make_unique<SafetyStateMachine>();
     safetyStateMachine_->bootSelfTestPassed();
-    independentWatchdog_ = std::make_unique<IndependentWatchdog>(250.0, 25.0);
+    independentWatchdog_ = std::make_unique<IndependentWatchdog>(
+        safetyProfile.heartbeatTimeoutMs,
+        safetyProfile.latencyBudgetMs);
+    independentWatchdog_->requireSubsystems({
+        "runtime_cycle",
+        "acquisition",
+        "signal_processing",
+        "inference",
+        "renderer",
+        "stimulus"});
     stimulusEnvelope_ = std::make_unique<NeuralStimulusSafetyEnvelope>(
-        UserNeuralCalibrationProfile{"runtime_default_calibration", 0.85f, 0.80f, 0.70f, 0.35f, 0.60f, 0.18f});
+        UserNeuralCalibrationProfile{
+            safetyProfile.profile,
+            safetyProfile.maxVisualIntensity,
+            safetyProfile.maxAudioIntensity,
+            safetyProfile.maxHapticIntensity,
+            safetyProfile.maxChemicalIntensity,
+            safetyProfile.maxBodyIntensity,
+            safetyProfile.maxDeltaPerFrame});
+    neuralTransportSecret_ = SecretProvider::resolve("neural_transport_session", "DNXR_NEURAL_TRANSPORT_KEY");
     neuralChipHal_ = std::make_unique<SimulatedNeuralChipHAL>(64);
     neuralChipHal_->connect("runtime_simulated_neural_chip");
     deepImmersion_= std::make_unique<DeepImmersionPlatform>();
-    fullDiveSynchronization_ = std::make_unique<neuroxr::FullDiveSynchronizationEngine>();
+    fullDiveSynchronization_ = std::make_unique<dnxr::FullDiveSynchronizationEngine>();
 
     deepImmersion_->setConsentPolicy({true, true, false, "runtime_default"});
 
@@ -200,7 +221,6 @@ void RuntimeController::initializeModules() {
     //   2. Être loggée avec son hash pour traçabilité
     //   3. Être couverte par la politique de consentement
     // ─────────────────────────────────────────────────────────────────────
-    const SafetyRuntimeProfile safetyProfile = SafetyProfileLoader::loadFromFile();
     const std::vector<float> inducedVector = {0.05f, -0.02f, 0.03f, 0.01f};
 
     const float ivNorm = computeL2Norm(inducedVector);
@@ -337,14 +357,20 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
     // Traitement pipeline
     const auto tSignal = std::chrono::steady_clock::now();
-    const std::vector<std::uint8_t> encrypted = crypto_.encrypt(raw, "dnxr_key_2026_secure");
-    const auto decrypted = crypto_.decrypt(encrypted, "dnxr_key_2026_secure");
+    const std::vector<std::uint8_t> encrypted = crypto_.encrypt(raw, neuralTransportSecret_.value);
+    const auto decrypted = crypto_.decrypt(encrypted, neuralTransportSecret_.value);
     auto uplinked = bridge_->uplink(decrypted.empty() ? raw : decrypted);
     auto clean    = dsp_->denoise(uplinked);
     auto features = vec_->vectorize(clean);
+    if (independentWatchdog_) {
+        independentWatchdog_->heartbeat("signal_processing");
+    }
 
     auto state = brain_->inferState(features, timestamp);
     scheduler_.endTask("signal_processing", tSignal, tickReport);
+    if (independentWatchdog_) {
+        independentWatchdog_->heartbeat("inference");
+    }
 
     const auto normalizedRiskTelemetry = normalizedTelemetryRiskVector(telemetry);
 
@@ -378,7 +404,7 @@ void RuntimeController::runSingleCycle(double timestamp) {
     const XRAdaptationFrame adaptation = deepImmersion_->runAdaptationTick(cognitive, bio);
     const NeuroPipelineDiagnostics diag = deepImmersion_->lastDiagnostics();
 
-    lastState_ = state
+    std::string statePayload = state
         + "|immersion=" + std::to_string(cognitive.immersionIndex)
         + "|stress="    + std::to_string(cognitive.stress)
         + "|shader="    + adaptation.shaderProfile
@@ -387,11 +413,14 @@ void RuntimeController::runSingleCycle(double timestamp) {
         + "|induced="   + std::to_string(diag.inducedInfluence)
         + "|drift="     + std::to_string(diag.decisionDrift)
         + "|autonomy="  + std::to_string(diag.autonomyPreservation);
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        lastState_ = statePayload;
+    }
 
-    if (eventCallback_)
-        eventCallback_("state:" + lastState_);
+    publishRuntimeEvent("state:" + statePayload);
 
-    Logger::info("🧠 State -> " + lastState_);
+    Logger::info("🧠 State -> " + statePayload);
 
     constexpr float kUserSensitivity = 1.05f;
     auto calibrated = calib_->calibrateForImmersion(features, kUserSensitivity, timestamp);
@@ -624,6 +653,9 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
     const SafeNeuralStimulusCommand stimulusCommand =
         stimulusEnvelope_->buildCommand(cycleCounter_, frame, safetyDecision);
+    if (independentWatchdog_) {
+        independentWatchdog_->heartbeat("stimulus");
+    }
 
     if (!neuralChipHal_->writeSafeStimulus(stimulusCommand)) {
         const auto rejectionAudit = safetyJournal_->record(
@@ -704,8 +736,8 @@ std::string RuntimeController::getLastState() const {
     return lastState_;
 }
 
-uint64_t RuntimeController::getCycleCount()    const { return cycleCounter_; }
-uint64_t RuntimeController::getDroppedFrames() const { return droppedFrames_; }
+uint64_t RuntimeController::getCycleCount()    const { return cycleCounter_.load(); }
+uint64_t RuntimeController::getDroppedFrames() const { return droppedFrames_.load(); }
 
 RuntimeMetricsSnapshot RuntimeController::getRuntimeMetricsSnapshot() const {
     std::lock_guard<std::mutex> lock(metricsMutex_);
@@ -743,6 +775,18 @@ bool RuntimeController::shouldApplyRendererQoS(const RuntimeMetricsSnapshot& sna
     return snapshot.consecutiveNonStableCycles >= 2U || snapshot.windowBudgetExceededCount >= 2U;
 }
 
+
+void RuntimeController::publishRuntimeEvent(const std::string& payload) {
+    std::function<void(const std::string&)> callback;
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        callback = eventCallback_;
+    }
+    if (callback) {
+        callback(payload);
+    }
+}
+
 void RuntimeController::publishRuntimeMetrics(const RuntimeMetricsSnapshot& snapshot) {
     const bool applyRendererQoS = shouldApplyRendererQoS(snapshot);
     const char* rendererQosMode = "unavailable";
@@ -756,19 +800,11 @@ void RuntimeController::publishRuntimeMetrics(const RuntimeMetricsSnapshot& snap
         rendererQualityMode = renderer_->getAdaptiveQualityProfile().qualityMode;
     }
 
-    std::function<void(const std::string&)> callback;
-    {
-        std::lock_guard<std::mutex> lock(mtx_);
-        callback = eventCallback_;
-    }
-
-    if (callback) {
-        callback(
-            runtimeMetricsSnapshotToEventPayload(snapshot) +
-            "|renderer_qos_applied=" + (applyRendererQoS ? "1" : "0") +
-            "|renderer_qos=" + rendererQosMode +
-            "|renderer_quality=" + rendererQualityMode);
-    }
+    publishRuntimeEvent(
+        runtimeMetricsSnapshotToEventPayload(snapshot) +
+        "|renderer_qos_applied=" + (applyRendererQoS ? "1" : "0") +
+        "|renderer_qos=" + rendererQosMode +
+        "|renderer_quality=" + rendererQualityMode);
 
     if (snapshot.latencyHealth != RuntimeLatencyHealth::Stable) {
         Logger::warn(

@@ -103,6 +103,17 @@ SafetyRuntimeProfile SafetyProfileLoader::loadFromString(
     findFloat(json, "max_audio_intensity", profile.maxAudioIntensity);
     findFloat(json, "max_haptic_intensity", profile.maxHapticIntensity);
     findFloat(json, "max_vestibular_intensity", profile.maxVestibularIntensity);
+    findFloat(json, "max_chemical_intensity", profile.maxChemicalIntensity);
+    findFloat(json, "max_body_intensity", profile.maxBodyIntensity);
+    findFloat(json, "max_delta_per_frame", profile.maxDeltaPerFrame);
+    float heartbeatTimeoutMs = static_cast<float>(profile.heartbeatTimeoutMs);
+    if (findFloat(json, "heartbeat_timeout_ms", heartbeatTimeoutMs)) {
+        profile.heartbeatTimeoutMs = heartbeatTimeoutMs;
+    }
+    float latencyBudgetMs = static_cast<float>(profile.latencyBudgetMs);
+    if (findFloat(json, "latency_budget_ms", latencyBudgetMs)) {
+        profile.latencyBudgetMs = latencyBudgetMs;
+    }
     findFloat(json, "max_cognitive_load", profile.maxCognitiveLoad);
     findFloat(json, "max_drift_score", profile.maxDriftScore);
     findInt(json, "max_session_minutes", profile.maxSessionMinutes);
@@ -114,6 +125,11 @@ SafetyRuntimeProfile SafetyProfileLoader::loadFromString(
     profile.maxAudioIntensity = normalizeIntensity(profile.maxAudioIntensity);
     profile.maxHapticIntensity = normalizeIntensity(profile.maxHapticIntensity);
     profile.maxVestibularIntensity = normalizeIntensity(profile.maxVestibularIntensity);
+    profile.maxChemicalIntensity = normalizeIntensity(profile.maxChemicalIntensity);
+    profile.maxBodyIntensity = normalizeIntensity(profile.maxBodyIntensity);
+    profile.maxDeltaPerFrame = normalizeIntensity(profile.maxDeltaPerFrame);
+    profile.heartbeatTimeoutMs = std::max(1.0, profile.heartbeatTimeoutMs);
+    profile.latencyBudgetMs = std::max(1.0, profile.latencyBudgetMs);
     profile.maxCognitiveLoad = normalizeIntensity(profile.maxCognitiveLoad);
     profile.maxDriftScore = normalizeIntensity(profile.maxDriftScore);
     profile.maxSessionMinutes = std::max(1, profile.maxSessionMinutes);
@@ -139,6 +155,15 @@ bool SafetyProfileLoader::validate(const SafetyRuntimeProfile& profile, std::str
     }
     if (profile.maxVestibularIntensity > profile.maxHapticIntensity) {
         return fail("vestibular intensity must not exceed haptic intensity");
+    }
+    if (profile.maxChemicalIntensity > profile.maxHapticIntensity) {
+        return fail("chemical intensity must not exceed haptic intensity");
+    }
+    if (profile.maxDeltaPerFrame <= 0.0f || profile.maxDeltaPerFrame > 1.0f) {
+        return fail("max_delta_per_frame must be in (0.0, 1.0]");
+    }
+    if (profile.heartbeatTimeoutMs < 10.0 || profile.latencyBudgetMs < 1.0) {
+        return fail("watchdog timing budgets are below simulation minimums");
     }
     if (!profile.emergencyStopEnabled) {
         return fail("emergency_stop_enabled must remain true");

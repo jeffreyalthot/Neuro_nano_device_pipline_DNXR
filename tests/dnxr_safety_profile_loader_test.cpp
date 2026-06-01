@@ -13,6 +13,11 @@ int main() {
       "max_audio_intensity": 0.8,
       "max_haptic_intensity": 0.5,
       "max_vestibular_intensity": 0.2,
+      "max_chemical_intensity": 0.2,
+      "max_body_intensity": 0.4,
+      "max_delta_per_frame": 0.12,
+      "heartbeat_timeout_ms": 100.0,
+      "latency_budget_ms": 12.0,
       "max_session_minutes": 12,
       "max_cognitive_load": 0.6,
       "max_drift_score": 0.7,
@@ -25,6 +30,11 @@ int main() {
     assert(profile.configVersion == 7);
     assert(profile.maxInducedVectorNorm == 0.10f);
     assert(profile.maxVestibularIntensity <= profile.maxHapticIntensity);
+    assert(profile.maxChemicalIntensity == 0.2f);
+    assert(profile.maxBodyIntensity == 0.4f);
+    assert(profile.maxDeltaPerFrame == 0.12f);
+    assert(profile.heartbeatTimeoutMs == 100.0);
+    assert(profile.latencyBudgetMs == 12.0);
 
     std::string reason;
     assert(dnxr::SafetyProfileLoader::validate(profile, &reason));

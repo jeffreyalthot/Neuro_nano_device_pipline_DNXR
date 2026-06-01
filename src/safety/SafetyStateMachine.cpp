@@ -11,10 +11,12 @@ SafetyStateMachine::SafetyStateMachine()
 }
 
 SafetyStateTransition SafetyStateMachine::bootSelfTestPassed() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return transitionTo(SafetyRuntimeState::Nominal, "boot_self_test_passed", true);
 }
 
 SafetyStateTransition SafetyStateMachine::observeSafetyDecision(const SafetyDecision& decision) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (decision.action == SafetyAction::Lockout) {
         return lockout(decision.reason);
     }
@@ -39,6 +41,7 @@ SafetyStateTransition SafetyStateMachine::observeSafetyDecision(const SafetyDeci
 }
 
 SafetyStateTransition SafetyStateMachine::observeRealityAnchorPlan(const RealityAnchorPlan& plan) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (plan.lockoutActive || plan.mode == RealityAnchorMode::Lockout) {
         return lockout(plan.reason);
     }
@@ -55,14 +58,17 @@ SafetyStateTransition SafetyStateMachine::observeRealityAnchorPlan(const Reality
 }
 
 SafetyStateTransition SafetyStateMachine::latchEmergency(const std::string& reason) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return transitionTo(SafetyRuntimeState::EmergencyLatched, "emergency_latched:" + reason, true);
 }
 
 SafetyStateTransition SafetyStateMachine::lockout(const std::string& reason) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return transitionTo(SafetyRuntimeState::LockedOut, "lockout:" + reason, true);
 }
 
 SafetyStateTransition SafetyStateMachine::enterPostIncidentReview(const std::string& operatorToken) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isExplicitOperatorToken(operatorToken)) {
         return transitionTo(state_, "post_incident_review_denied_missing_operator_token");
     }
@@ -73,6 +79,7 @@ SafetyStateTransition SafetyStateMachine::enterPostIncidentReview(const std::str
 }
 
 SafetyStateTransition SafetyStateMachine::resetToNominalAfterReview(const std::string& operatorToken) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isExplicitOperatorToken(operatorToken)) {
         return transitionTo(state_, "reset_denied_missing_operator_token");
     }
@@ -83,18 +90,22 @@ SafetyStateTransition SafetyStateMachine::resetToNominalAfterReview(const std::s
 }
 
 SafetyRuntimeState SafetyStateMachine::state() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return state_;
 }
 
 bool SafetyStateMachine::isEmergencyLatched() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return state_ == SafetyRuntimeState::EmergencyLatched;
 }
 
 bool SafetyStateMachine::isLockedOut() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return state_ == SafetyRuntimeState::LockedOut;
 }
 
 std::vector<SafetyStateTransition> SafetyStateMachine::auditTrail() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return auditTrail_;
 }
 
@@ -123,7 +134,7 @@ SafetyStateTransition SafetyStateMachine::transitionTo(
     }
 
     state_ = next;
-    SafetyStateTransition transition{previous, state_, reason, ++sequence_, isEmergencyLatched() || isLockedOut()};
+    SafetyStateTransition transition{previous, state_, reason, ++sequence_, state_ == SafetyRuntimeState::EmergencyLatched || state_ == SafetyRuntimeState::LockedOut};
     auditTrail_.push_back(transition);
 
     Logger::info("[SafetyStateMachine] " + toString(previous) + " -> " + toString(state_) +

@@ -4,6 +4,7 @@
 #include "SafetyGovernor.h"
 
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -51,6 +52,7 @@ private:
     SafetyStateTransition transitionTo(SafetyRuntimeState next, const std::string& reason, bool explicitOverride = false);
     static bool isExplicitOperatorToken(const std::string& operatorToken);
 
+    mutable std::recursive_mutex mutex_;
     SafetyRuntimeState state_;
     std::uint64_t sequence_;
     std::vector<SafetyStateTransition> auditTrail_;

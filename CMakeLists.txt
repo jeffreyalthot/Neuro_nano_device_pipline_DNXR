@@ -20,29 +20,35 @@ endif()
 file(GLOB_RECURSE DNXR_CORE_SRC CONFIGURE_DEPENDS src/*.cpp)
 list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/main\\.cpp$")
 
+function(dnxr_apply_sanitizers target)
+    if(DNXR_ENABLE_ASAN)
+        if(MSVC)
+            target_compile_options(${target} PRIVATE /fsanitize=address)
+            target_link_options(${target} PRIVATE /fsanitize=address)
+        else()
+            target_compile_options(${target} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+            target_link_options(${target} PRIVATE -fsanitize=address)
+        endif()
+    endif()
+
+    if(DNXR_ENABLE_UBSAN)
+        if(NOT MSVC)
+            target_compile_options(${target} PRIVATE -fsanitize=undefined -fno-omit-frame-pointer)
+            target_link_options(${target} PRIVATE -fsanitize=undefined)
+        endif()
+    endif()
+endfunction()
+
 add_library(dnxr_core STATIC ${DNXR_CORE_SRC})
 target_include_directories(dnxr_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 if(DNXR_SIMULATION_ONLY)
     target_compile_definitions(dnxr_core PUBLIC DNXR_SIMULATION_ONLY=1)
+else()
+    target_compile_definitions(dnxr_core PUBLIC DNXR_SIMULATION_ONLY=0)
 endif()
 
-if(DNXR_ENABLE_ASAN)
-    if(MSVC)
-        target_compile_options(dnxr_core PUBLIC /fsanitize=address)
-        target_link_options(dnxr_core PUBLIC /fsanitize=address)
-    else()
-        target_compile_options(dnxr_core PUBLIC -fsanitize=address -fno-omit-frame-pointer)
-        target_link_options(dnxr_core PUBLIC -fsanitize=address)
-    endif()
-endif()
-
-if(DNXR_ENABLE_UBSAN)
-    if(NOT MSVC)
-        target_compile_options(dnxr_core PUBLIC -fsanitize=undefined -fno-omit-frame-pointer)
-        target_link_options(dnxr_core PUBLIC -fsanitize=undefined)
-    endif()
-endif()
+dnxr_apply_sanitizers(dnxr_core)
 
 # Cross-platform compile tags for Windows/Linux/macOS integration layers.
 if(WIN32)
@@ -55,6 +61,7 @@ endif()
 
 add_executable(distributed_neural_xr src/main.cpp)
 target_link_libraries(distributed_neural_xr PRIVATE dnxr_core)
+dnxr_apply_sanitizers(distributed_neural_xr)
 
 if(DNXR_BUILD_TESTS)
     enable_testing()
@@ -62,6 +69,7 @@ if(DNXR_BUILD_TESTS)
     function(dnxr_add_test test_name)
         add_executable(${test_name} tests/${test_name}.cpp)
         target_link_libraries(${test_name} PRIVATE dnxr_core)
+        dnxr_apply_sanitizers(${test_name})
         add_test(NAME ${test_name} COMMAND ${test_name})
     endfunction()
 
@@ -79,6 +87,8 @@ if(DNXR_BUILD_TESTS)
         dnxr_safety_state_machine_test
         dnxr_watchdog_failure_test
         dnxr_safety_profile_loader_test
+        dnxr_simulation_only_guard_test
+        dnxr_secret_provider_test
         dnxr_safety_pipeline_test
         dnxr_reality_anchor_system_test
         dnxr_multisensory_clock_test
