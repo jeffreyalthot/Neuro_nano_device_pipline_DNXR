@@ -28,7 +28,7 @@ std::string hexDigest(const std::string& prefix, const std::string& payload) {
 }
 } // namespace
 
-std::vector<std::uint8_t> NeuralCryptoTransport::encrypt(const std::vector<float>& neuralPayload, const std::string& key) const {
+std::vector<std::uint8_t> SimulationCryptoTransport::encrypt(const std::vector<float>& neuralPayload, const std::string& key) const {
     if (!isKeyValid(key) || neuralPayload.empty()) return {};
 
     std::vector<std::uint8_t> bytes(neuralPayload.size() * sizeof(float));
@@ -39,7 +39,7 @@ std::vector<std::uint8_t> NeuralCryptoTransport::encrypt(const std::vector<float
     return bytes;
 }
 
-std::vector<float> NeuralCryptoTransport::decrypt(const std::vector<std::uint8_t>& cipherPayload, const std::string& key) const {
+std::vector<float> SimulationCryptoTransport::decrypt(const std::vector<std::uint8_t>& cipherPayload, const std::string& key) const {
     if (!isKeyValid(key) || cipherPayload.empty() || cipherPayload.size() % sizeof(float) != 0) return {};
 
     std::vector<std::uint8_t> plain = cipherPayload;
@@ -52,11 +52,11 @@ std::vector<float> NeuralCryptoTransport::decrypt(const std::vector<std::uint8_t
     return out;
 }
 
-bool NeuralCryptoTransport::isKeyValid(const std::string& key) const {
+bool SimulationCryptoTransport::isKeyValid(const std::string& key) const {
     return key.size() >= 8;
 }
 
-SecureSession NeuralCryptoTransport::createSession(
+SecureSession SimulationCryptoTransport::createSession(
     const std::string& identity,
     const std::string& keyMaterial,
     std::int64_t ttlMs) const {
@@ -74,11 +74,11 @@ SecureSession NeuralCryptoTransport::createSession(
     return SecureSession(sessionId, keys, ttlMs);
 }
 
-NeuralSecurePacket NeuralCryptoTransport::seal(const std::vector<float>& neuralPayload, SecureSession& session) const {
+NeuralSecurePacket SimulationCryptoTransport::seal(const std::vector<float>& neuralPayload, SecureSession& session) const {
     return session.seal(neuralPayload);
 }
 
-bool NeuralCryptoTransport::open(
+bool SimulationCryptoTransport::open(
     const NeuralSecurePacket& packet,
     SecureSession& session,
     std::vector<float>& neuralPayload) const {

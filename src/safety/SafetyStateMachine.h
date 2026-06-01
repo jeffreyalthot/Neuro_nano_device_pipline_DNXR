@@ -49,10 +49,12 @@ public:
     static std::string toString(SafetyRuntimeState state);
 
 private:
-    SafetyStateTransition transitionTo(SafetyRuntimeState next, const std::string& reason, bool explicitOverride = false);
+    SafetyStateTransition transitionToLocked(SafetyRuntimeState next, const std::string& reason, bool explicitOverride = false);
+    SafetyStateTransition latchEmergencyLocked(const std::string& reason);
+    SafetyStateTransition lockoutLocked(const std::string& reason);
     static bool isExplicitOperatorToken(const std::string& operatorToken);
 
-    mutable std::recursive_mutex mutex_;
+    mutable std::mutex mutex_;
     SafetyRuntimeState state_;
     std::uint64_t sequence_;
     std::vector<SafetyStateTransition> auditTrail_;

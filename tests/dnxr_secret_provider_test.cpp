@@ -12,13 +12,13 @@ int main() {
         "DNXR_UNIT_SECRET");
     assert(missing.empty());
 
-    const dnxr::RuntimeSecret simulatedA = dnxr::SecretProvider::simulationSessionSecret(
+    const dnxr::RuntimeSecret simulatedA = dnxr::SecretProvider::deterministicSimulationSecret(
         "unit_secret",
         "session-a");
-    const dnxr::RuntimeSecret simulatedB = dnxr::SecretProvider::simulationSessionSecret(
+    const dnxr::RuntimeSecret simulatedB = dnxr::SecretProvider::deterministicSimulationSecret(
         "unit_secret",
         "session-a");
-    assert(simulatedA.simulationGenerated);
+    assert(simulatedA.origin == dnxr::SecretOrigin::SimulationDeterministic);
     assert(!simulatedA.empty());
     assert(simulatedA.value == simulatedB.value);
     assert(simulatedA.value.rfind("sim-", 0) == 0);
@@ -27,7 +27,7 @@ int main() {
     const dnxr::RuntimeSecret envSecret = dnxr::SecretProvider::resolve(
         "unit_secret",
         "DNXR_UNIT_SECRET");
-    assert(!envSecret.simulationGenerated);
+    assert(envSecret.origin == dnxr::SecretOrigin::Environment);
     assert(envSecret.value == "unit-env-secret");
 
     unsetenv("DNXR_UNIT_SECRET");

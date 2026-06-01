@@ -1,11 +1,11 @@
 #include "ConfigLoader.h"
+#include "JsonParser.h"
 #include "../utils/Logger.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
 #include <limits>
-#include <regex>
 #include <sstream>
 
 namespace dnxr {
@@ -19,100 +19,6 @@ std::string readFile(const std::string& path) {
     std::ostringstream buffer;
     buffer << input.rdbuf();
     return buffer.str();
-}
-
-bool findString(const std::string& json, const std::string& key, std::string& out) {
-    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
-    std::smatch match;
-    if (std::regex_search(json, match, pattern)) {
-        out = match[1].str();
-        return true;
-    }
-    return false;
-}
-
-bool findInt(const std::string& json, const std::string& key, int& out) {
-    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*(-?\\d+)");
-    std::smatch match;
-    if (std::regex_search(json, match, pattern)) {
-        out = std::stoi(match[1].str());
-        return true;
-    }
-    return false;
-}
-
-bool findUInt64(const std::string& json, const std::string& key, std::uint64_t& out) {
-    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*(\\d+)");
-    std::smatch match;
-    if (!std::regex_search(json, match, pattern)) {
-        return false;
-    }
-
-    try {
-        out = static_cast<std::uint64_t>(std::stoull(match[1].str()));
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool findUInt(const std::string& json, const std::string& key, std::uint32_t& out) {
-    std::uint64_t value = 0U;
-    if (!findUInt64(json, key, value)) {
-        return false;
-    }
-    out = static_cast<std::uint32_t>(std::min<std::uint64_t>(value, std::numeric_limits<std::uint32_t>::max()));
-    return true;
-}
-
-bool findFloat(const std::string& json, const std::string& key, float& out) {
-    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*([-+]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][-+]?\\d+)?)");
-    std::smatch match;
-    if (!std::regex_search(json, match, pattern)) {
-        return false;
-    }
-
-    try {
-        out = std::stof(match[1].str());
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool findBool(const std::string& json, const std::string& key, bool& out) {
-    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*(true|false)");
-    std::smatch match;
-    if (std::regex_search(json, match, pattern)) {
-        out = (match[1].str() == "true");
-        return true;
-    }
-    return false;
-}
-
-bool findFloatArray(const std::string& json, const std::string& key, std::vector<float>& out) {
-    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*\\[([^\\]]*)\\]");
-    std::smatch match;
-    if (!std::regex_search(json, match, pattern)) {
-        return false;
-    }
-
-    std::vector<float> values;
-    std::stringstream items(match[1].str());
-    std::string item;
-    while (std::getline(items, item, ',')) {
-        std::stringstream valueStream(item);
-        float value = 0.0f;
-        if (valueStream >> value) {
-            values.push_back(value);
-        }
-    }
-
-    if (values.empty()) {
-        return false;
-    }
-    out = values;
-    return true;
 }
 
 void normalize(RuntimeConfig& config) {
@@ -151,25 +57,40 @@ RuntimeConfig ConfigLoader::loadRuntimeConfig(const std::string& path) {
 
 RuntimeConfig ConfigLoader::loadRuntimeConfigFromString(const std::string& json, const RuntimeConfig& base) {
     RuntimeConfig config = base;
-    findString(json, "profile", config.profile);
-    findInt(json, "target_loop_ms", config.targetLoopMs);
-    findInt(json, "max_cycles_per_second", config.maxCyclesPerSecond);
-    findInt(json, "max_runtime_cycles", config.maxRuntimeCycles);
-    findBool(json, "headless", config.headless);
-    findBool(json, "dashboard_enabled", config.dashboardEnabled);
-    findBool(json, "simulation_mode", config.simulationMode);
-    findString(json, "signal_source", config.signalSource);
-    findString(json, "replay_signal_path", config.replaySignalPath);
-    findString(json, "simulation_scenario", config.simulationScenario);
-    findUInt(json, "simulation_channel_count", config.simulationChannelCount);
-    findFloat(json, "simulation_noise_amplitude", config.simulationNoiseAmplitude);
-    findUInt64(json, "simulation_dropout_every_cycles", config.simulationDropoutEveryCycles);
-    findString(json, "xr_endpoint", config.xrEndpoint);
-    findString(json, "xr_device_id", config.xrDeviceId);
-    findString(json, "xr_auth_token", config.xrAuthToken);
-    findUInt(json, "xr_target_framerate", config.xrTargetFramerate);
-    findBool(json, "xr_async_telemetry", config.xrAsyncTelemetry);
-    findFloatArray(json, "simulated_signal", config.simulatedSignal);
+    JsonValue root;
+    std::string error;
+    if (!JsonParser::tryParse(json, root, &error) || !root.isObject()) {
+        Logger::warn("[ConfigLoader] invalid runtime config JSON, using defaults: " + error);
+        normalize(config);
+        return config;
+    }
+
+    config.profile = root.getString("profile", config.profile);
+    config.targetLoopMs = root.getInt("target_loop_ms", config.targetLoopMs);
+    config.maxCyclesPerSecond = root.getInt("max_cycles_per_second", config.maxCyclesPerSecond);
+    config.maxRuntimeCycles = root.getInt("max_runtime_cycles", config.maxRuntimeCycles);
+    config.headless = root.getBool("headless", config.headless);
+    config.dashboardEnabled = root.getBool("dashboard_enabled", config.dashboardEnabled);
+    config.simulationMode = root.getBool("simulation_mode", config.simulationMode);
+    config.signalSource = root.getString("signal_source", config.signalSource);
+    config.replaySignalPath = root.getString("replay_signal_path", config.replaySignalPath);
+    config.simulationScenario = root.getString("simulation_scenario", config.simulationScenario);
+    config.simulationChannelCount = static_cast<std::uint32_t>(std::min<std::uint64_t>(
+        root.getUInt64("simulation_channel_count", config.simulationChannelCount),
+        std::numeric_limits<std::uint32_t>::max()));
+    config.simulationNoiseAmplitude = root.getFloat("simulation_noise_amplitude", config.simulationNoiseAmplitude);
+    config.simulationDropoutEveryCycles = root.getUInt64("simulation_dropout_every_cycles", config.simulationDropoutEveryCycles);
+    config.xrEndpoint = root.getString("xr_endpoint", config.xrEndpoint);
+    config.xrDeviceId = root.getString("xr_device_id", config.xrDeviceId);
+    if (root.has("xr_auth_token")) {
+        Logger::warn("[ConfigLoader] direct xr_auth_token is refused; use xr_auth_token_env instead");
+    }
+    config.xrAuthTokenEnv = root.getString("xr_auth_token_env", config.xrAuthTokenEnv);
+    config.xrTargetFramerate = static_cast<std::uint32_t>(std::min<std::uint64_t>(
+        root.getUInt64("xr_target_framerate", config.xrTargetFramerate),
+        std::numeric_limits<std::uint32_t>::max()));
+    config.xrAsyncTelemetry = root.getBool("xr_async_telemetry", config.xrAsyncTelemetry);
+    config.simulatedSignal = root.getFloatArray("simulated_signal", config.simulatedSignal);
     normalize(config);
     return config;
 }

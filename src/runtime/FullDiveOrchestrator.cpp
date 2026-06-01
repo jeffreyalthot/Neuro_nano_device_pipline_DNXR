@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-namespace neuroxr {
+namespace dnxr {
 namespace {
 
 float clamp01(float value) {
@@ -362,4 +362,4 @@ getState() const {
     return state_;
 }
 
-}
+} // namespace dnxr

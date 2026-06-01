@@ -23,7 +23,7 @@ struct RuntimeConfig {
 
     std::string xrEndpoint = "wss://xr.local";
     std::string xrDeviceId = "demo-device";
-    std::string xrAuthToken = "demo-token";
+    std::string xrAuthTokenEnv = "DNXR_XR_AUTH_TOKEN";
     std::uint32_t xrTargetFramerate = 90;
     bool xrAsyncTelemetry = true;
 

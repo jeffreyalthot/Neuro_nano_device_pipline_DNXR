@@ -11,101 +11,109 @@ SafetyStateMachine::SafetyStateMachine()
 }
 
 SafetyStateTransition SafetyStateMachine::bootSelfTestPassed() {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    return transitionTo(SafetyRuntimeState::Nominal, "boot_self_test_passed", true);
+    std::lock_guard<std::mutex> lock(mutex_);
+    return transitionToLocked(SafetyRuntimeState::Nominal, "boot_self_test_passed", true);
 }
 
 SafetyStateTransition SafetyStateMachine::observeSafetyDecision(const SafetyDecision& decision) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     if (decision.action == SafetyAction::Lockout) {
-        return lockout(decision.reason);
+        return lockoutLocked(decision.reason);
     }
     if (decision.requiresEmergencyStop || decision.action == SafetyAction::EmergencyStop) {
-        return latchEmergency(decision.reason);
+        return latchEmergencyLocked(decision.reason);
     }
 
     switch (decision.action) {
     case SafetyAction::Continue:
-        return transitionTo(SafetyRuntimeState::Nominal, decision.reason);
+        return transitionToLocked(SafetyRuntimeState::Nominal, decision.reason);
     case SafetyAction::ReduceIntensity:
-        return transitionTo(SafetyRuntimeState::Degraded, decision.reason);
+        return transitionToLocked(SafetyRuntimeState::Degraded, decision.reason);
     case SafetyAction::Decompress:
-        return transitionTo(SafetyRuntimeState::Decompression, decision.reason);
+        return transitionToLocked(SafetyRuntimeState::Decompression, decision.reason);
     case SafetyAction::RealityAnchor:
-        return transitionTo(SafetyRuntimeState::RealityAnchor, decision.reason);
+        return transitionToLocked(SafetyRuntimeState::RealityAnchor, decision.reason);
     case SafetyAction::EmergencyStop:
     case SafetyAction::Lockout:
         break;
     }
-    return transitionTo(state_, "unknown_safety_action");
+    return transitionToLocked(state_, "unknown_safety_action");
 }
 
 SafetyStateTransition SafetyStateMachine::observeRealityAnchorPlan(const RealityAnchorPlan& plan) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     if (plan.lockoutActive || plan.mode == RealityAnchorMode::Lockout) {
-        return lockout(plan.reason);
+        return lockoutLocked(plan.reason);
     }
     if (plan.requiresEmergencyStop || plan.mode == RealityAnchorMode::EmergencyStop) {
-        return latchEmergency(plan.reason);
+        return latchEmergencyLocked(plan.reason);
     }
     if (plan.mode == RealityAnchorMode::RealityAnchor) {
-        return transitionTo(SafetyRuntimeState::RealityAnchor, plan.reason);
+        return transitionToLocked(SafetyRuntimeState::RealityAnchor, plan.reason);
     }
     if (plan.mode == RealityAnchorMode::ReduceSensoryLoad) {
-        return transitionTo(SafetyRuntimeState::Degraded, plan.reason);
+        return transitionToLocked(SafetyRuntimeState::Degraded, plan.reason);
     }
-    return transitionTo(state_, plan.reason);
+    return transitionToLocked(state_, plan.reason);
 }
 
 SafetyStateTransition SafetyStateMachine::latchEmergency(const std::string& reason) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    return transitionTo(SafetyRuntimeState::EmergencyLatched, "emergency_latched:" + reason, true);
+    std::lock_guard<std::mutex> lock(mutex_);
+    return latchEmergencyLocked(reason);
 }
 
 SafetyStateTransition SafetyStateMachine::lockout(const std::string& reason) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    return transitionTo(SafetyRuntimeState::LockedOut, "lockout:" + reason, true);
+    std::lock_guard<std::mutex> lock(mutex_);
+    return lockoutLocked(reason);
+}
+
+SafetyStateTransition SafetyStateMachine::latchEmergencyLocked(const std::string& reason) {
+    return transitionToLocked(SafetyRuntimeState::EmergencyLatched, "emergency_latched:" + reason, true);
+}
+
+SafetyStateTransition SafetyStateMachine::lockoutLocked(const std::string& reason) {
+    return transitionToLocked(SafetyRuntimeState::LockedOut, "lockout:" + reason, true);
 }
 
 SafetyStateTransition SafetyStateMachine::enterPostIncidentReview(const std::string& operatorToken) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     if (!isExplicitOperatorToken(operatorToken)) {
-        return transitionTo(state_, "post_incident_review_denied_missing_operator_token");
+        return transitionToLocked(state_, "post_incident_review_denied_missing_operator_token");
     }
     if (state_ != SafetyRuntimeState::EmergencyLatched && state_ != SafetyRuntimeState::LockedOut) {
-        return transitionTo(state_, "post_incident_review_requires_latched_state");
+        return transitionToLocked(state_, "post_incident_review_requires_latched_state");
     }
-    return transitionTo(SafetyRuntimeState::PostIncidentReview, "operator_entered_post_incident_review", true);
+    return transitionToLocked(SafetyRuntimeState::PostIncidentReview, "operator_entered_post_incident_review", true);
 }
 
 SafetyStateTransition SafetyStateMachine::resetToNominalAfterReview(const std::string& operatorToken) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     if (!isExplicitOperatorToken(operatorToken)) {
-        return transitionTo(state_, "reset_denied_missing_operator_token");
+        return transitionToLocked(state_, "reset_denied_missing_operator_token");
     }
     if (state_ != SafetyRuntimeState::PostIncidentReview) {
-        return transitionTo(state_, "reset_requires_post_incident_review");
+        return transitionToLocked(state_, "reset_requires_post_incident_review");
     }
-    return transitionTo(SafetyRuntimeState::Nominal, "operator_reset_after_post_incident_review", true);
+    return transitionToLocked(SafetyRuntimeState::Nominal, "operator_reset_after_post_incident_review", true);
 }
 
 SafetyRuntimeState SafetyStateMachine::state() const {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     return state_;
 }
 
 bool SafetyStateMachine::isEmergencyLatched() const {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     return state_ == SafetyRuntimeState::EmergencyLatched;
 }
 
 bool SafetyStateMachine::isLockedOut() const {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     return state_ == SafetyRuntimeState::LockedOut;
 }
 
 std::vector<SafetyStateTransition> SafetyStateMachine::auditTrail() const {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     return auditTrail_;
 }
 
@@ -123,7 +131,7 @@ std::string SafetyStateMachine::toString(SafetyRuntimeState state) {
     return "unknown";
 }
 
-SafetyStateTransition SafetyStateMachine::transitionTo(
+SafetyStateTransition SafetyStateMachine::transitionToLocked(
     SafetyRuntimeState next,
     const std::string& reason,
     bool explicitOverride) {

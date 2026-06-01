@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 option(DNXR_BUILD_TESTS "Build DNXR tests" ON)
 option(DNXR_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 option(DNXR_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
+option(DNXR_ENABLE_TSAN "Enable ThreadSanitizer" OFF)
 option(DNXR_SIMULATION_ONLY "Force simulation-only runtime guardrails" ON)
 
 # Runtime portability for Windows builds.
@@ -35,6 +36,13 @@ function(dnxr_apply_sanitizers target)
         if(NOT MSVC)
             target_compile_options(${target} PRIVATE -fsanitize=undefined -fno-omit-frame-pointer)
             target_link_options(${target} PRIVATE -fsanitize=undefined)
+        endif()
+    endif()
+
+    if(DNXR_ENABLE_TSAN)
+        if(NOT MSVC)
+            target_compile_options(${target} PRIVATE -fsanitize=thread -fno-omit-frame-pointer)
+            target_link_options(${target} PRIVATE -fsanitize=thread)
         endif()
     endif()
 endfunction()
@@ -76,6 +84,7 @@ if(DNXR_BUILD_TESTS)
     set(DNXR_TEST_TARGETS
         dnxr_state_smoke_test
         dnxr_config_loader_test
+        dnxr_json_parser_test
         dnxr_calibration_drift_monitor_test
         dnxr_save_asset_manager_test
         dnxr_plugin_registry_test
@@ -108,6 +117,8 @@ if(DNXR_BUILD_TESTS)
         dnxr_security_foundation_test
         dnxr_network_replay_attack_test
         dnxr_neural_chip_hal_test
+        dnxr_vestibular_budget_boundary_test
+        dnxr_safety_state_machine_concurrency_test
         dnxr_open_interop_protocol_test
         dnxr_neural_intent_protocol_test
         dnxr_full_dive_orchestrator_integration_test
@@ -117,4 +128,8 @@ if(DNXR_BUILD_TESTS)
     foreach(test_name IN LISTS DNXR_TEST_TARGETS)
         dnxr_add_test(${test_name})
     endforeach()
+
+    set_tests_properties(dnxr_safety_state_machine_concurrency_test PROPERTIES LABELS "concurrency;safety")
+    set_tests_properties(dnxr_vestibular_budget_boundary_test PROPERTIES LABELS "unit;safety")
+    set_tests_properties(dnxr_runtime_10k_cycles_test PROPERTIES LABELS "long")
 endif()

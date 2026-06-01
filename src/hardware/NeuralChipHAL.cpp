@@ -102,7 +102,7 @@ bool SimulatedNeuralChipHAL::validateCommand(
         return false;
     }
 
-    if (mode_ == NeuralChipRuntimeMode::ClinicalLocked || !command.allowHardwareWrite) {
+    if (mode_ == NeuralChipRuntimeMode::ClinicalLocked || !command.allowStimulusDispatch) {
         return false;
     }
 
@@ -122,7 +122,7 @@ bool SimulatedNeuralChipHAL::validateCommand(
         return false;
     }
 
-    if (command.modalityIntensities.size() != 5U || !command.fiveSenseCoverage) {
+    if (command.modalityIntensities.size() != 6U || !command.fiveSenseCoverage) {
         return false;
     }
 

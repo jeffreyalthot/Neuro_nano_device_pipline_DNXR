@@ -41,7 +41,7 @@ struct SafeNeuralStimulusCommand {
     std::string safetyMode;
     std::string calibrationProfileId;
     bool fiveSenseCoverage = false;
-    bool allowHardwareWrite = false;
+    bool allowStimulusDispatch = false;
 };
 
 class NeuralChipHAL {

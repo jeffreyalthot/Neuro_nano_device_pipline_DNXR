@@ -8,7 +8,15 @@
 
 namespace dnxr {
 
-class NeuralCryptoTransport {
+#ifndef DNXR_SIMULATION_ONLY
+#define DNXR_SIMULATION_ONLY 1
+#endif
+
+#if !DNXR_SIMULATION_ONLY
+#error Real crypto backend required for non-simulation builds
+#endif
+
+class SimulationCryptoTransport {
 public:
     std::vector<std::uint8_t> encrypt(const std::vector<float>& neuralPayload, const std::string& key) const;
     std::vector<float> decrypt(const std::vector<std::uint8_t>& cipherPayload, const std::string& key) const;
@@ -21,5 +29,7 @@ public:
     NeuralSecurePacket seal(const std::vector<float>& neuralPayload, SecureSession& session) const;
     bool open(const NeuralSecurePacket& packet, SecureSession& session, std::vector<float>& neuralPayload) const;
 };
+
+using NeuralCryptoTransport = SimulationCryptoTransport;
 
 } // namespace dnxr
