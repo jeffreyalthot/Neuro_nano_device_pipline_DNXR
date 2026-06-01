@@ -13,6 +13,9 @@ class FullDiveSafetyBridge {
 public:
     explicit FullDiveSafetyBridge(FullDiveInterventionMemory memory = FullDiveInterventionMemory{});
 
+    FullDiveRuntimeSnapshot evaluateInstant(const FullDiveSynchronizationEngine& engine) const;
+    FullDiveRuntimeSnapshot observeAndEscalate(const FullDiveRuntimeSnapshot& instantSnapshot);
+    FullDiveRuntimeSnapshot evaluateAndRemember(const FullDiveSynchronizationEngine& engine);
     FullDiveRuntimeSnapshot evaluate(const FullDiveSynchronizationEngine& engine);
     void apply(const FullDiveRuntimeSnapshot& snapshot, SafetyStateMachine& stateMachine) const;
     SafetyDecision mergeIntoDecision(

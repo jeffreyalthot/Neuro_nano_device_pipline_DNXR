@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 enum class NeuralDeviceStatus {
 
@@ -96,4 +96,8 @@ private:
     connectedDevice_;
 };
 
+}
+
+namespace neuroxr {
+using namespace ::dnxr;
 }

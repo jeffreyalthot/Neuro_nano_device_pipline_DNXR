@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 enum class SubconsciousPatternType {
 
@@ -116,4 +116,8 @@ private:
     state_;
 };
 
+}
+
+namespace neuroxr {
+using namespace ::dnxr;
 }

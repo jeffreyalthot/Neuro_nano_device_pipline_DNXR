@@ -2,24 +2,16 @@
 
 #include <memory>
 
-namespace neuroxr {
-class DistributedConsciousnessNetwork;
-class RecursiveMemoryReconstructionEngine;
-class SubjectiveTimeDilationEngine;
-class NeuralQuantumEntanglementEngine;
-class AffectiveResonanceMatrix;
-class SubconsciousSimulationEngine;
-}
+#include "../network/DistributedConsciousnessNetwork.h"
+#include "../memory/RecursiveMemoryReconstructionEngine.h"
+#include "../reality/SubjectiveTimeDilationEngine.h"
+#include "../physics/NeuralQuantumEntanglementEngine.h"
+#include "../emotion/AffectiveResonanceMatrix.h"
+#include "../subconscious/SubconsciousSimulationEngine.h"
 
 namespace dnxr {
 
 class FullDiveSynchronizationEngine;
-using ::neuroxr::AffectiveResonanceMatrix;
-using ::neuroxr::DistributedConsciousnessNetwork;
-using ::neuroxr::NeuralQuantumEntanglementEngine;
-using ::neuroxr::RecursiveMemoryReconstructionEngine;
-using ::neuroxr::SubjectiveTimeDilationEngine;
-using ::neuroxr::SubconsciousSimulationEngine;
 
 struct FullDiveState {
 

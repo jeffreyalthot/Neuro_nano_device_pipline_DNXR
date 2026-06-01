@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cstdint>
 
-namespace neuroxr {
+namespace dnxr {
 
 AffectiveRealityEngine::
 AffectiveRealityEngine() {

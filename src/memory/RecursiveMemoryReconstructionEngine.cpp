@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace neuroxr {
+namespace dnxr {
 
 RecursiveMemoryReconstructionEngine::
 RecursiveMemoryReconstructionEngine() {

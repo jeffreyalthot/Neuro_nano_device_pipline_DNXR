@@ -30,10 +30,6 @@
 
 namespace dnxr {
 
-using ::neuroxr::AffectiveRealityEngine;
-using ::neuroxr::NeuralPerceptionSynthesizer;
-using ::neuroxr::PersistentNeuroCognitiveTwin;
-
 struct FullDiveRuntimeState {
 
     float neuralSynchronization;

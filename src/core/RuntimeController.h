@@ -13,7 +13,7 @@
 #include "../utils/DeterministicSessionReplay.h"
 #include "../utils/RuntimeMetrics.h"
 #include "../utils/RuntimeTraceRecorder.h"
-#include "../network/NeuralCryptoTransport.h"
+#include "../network/SimulationCryptoTransport.h"
 #include "../safety/NeuralIdentityVault.h"
 #include "../security/RuntimeSecret.h"
 #include "../runtime/FullDiveSynchronizationEngine.h"

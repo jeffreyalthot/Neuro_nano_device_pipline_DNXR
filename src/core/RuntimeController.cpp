@@ -42,6 +42,13 @@
 #include "../security/SecretProvider.h"
 #include "../runtime/FullDiveRuntimeInput.h"
 #include "../runtime/FullDiveSafetyBridge.h"
+#include "../runtime/RuntimeAcquisitionStage.h"
+#include "../runtime/RuntimeSignalStage.h"
+#include "../runtime/RuntimeInferenceStage.h"
+#include "../runtime/RuntimeSafetyStage.h"
+#include "../runtime/RuntimeFullDiveStage.h"
+#include "../runtime/RuntimeRenderStage.h"
+#include "../runtime/RuntimeStimulusStage.h"
 #include "../utils/Logger.h"
 #include "../utils/SessionSafetyJournal.h"
 #include "../utils/TimeSync.h"
@@ -355,10 +362,11 @@ void RuntimeController::runSingleCycle(double timestamp) {
     if (!chipFrame.channels.empty()) {
         raw = chipFrame.channels;
     }
-    scheduler_.endTask("acquisition", tAcq, tickReport);
-    if (raw.empty()) {
+    scheduler_.endTask(RuntimeAcquisitionStage::name(), tAcq, tickReport);
+    const RuntimeStageStatus acquisitionStatus = RuntimeAcquisitionStage::validate(!raw.empty(), "empty_neural_signal_frame");
+    if (!acquisitionStatus.continueCycle) {
         Logger::warn("⚠️  Empty neural signal frame.");
-        finishCycle(false, false, "empty_neural_signal_frame");
+        finishCycle(false, acquisitionStatus.emergencyActive, acquisitionStatus.reason);
         ++cycleCounter_;
         return;
     }
@@ -375,7 +383,7 @@ void RuntimeController::runSingleCycle(double timestamp) {
     }
 
     auto state = brain_->inferState(features, timestamp);
-    scheduler_.endTask("signal_processing", tSignal, tickReport);
+    scheduler_.endTask(RuntimeSignalStage::name(), tSignal, tickReport);
     if (independentWatchdog_) {
         independentWatchdog_->heartbeat("inference");
     }
@@ -399,7 +407,7 @@ void RuntimeController::runSingleCycle(double timestamp) {
     // ─────────────────────────────────────────────────────────────────────
     const auto tInference = std::chrono::steady_clock::now();
     const CognitiveState cognitive = deepImmersion_->runInferenceTick(clean, bio, "runtime_controller");
-    const bool inferenceOk = scheduler_.endTask("inference", tInference, tickReport);
+    const bool inferenceOk = scheduler_.endTask(RuntimeInferenceStage::name(), tInference, tickReport);
 
     if (!inferenceOk) {
         ++droppedFrames_;
@@ -506,6 +514,9 @@ void RuntimeController::runSingleCycle(double timestamp) {
                      " scale=" + std::to_string(sensorySync.recommendedIntensityScale));
     }
 
+    const RuntimeStageStatus safetyStageStatus = RuntimeSafetyStage::validate(true, "safety_stage_unhealthy");
+    (void)safetyStageStatus;
+
     const SafetyDecision safetyDecision = safetyGovernor_->evaluate({
         normalizedRiskTelemetry,
         frame,
@@ -610,6 +621,9 @@ void RuntimeController::runSingleCycle(double timestamp) {
 
     SafetyDecision fusedSafetyDecision = safetyDecision;
 
+    const RuntimeStageStatus fullDiveStageStatus = RuntimeFullDiveStage::validate(fullDiveSynchronization_ != nullptr && fullDiveBridge_ != nullptr, "full_dive_stage_disabled");
+    (void)fullDiveStageStatus;
+
     if (fullDiveSynchronization_ && fullDiveBridge_) {
         RuntimeMetricsSnapshot metricsSnapshot;
         {
@@ -628,7 +642,7 @@ void RuntimeController::runSingleCycle(double timestamp) {
         fullDiveInput.deltaTimeSeconds = static_cast<double>(frameBudgetMs_) / 1000.0;
         fullDiveSynchronization_->updateFromRuntime(fullDiveInput);
 
-        const auto fullDiveSnapshot = fullDiveBridge_->evaluate(*fullDiveSynchronization_);
+        const auto fullDiveSnapshot = fullDiveBridge_->evaluateAndRemember(*fullDiveSynchronization_);
         fusedSafetyDecision = fullDiveBridge_->mergeIntoDecision(fullDiveSnapshot, fusedSafetyDecision);
         if (fullDiveSnapshot.safetyInterventionRequired()) {
             if (safetyJournal_) {
@@ -674,7 +688,7 @@ void RuntimeController::runSingleCycle(double timestamp) {
     // ─────────────────────────────────────────────────────────────────────
     const auto tRender = std::chrono::steady_clock::now();
     renderer_->present(frame);
-    const bool renderOk = scheduler_.endTask("render", tRender, tickReport);
+    const bool renderOk = scheduler_.endTask(RuntimeRenderStage::name(), tRender, tickReport);
 
     if (!renderOk) {
         Logger::warn("⚠️ Render budget exceeded — jitter risk. task=render");
@@ -701,6 +715,9 @@ void RuntimeController::runSingleCycle(double timestamp) {
     }
 
     headset_->pushSensoryFrame(frame);
+
+    const RuntimeStageStatus stimulusStageStatus = RuntimeStimulusStage::validate(stimulusEnvelope_ != nullptr && neuralChipHal_ != nullptr, "stimulus_stage_unavailable");
+    (void)stimulusStageStatus;
 
     const SafeNeuralStimulusCommand stimulusCommand =
         stimulusEnvelope_->buildCommand(

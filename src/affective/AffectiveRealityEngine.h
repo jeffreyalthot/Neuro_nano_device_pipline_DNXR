@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 enum class EmotionalStateType {
 
@@ -85,4 +85,8 @@ private:
     AffectiveFrame frame_;
 };
 
+}
+
+namespace neuroxr {
+using namespace ::dnxr;
 }
