@@ -5,6 +5,7 @@
 #include "../src/utils/TimeSync.h"
 
 #include <cassert>
+#include <cstdio>
 #include <string>
 #include <thread>
 
@@ -93,14 +94,38 @@ int main() {
     assert(dnxr::TimeSync::lastTimestamp() == ts2);
 
     dnxr::SessionSafetyJournal journal;
-    const auto safetyEvent = journal.record("safety_decision", "nominal_runtime", 0.10f);
-    const auto halEvent = journal.record("hal_write", "accepted_safe_stimulus", 0.20f);
+    const auto safetyEvent = journal.record(
+        "safety_decision",
+        "nominal_runtime",
+        0.10f,
+        {42U, "allow_render", true, false});
+    const auto halEvent = journal.record(
+        "hal_write",
+        "accepted_safe_stimulus",
+        0.20f,
+        {43U, "stimulus_accepted", true, false});
     assert(safetyEvent.previousHash == "genesis");
     assert(halEvent.previousHash == safetyEvent.eventHash);
+    assert(safetyEvent.runtimeCycle == 42U);
+    assert(safetyEvent.safetyAction == "allow_render");
+    assert(safetyEvent.renderAllowed);
+    assert(!safetyEvent.emergencyStop);
     assert(journal.events().size() == 2);
     assert(journal.lastEvent() != nullptr);
     assert(journal.latestHash() == halEvent.eventHash);
     assert(journal.verifyChain());
+
+    const std::string auditPath = "build/session_safety_journal_test.audit";
+    assert(journal.saveToFile(auditPath));
+    dnxr::SessionSafetyJournal loadedJournal;
+    assert(loadedJournal.loadFromFile(auditPath));
+    assert(loadedJournal.verifyChain());
+    assert(loadedJournal.events().size() == 2);
+    assert(loadedJournal.latestHash() == journal.latestHash());
+    assert(loadedJournal.events()[0].runtimeCycle == 42U);
+    assert(loadedJournal.events()[1].safetyAction == "stimulus_accepted");
+    std::remove(auditPath.c_str());
+
     journal.clear();
     assert(journal.events().empty());
     assert(journal.latestHash() == "genesis");

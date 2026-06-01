@@ -1,0 +1,7 @@
+{
+  "config_version": 1,
+  "profile": "simulation_safe",
+  "scenario": "nominal_focus",
+  "signal_source": "simulated",
+  "device_provider_enabled": false
+}

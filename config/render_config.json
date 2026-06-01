@@ -1,0 +1,8 @@
+{
+  "config_version": 1,
+  "profile": "simulation_safe",
+  "xr_endpoint": "wss://xr.local",
+  "target_framerate": 90,
+  "frame_budget_ms": 11.1,
+  "quality_mode": "adaptive_safe"
+}

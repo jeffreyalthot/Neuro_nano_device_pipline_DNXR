@@ -280,10 +280,14 @@ XRRenderValidation XRRenderer::validateImmersiveRenderFrame(const std::vector<fl
     validation.normalized = validation.finite && std::all_of(frame.begin(), frame.end(), [](float v) {
         return v >= 0.0f && v <= 1.0f;
     });
-    validation.averageEnergy = frame.empty()
-        ? 0.0f
-        : computeFrameEnergy(frame) / static_cast<float>(frame.size());
-    validation.aboveEnergyThreshold = computeFrameEnergy(frame) >= frameDropThreshold_;
+    if (validation.finite && !frame.empty()) {
+        const float frameEnergy = computeFrameEnergy(frame);
+        validation.averageEnergy = frameEnergy / static_cast<float>(frame.size());
+        validation.aboveEnergyThreshold = frameEnergy >= frameDropThreshold_;
+    } else {
+        validation.averageEnergy = 0.0f;
+        validation.aboveEnergyThreshold = false;
+    }
     validation.accepted = validation.expectedLayout && validation.finite &&
                           validation.normalized && validation.aboveEnergyThreshold;
     lastValidation_ = validation;

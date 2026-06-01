@@ -1,0 +1,7 @@
+{
+  "config_version": 1,
+  "profile": "simulation_safe",
+  "nano_endpoint": "sim://nano-node.local",
+  "host_upstream_endpoint": "sim://host-upstream.local",
+  "transport_mode": "simulation_only"
+}
