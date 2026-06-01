@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace neuroxr {
+namespace dnxr {
 
 struct LimbState {
 
@@ -60,4 +60,10 @@ private:
     ProprioceptiveFrame frame_;
 };
 
+}
+
+namespace neuroxr {
+using LimbState = ::dnxr::LimbState;
+using ProprioceptiveFrame = ::dnxr::ProprioceptiveFrame;
+using SyntheticProprioceptionLayer = ::dnxr::SyntheticProprioceptionLayer;
 }

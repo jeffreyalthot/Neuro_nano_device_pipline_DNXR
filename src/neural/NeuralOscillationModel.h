@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 enum class OscillationBand {
 
@@ -81,4 +81,11 @@ private:
     NeuralOscillationState state_;
 };
 
+}
+
+namespace neuroxr {
+using OscillationBand = ::dnxr::OscillationBand;
+using OscillationSignal = ::dnxr::OscillationSignal;
+using NeuralOscillationState = ::dnxr::NeuralOscillationState;
+using NeuralOscillationModel = ::dnxr::NeuralOscillationModel;
 }

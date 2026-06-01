@@ -30,6 +30,7 @@ public:
     bool open(const NeuralSecurePacket& packet, SecureSession& session, std::vector<float>& neuralPayload) const;
 };
 
+// Deprecated simulation-only compatibility alias. Prefer SimulationCryptoTransport internally.
 using NeuralCryptoTransport = SimulationCryptoTransport;
 
 } // namespace dnxr

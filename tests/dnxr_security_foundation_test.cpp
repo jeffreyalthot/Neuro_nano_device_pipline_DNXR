@@ -5,7 +5,7 @@
 #include <vector>
 
 int main() {
-    dnxr::NeuralCryptoTransport crypto;
+    dnxr::SimulationCryptoTransport crypto;
     std::vector<float> payload{0.12f, -0.89f, 1.42f, 5.77f};
 
     assert(crypto.isKeyValid("secure123"));

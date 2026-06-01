@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 enum class MemoryType {
 
@@ -123,4 +123,11 @@ private:
     MemoryState state_;
 };
 
+}
+
+namespace neuroxr {
+using MemoryType = ::dnxr::MemoryType;
+using MemoryFragment = ::dnxr::MemoryFragment;
+using MemoryState = ::dnxr::MemoryState;
+using ImmersiveMemoryPersistenceEngine = ::dnxr::ImmersiveMemoryPersistenceEngine;
 }

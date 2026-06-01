@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 struct SocialSignal {
 
@@ -102,4 +102,11 @@ private:
     SocialState state_;
 };
 
+}
+
+namespace neuroxr {
+using SocialSignal = ::dnxr::SocialSignal;
+using SocialEntity = ::dnxr::SocialEntity;
+using SocialState = ::dnxr::SocialState;
+using SocialPresenceEngine = ::dnxr::SocialPresenceEngine;
 }

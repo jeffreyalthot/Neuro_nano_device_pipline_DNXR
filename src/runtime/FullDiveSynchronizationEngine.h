@@ -31,18 +31,8 @@
 namespace dnxr {
 
 using ::neuroxr::AffectiveRealityEngine;
-using ::neuroxr::BrainStateTopology;
-using ::neuroxr::ImmersiveMemoryPersistenceEngine;
-using ::neuroxr::MotorPredictionLoop;
-using ::neuroxr::NeuralOscillationModel;
 using ::neuroxr::NeuralPerceptionSynthesizer;
-using ::neuroxr::OscillationBand;
 using ::neuroxr::PersistentNeuroCognitiveTwin;
-using ::neuroxr::SocialPresenceEngine;
-using ::neuroxr::SubjectiveContinuityEngine;
-using ::neuroxr::SubjectiveTimeEngine;
-using ::neuroxr::SyntheticProprioceptionLayer;
-using ::neuroxr::VestibularEmulationEngine;
 
 struct FullDiveRuntimeState {
 
@@ -77,6 +67,12 @@ struct FullDiveRuntimeState {
 
 struct FullDiveRuntimeInput;
 
+enum class FullDiveUpdateMode {
+    SimulationOnly,
+    RuntimeDriven,
+    Hybrid
+};
+
 class FullDiveSynchronizationEngine {
 public:
 
@@ -94,6 +90,9 @@ public:
         float deltaTime);
 
     void updateFromRuntime(const FullDiveRuntimeInput& input);
+
+    void setUpdateMode(FullDiveUpdateMode mode);
+    FullDiveUpdateMode updateMode() const;
 
     void configureSafetyThresholds(const SafetyRuntimeProfile& profile);
 
@@ -127,6 +126,11 @@ public:
 private:
 
     void runtimeLoop();
+    void updateInternalSimulationLocked(float deltaTime);
+    void applyRuntimeInputLocked(const FullDiveRuntimeInput& input);
+    void computeRuntimeStabilityLocked();
+    void detectNeuralOverloadLocked();
+    void detectConsciousnessDesynchronizationLocked();
 
 private:
 
@@ -176,11 +180,13 @@ private:
     runtimeState_;
 
     SafetyRuntimeProfile safetyProfile_;
+    FullDiveUpdateMode updateMode_ = FullDiveUpdateMode::Hybrid;
 };
 
 } // namespace dnxr
 
 namespace neuroxr {
 using FullDiveRuntimeState = ::dnxr::FullDiveRuntimeState;
+using FullDiveUpdateMode = ::dnxr::FullDiveUpdateMode;
 using FullDiveSynchronizationEngine = ::dnxr::FullDiveSynchronizationEngine;
 }

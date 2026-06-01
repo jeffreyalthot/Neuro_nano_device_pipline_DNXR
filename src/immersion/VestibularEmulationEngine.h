@@ -3,7 +3,7 @@
 #include <array>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 struct VestibularState {
 
@@ -60,4 +60,9 @@ private:
     std::array<float,3> previousOrientation_;
 };
 
+}
+
+namespace neuroxr {
+using VestibularState = ::dnxr::VestibularState;
+using VestibularEmulationEngine = ::dnxr::VestibularEmulationEngine;
 }

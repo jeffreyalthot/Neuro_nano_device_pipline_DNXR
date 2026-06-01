@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "../immersion/SensoryFrameSchema.h"
+
 namespace dnxr {
 
 enum class NeuralChipRuntimeMode {
@@ -30,6 +32,12 @@ struct NeuralChipFrame {
     bool simulation = true;
 };
 
+enum class StimulusCoveragePolicy {
+    AnySafeChannel,
+    RequiredModalities,
+    FullMultisensoryFrame
+};
+
 struct SafeNeuralStimulusCommand {
     std::uint64_t sequenceId = 0;
     std::int64_t monotonicTimestampMs = 0;
@@ -41,6 +49,10 @@ struct SafeNeuralStimulusCommand {
     std::string safetyMode;
     std::string calibrationProfileId;
     bool fiveSenseCoverage = false;
+    StimulusCoveragePolicy coveragePolicy = StimulusCoveragePolicy::AnySafeChannel;
+    std::vector<SensoryModality> requiredModalities;
+    std::string coverageReason = "coverage_not_evaluated";
+    bool exposureBudgetOk = true;
     bool allowStimulusDispatch = false;
 };
 

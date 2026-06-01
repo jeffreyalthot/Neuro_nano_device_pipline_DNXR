@@ -76,7 +76,7 @@ private:
     mutable std::mutex traceMutex_;
     mutable std::mutex metricsMutex_;
     DeterministicSessionReplay replay_;
-    NeuralCryptoTransport crypto_;
+    SimulationCryptoTransport crypto_;
     std::unique_ptr<class SessionSafetyJournal> safetyJournal_;
     NeuralIdentityVault identityVault_;
     std::atomic<uint64_t> cycleCounter_;
