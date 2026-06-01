@@ -87,8 +87,13 @@ FullDiveRuntimeSnapshot FullDiveSafetyBridge::evaluateInstant(const FullDiveSync
 }
 
 FullDiveRuntimeSnapshot FullDiveSafetyBridge::observeAndEscalate(const FullDiveRuntimeSnapshot& instantSnapshot) {
+    return observeAndEscalate(instantSnapshot, std::chrono::steady_clock::now());
+}
+
+FullDiveRuntimeSnapshot FullDiveSafetyBridge::observeAndEscalate(
+    const FullDiveRuntimeSnapshot& instantSnapshot,
+    std::chrono::steady_clock::time_point now) {
     FullDiveRuntimeSnapshot snapshot = instantSnapshot;
-    const auto now = std::chrono::steady_clock::now();
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (snapshot.safetyInterventionRequired()) {

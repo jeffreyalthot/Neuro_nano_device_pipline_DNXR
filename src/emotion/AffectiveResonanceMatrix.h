@@ -117,5 +117,8 @@ private:
 }
 
 namespace neuroxr {
-using namespace ::dnxr;
+using AffectiveSpectrum = ::dnxr::AffectiveSpectrum;
+using AffectiveSignal = ::dnxr::AffectiveSignal;
+using AffectiveFieldState = ::dnxr::AffectiveFieldState;
+using AffectiveResonanceMatrix = ::dnxr::AffectiveResonanceMatrix;
 }

@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace neuroxr {
+namespace dnxr {
 
 ConsciousDreamingEngine::
 ConsciousDreamingEngine() {

@@ -123,5 +123,8 @@ private:
 }
 
 namespace neuroxr {
-using namespace ::dnxr;
+using QuantumEntanglementType = ::dnxr::QuantumEntanglementType;
+using QuantumNeuralState = ::dnxr::QuantumNeuralState;
+using QuantumSynchronizationFrame = ::dnxr::QuantumSynchronizationFrame;
+using NeuralQuantumEntanglementEngine = ::dnxr::NeuralQuantumEntanglementEngine;
 }

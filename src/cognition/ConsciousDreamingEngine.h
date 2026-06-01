@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace neuroxr {
+namespace dnxr {
 
 enum class DreamLayer {
 
@@ -122,4 +122,11 @@ private:
     state_;
 };
 
+}
+namespace neuroxr {
+using DreamLayer = ::dnxr::DreamLayer;
+using DreamSignal = ::dnxr::DreamSignal;
+using DreamSequence = ::dnxr::DreamSequence;
+using DreamingState = ::dnxr::DreamingState;
+using ConsciousDreamingEngine = ::dnxr::ConsciousDreamingEngine;
 }

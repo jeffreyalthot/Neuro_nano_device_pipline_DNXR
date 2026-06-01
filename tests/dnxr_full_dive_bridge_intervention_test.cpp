@@ -34,7 +34,7 @@ int main() {
 
     engine.updateFromRuntime(input);
     dnxr::FullDiveSafetyBridge bridge;
-    const auto reduce = bridge.evaluate(engine);
+    const auto reduce = bridge.evaluateAndRemember(engine);
     assert(reduce.safetyInterventionRequired());
     assert(reduce.intervention == dnxr::FullDiveInterventionLevel::ReduceIntensity);
 
@@ -48,7 +48,7 @@ int main() {
     input.biometric.postureStability = 0.0f;
     input.biometric.eyeFocus = 0.0f;
     engine.updateFromRuntime(input);
-    const auto anchor = bridge.evaluate(engine);
+    const auto anchor = bridge.evaluateAndRemember(engine);
     assert(anchor.safetyInterventionRequired());
     assert(anchor.intervention == dnxr::FullDiveInterventionLevel::RealityAnchor ||
            anchor.intervention == dnxr::FullDiveInterventionLevel::EmergencyStop ||

@@ -17,6 +17,7 @@ struct SensoryExposureLimits {
     float vestibularInstantPeakLimit = 0.35f;
     float proprioceptiveInstantPeakLimit = 0.60f;
     float smoothingTimeConstantSeconds = 1.0f;
+    float maxExposureAccountingSeconds = 10.0f;
 
     SensoryExposureLimits();
 };

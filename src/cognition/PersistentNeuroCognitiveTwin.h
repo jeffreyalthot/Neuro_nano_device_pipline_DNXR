@@ -111,5 +111,8 @@ private:
 }
 
 namespace neuroxr {
-using namespace ::dnxr;
+using CognitiveSnapshot = ::dnxr::CognitiveSnapshot;
+using NeuralBehaviorProfile = ::dnxr::NeuralBehaviorProfile;
+using NeuroCognitiveState = ::dnxr::NeuroCognitiveState;
+using PersistentNeuroCognitiveTwin = ::dnxr::PersistentNeuroCognitiveTwin;
 }

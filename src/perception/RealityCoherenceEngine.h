@@ -143,5 +143,9 @@ private:
 }
 
 namespace neuroxr {
-using namespace ::dnxr;
+using PerceptualLayer = ::dnxr::PerceptualLayer;
+using PerceptualSignal = ::dnxr::PerceptualSignal;
+using RealityFragment = ::dnxr::RealityFragment;
+using RealityCoherenceState = ::dnxr::RealityCoherenceState;
+using RealityCoherenceEngine = ::dnxr::RealityCoherenceEngine;
 }

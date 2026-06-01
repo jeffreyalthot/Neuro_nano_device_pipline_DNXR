@@ -54,5 +54,18 @@ int main() {
     assert(l90 > 0.20f);
     assert(l60 > l90 - 0.03f && l60 < l90 + 0.03f);
     assert(jitter.lastReport().sessionExposure[static_cast<std::size_t>(dnxr::SensoryModality::Vestibular)] > 0.0f);
+
+    dnxr::SensoryExposureLimits freezeLimits;
+    freezeLimits.vestibularInstantPeakLimit = 1.0f;
+    freezeLimits.maxExposureAccountingSeconds = 10.0f;
+    freezeLimits.sessionExposure[static_cast<std::size_t>(dnxr::SensoryModality::Vestibular)] = 100.0f;
+    dnxr::SensoryExposureBudget freezeBudget(freezeLimits);
+    freezeBudget.observe(load, 5.0);
+    const auto freeze5 = freezeBudget.lastReport();
+    assert(freeze5.sessionExposure[static_cast<std::size_t>(dnxr::SensoryModality::Vestibular)] > 1.9f);
+    freezeBudget.observe(load, 30.0);
+    const auto freeze30 = freezeBudget.lastReport();
+    assert(freeze30.sessionExposure[static_cast<std::size_t>(dnxr::SensoryModality::Vestibular)] < 6.1f);
+    assert(freeze30.loadPerSecond[static_cast<std::size_t>(dnxr::SensoryModality::Vestibular)] <= 0.4f);
     return 0;
 }

@@ -97,5 +97,8 @@ private:
 }
 
 namespace neuroxr {
-using namespace ::dnxr;
+using NeuralThreatLevel = ::dnxr::NeuralThreatLevel;
+using NeuralSafetySample = ::dnxr::NeuralSafetySample;
+using NeuralSafetyState = ::dnxr::NeuralSafetyState;
+using NeuralSafetyMonitor = ::dnxr::NeuralSafetyMonitor;
 }
