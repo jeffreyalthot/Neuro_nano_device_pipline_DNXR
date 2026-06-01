@@ -4,6 +4,9 @@
 #include <cassert>
 #include <vector>
 
+static_assert(!dnxr::SimulationCryptoTransport::kCryptographicallySecure, "Simulation transport must not claim cryptographic security");
+static_assert(dnxr::SimulationCryptoTransport::kSimulationOnly, "Simulation transport must remain simulation-only");
+
 int main() {
     dnxr::SimulationCryptoTransport crypto;
     std::vector<float> payload{0.12f, -0.89f, 1.42f, 5.77f};

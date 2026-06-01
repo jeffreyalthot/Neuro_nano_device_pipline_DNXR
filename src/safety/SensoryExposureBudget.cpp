@@ -27,20 +27,22 @@ SensoryExposureReport SensoryExposureBudget::observe(
     double deltaTimeSeconds) {
 
     std::lock_guard<std::mutex> lock(mutex_);
-    const float dt = static_cast<float>(std::clamp(deltaTimeSeconds, 0.0, 1.0));
+    const float rawDt = static_cast<float>(std::max(0.0, deltaTimeSeconds));
+    const float smoothingDt = std::min(rawDt, 1.0f);
+    const float exposureDt = std::min(rawDt, finitePositiveOr(limits_.maxExposureAccountingSeconds, 10.0f));
     report_.withinBudget = true;
     report_.severity = 0.0f;
     report_.reason = "sensory_exposure_nominal";
 
-    vestibularCooldownRemainingSeconds_ = std::max(0.0, vestibularCooldownRemainingSeconds_ - dt);
-    proprioceptiveCooldownRemainingSeconds_ = std::max(0.0, proprioceptiveCooldownRemainingSeconds_ - dt);
+    vestibularCooldownRemainingSeconds_ = std::max(0.0, vestibularCooldownRemainingSeconds_ - exposureDt);
+    proprioceptiveCooldownRemainingSeconds_ = std::max(0.0, proprioceptiveCooldownRemainingSeconds_ - exposureDt);
 
     for (std::size_t i = 0; i < modalityCount; ++i) {
         const float load = std::clamp(std::isfinite(modalityLoad[i]) ? modalityLoad[i] : 0.0f, 0.0f, 1.0f);
         const float tau = finitePositiveOr(limits_.smoothingTimeConstantSeconds, 1.0f);
-        const float alpha = dt > 0.0f ? std::clamp(1.0f - std::exp(-dt / tau), 0.0f, 1.0f) : 0.0f;
+        const float alpha = smoothingDt > 0.0f ? std::clamp(1.0f - std::exp(-smoothingDt / tau), 0.0f, 1.0f) : 0.0f;
         report_.loadPerSecond[i] = (report_.loadPerSecond[i] * (1.0f - alpha)) + (load * alpha);
-        report_.sessionExposure[i] += load * dt;
+        report_.sessionExposure[i] += load * exposureDt;
 
         const float perSecondLimit = finitePositiveOr(limits_.loadPerSecond[i], 1.0f);
         const float sessionLimit = finitePositiveOr(limits_.sessionExposure[i], 1.0f);

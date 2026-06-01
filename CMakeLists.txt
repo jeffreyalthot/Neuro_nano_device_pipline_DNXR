@@ -7,6 +7,7 @@ option(DNXR_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 option(DNXR_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 option(DNXR_ENABLE_TSAN "Enable ThreadSanitizer" OFF)
 option(DNXR_SIMULATION_ONLY "Force simulation-only runtime guardrails" ON)
+option(DNXR_ENABLE_LONG_REAL_TESTS "Enable long real soak tests" OFF)
 
 if(DNXR_ENABLE_TSAN AND DNXR_ENABLE_ASAN)
     message(FATAL_ERROR "DNXR_ENABLE_TSAN and DNXR_ENABLE_ASAN cannot be enabled together")
@@ -161,9 +162,19 @@ if(DNXR_BUILD_TESTS)
     set_tests_properties(dnxr_runtime_safety_stage_test PROPERTIES LABELS "unit;runtime;stage;safety")
     set_tests_properties(dnxr_runtime_full_dive_stage_test PROPERTIES LABELS "unit;runtime;stage;full_dive")
     set_tests_properties(dnxr_runtime_stimulus_stage_test PROPERTIES LABELS "unit;runtime;stage;safety")
-    set_tests_properties(dnxr_runtime_memory_growth_test PROPERTIES LABELS "long_real;soak;memory" DISABLED TRUE)
-    set_tests_properties(dnxr_runtime_1h_stability_test PROPERTIES LABELS "long_real;soak" DISABLED TRUE)
-    set_tests_properties(dnxr_vestibular_exposure_budget_long_test PROPERTIES LABELS "long_real;soak;safety" DISABLED TRUE)
-    set_tests_properties(dnxr_full_dive_intervention_window_long_test PROPERTIES LABELS "long_real;soak;full_dive;safety" DISABLED TRUE)
-    set_tests_properties(dnxr_watchdog_stale_subsystem_long_test PROPERTIES LABELS "long_real;soak;safety" DISABLED TRUE)
+    set(DNXR_LONG_REAL_TEST_TARGETS
+        dnxr_runtime_memory_growth_test
+        dnxr_runtime_1h_stability_test
+        dnxr_vestibular_exposure_budget_long_test
+        dnxr_full_dive_intervention_window_long_test
+        dnxr_watchdog_stale_subsystem_long_test
+    )
+    set_tests_properties(dnxr_runtime_memory_growth_test PROPERTIES LABELS "long_real;soak;memory")
+    set_tests_properties(dnxr_runtime_1h_stability_test PROPERTIES LABELS "long_real;soak")
+    set_tests_properties(dnxr_vestibular_exposure_budget_long_test PROPERTIES LABELS "long_real;soak;safety")
+    set_tests_properties(dnxr_full_dive_intervention_window_long_test PROPERTIES LABELS "long_real;soak;full_dive;safety")
+    set_tests_properties(dnxr_watchdog_stale_subsystem_long_test PROPERTIES LABELS "long_real;soak;safety")
+    if(NOT DNXR_ENABLE_LONG_REAL_TESTS)
+        set_tests_properties(${DNXR_LONG_REAL_TEST_TARGETS} PROPERTIES DISABLED TRUE)
+    endif()
 endif()

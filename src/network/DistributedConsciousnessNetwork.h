@@ -160,5 +160,9 @@ private:
 }
 
 namespace neuroxr {
-using namespace ::dnxr;
+using ConsciousNodeType = ::dnxr::ConsciousNodeType;
+using ConsciousnessPacket = ::dnxr::ConsciousnessPacket;
+using ConsciousnessNode = ::dnxr::ConsciousnessNode;
+using DistributedConsciousnessState = ::dnxr::DistributedConsciousnessState;
+using DistributedConsciousnessNetwork = ::dnxr::DistributedConsciousnessNetwork;
 }

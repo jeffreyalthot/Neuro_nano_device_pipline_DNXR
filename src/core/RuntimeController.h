@@ -17,6 +17,7 @@
 #include "../safety/NeuralIdentityVault.h"
 #include "../security/RuntimeSecret.h"
 #include "../runtime/FullDiveSynchronizationEngine.h"
+#include "../runtime/RuntimePipelineFrame.h"
 
 namespace dnxr {
 
@@ -61,6 +62,7 @@ private:
     bool shouldApplyRendererQoS(const RuntimeMetricsSnapshot& snapshot) const;
     void publishRuntimeMetrics(const RuntimeMetricsSnapshot& snapshot);
     void publishRuntimeEvent(const std::string& payload);
+    double computeCycleDeltaSeconds(std::chrono::steady_clock::time_point cycleStart);
 
     // Initialisation centralisée des modules
     void initializeModules();
@@ -80,6 +82,7 @@ private:
     std::unique_ptr<class SessionSafetyJournal> safetyJournal_;
     NeuralIdentityVault identityVault_;
     std::atomic<uint64_t> cycleCounter_;
+    std::chrono::steady_clock::time_point lastCycleStart_{};
     std::string lastState_;
 
     RuntimeSecret neuralTransportSecret_;

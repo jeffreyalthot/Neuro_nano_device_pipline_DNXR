@@ -138,5 +138,8 @@ private:
 }
 
 namespace neuroxr {
-using namespace ::dnxr;
+using MemoryLayerType = ::dnxr::MemoryLayerType;
+using ReconstructedMemoryFragment = ::dnxr::ReconstructedMemoryFragment;
+using MemoryReconstructionState = ::dnxr::MemoryReconstructionState;
+using RecursiveMemoryReconstructionEngine = ::dnxr::RecursiveMemoryReconstructionEngine;
 }

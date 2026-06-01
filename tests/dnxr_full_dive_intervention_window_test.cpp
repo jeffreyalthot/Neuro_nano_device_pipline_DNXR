@@ -2,6 +2,7 @@
 #include "../src/runtime/FullDiveRuntimeInput.h"
 
 #include <cassert>
+#include <chrono>
 
 namespace {
 
@@ -46,19 +47,19 @@ int main() {
     auto input = desynchronizedInput();
 
     engine.updateFromRuntime(input);
-    const auto first = bridge.evaluate(engine);
+    const auto first = bridge.evaluateAndRemember(engine);
     assert(first.safetyInterventionRequired());
     assert(first.memory.reduceIntensityCount + first.memory.decompressionCount +
            first.memory.realityAnchorCount + first.memory.emergencyStopCount >= 1U);
 
     engine.updateFromRuntime(input);
-    const auto second = bridge.evaluate(engine);
+    const auto second = bridge.evaluateAndRemember(engine);
     assert(second.safetyInterventionRequired());
     assert(second.memory.reduceIntensityCount + second.memory.decompressionCount +
            second.memory.realityAnchorCount + second.memory.emergencyStopCount >= 2U);
 
     engine.updateFromRuntime(input);
-    const auto third = bridge.evaluate(engine);
+    const auto third = bridge.evaluateAndRemember(engine);
     assert(third.safetyInterventionRequired());
 
     input.sensorySync.synchronized = false;
@@ -69,7 +70,7 @@ int main() {
     dnxr::FullDiveRuntimeSnapshot fourth;
     for (int i = 0; i < 4; ++i) {
         engine.updateFromRuntime(input);
-        fourth = bridge.evaluate(engine);
+        fourth = bridge.evaluateAndRemember(engine);
     }
     assert(fourth.intervention == dnxr::FullDiveInterventionLevel::Lockout);
     assert(fourth.memory.lockoutCount >= 1U);
@@ -79,6 +80,21 @@ int main() {
     base.intensityScale = 1.0f;
     base.riskScore = 0.2f;
     base.reason = "base";
+    dnxr::FullDiveSafetyBridge deterministicBridge(memory);
+    dnxr::FullDiveRuntimeSnapshot instant;
+    instant.intervention = dnxr::FullDiveInterventionLevel::RealityAnchor;
+    instant.severity = 0.80f;
+    instant.reason = "deterministic_anchor";
+    instant.traceTag = "full_dive:test_anchor";
+    instant.state.vestibularStability = 0.90f;
+    const auto t0 = std::chrono::steady_clock::time_point{} + std::chrono::seconds(1);
+    const auto d1 = deterministicBridge.observeAndEscalate(instant, t0);
+    const auto d2 = deterministicBridge.observeAndEscalate(instant, t0 + std::chrono::seconds(20));
+    const auto d3 = deterministicBridge.observeAndEscalate(instant, t0 + std::chrono::seconds(40));
+    assert(d1.intervention == dnxr::FullDiveInterventionLevel::RealityAnchor);
+    assert(d2.intervention == dnxr::FullDiveInterventionLevel::RealityAnchor);
+    assert(d3.intervention == dnxr::FullDiveInterventionLevel::EmergencyStop);
+
     const auto fused = bridge.mergeIntoDecision(fourth, base);
     assert(!fused.allowRender);
     assert(fused.requiresEmergencyStop);

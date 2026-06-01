@@ -15,7 +15,11 @@ public:
 
     FullDiveRuntimeSnapshot evaluateInstant(const FullDiveSynchronizationEngine& engine) const;
     FullDiveRuntimeSnapshot observeAndEscalate(const FullDiveRuntimeSnapshot& instantSnapshot);
+    FullDiveRuntimeSnapshot observeAndEscalate(
+        const FullDiveRuntimeSnapshot& instantSnapshot,
+        std::chrono::steady_clock::time_point now);
     FullDiveRuntimeSnapshot evaluateAndRemember(const FullDiveSynchronizationEngine& engine);
+    [[deprecated("Use evaluateInstant() or evaluateAndRemember() explicitly")]]
     FullDiveRuntimeSnapshot evaluate(const FullDiveSynchronizationEngine& engine);
     void apply(const FullDiveRuntimeSnapshot& snapshot, SafetyStateMachine& stateMachine) const;
     SafetyDecision mergeIntoDecision(

@@ -54,5 +54,6 @@ private:
 }
 
 namespace neuroxr {
-using namespace ::dnxr;
+using SyntheticPerceptionFrame = ::dnxr::SyntheticPerceptionFrame;
+using NeuralPerceptionSynthesizer = ::dnxr::NeuralPerceptionSynthesizer;
 }
