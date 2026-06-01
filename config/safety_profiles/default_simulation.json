@@ -1,0 +1,14 @@
+{
+  "config_version": 1,
+  "profile": "default_simulation",
+  "max_induced_vector_norm": 0.12,
+  "max_visual_intensity": 1.0,
+  "max_audio_intensity": 0.85,
+  "max_haptic_intensity": 0.70,
+  "max_vestibular_intensity": 0.35,
+  "max_session_minutes": 30,
+  "max_cognitive_load": 0.75,
+  "max_drift_score": 0.85,
+  "physiology_enforcement": true,
+  "emergency_stop_enabled": true
+}

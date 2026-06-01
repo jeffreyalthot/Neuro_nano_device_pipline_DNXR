@@ -76,6 +76,9 @@ if(DNXR_BUILD_TESTS)
         dnxr_signal_dropout_test
         dnxr_cognition_unit_test
         dnxr_safety_unit_test
+        dnxr_safety_state_machine_test
+        dnxr_watchdog_failure_test
+        dnxr_safety_profile_loader_test
         dnxr_safety_pipeline_test
         dnxr_reality_anchor_system_test
         dnxr_multisensory_clock_test
