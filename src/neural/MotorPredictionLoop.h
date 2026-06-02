@@ -76,9 +76,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using MotorState = ::dnxr::MotorState;
-using MotorPredictionFrame = ::dnxr::MotorPredictionFrame;
-using MotorPredictionLoop = ::dnxr::MotorPredictionLoop;
-}

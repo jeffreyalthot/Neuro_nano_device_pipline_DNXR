@@ -117,8 +117,3 @@ private:
 };
 
 } // namespace dnxr
-
-namespace neuroxr {
-using FullDiveState = ::dnxr::FullDiveState;
-using FullDiveOrchestrator = ::dnxr::FullDiveOrchestrator;
-}

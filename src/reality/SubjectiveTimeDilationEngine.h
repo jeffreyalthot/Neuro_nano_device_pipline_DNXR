@@ -128,10 +128,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using TemporalLayerType = ::dnxr::TemporalLayerType;
-using TemporalFrame = ::dnxr::TemporalFrame;
-using TemporalRealityState = ::dnxr::TemporalRealityState;
-using SubjectiveTimeDilationEngine = ::dnxr::SubjectiveTimeDilationEngine;
-}

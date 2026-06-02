@@ -103,10 +103,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using SocialSignal = ::dnxr::SocialSignal;
-using SocialEntity = ::dnxr::SocialEntity;
-using SocialState = ::dnxr::SocialState;
-using SocialPresenceEngine = ::dnxr::SocialPresenceEngine;
-}

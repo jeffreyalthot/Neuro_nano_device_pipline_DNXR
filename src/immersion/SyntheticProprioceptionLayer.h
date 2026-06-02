@@ -61,9 +61,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using LimbState = ::dnxr::LimbState;
-using ProprioceptiveFrame = ::dnxr::ProprioceptiveFrame;
-using SyntheticProprioceptionLayer = ::dnxr::SyntheticProprioceptionLayer;
-}

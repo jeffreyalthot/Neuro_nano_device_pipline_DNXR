@@ -180,9 +180,3 @@ private:
 };
 
 } // namespace dnxr
-
-namespace neuroxr {
-using FullDiveRuntimeState = ::dnxr::FullDiveRuntimeState;
-using FullDiveUpdateMode = ::dnxr::FullDiveUpdateMode;
-using FullDiveSynchronizationEngine = ::dnxr::FullDiveSynchronizationEngine;
-}

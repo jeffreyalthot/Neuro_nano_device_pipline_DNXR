@@ -136,10 +136,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using MemoryLayerType = ::dnxr::MemoryLayerType;
-using ReconstructedMemoryFragment = ::dnxr::ReconstructedMemoryFragment;
-using MemoryReconstructionState = ::dnxr::MemoryReconstructionState;
-using RecursiveMemoryReconstructionEngine = ::dnxr::RecursiveMemoryReconstructionEngine;
-}

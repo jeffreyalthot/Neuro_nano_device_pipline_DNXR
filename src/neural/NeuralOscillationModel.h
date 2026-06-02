@@ -82,10 +82,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using OscillationBand = ::dnxr::OscillationBand;
-using OscillationSignal = ::dnxr::OscillationSignal;
-using NeuralOscillationState = ::dnxr::NeuralOscillationState;
-using NeuralOscillationModel = ::dnxr::NeuralOscillationModel;
-}

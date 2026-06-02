@@ -6,6 +6,7 @@
 #include "../src/physics/NeuralQuantumEntanglementEngine.h"
 #include "../src/emotion/AffectiveResonanceMatrix.h"
 #include "../src/subconscious/SubconsciousSimulationEngine.h"
+#include "../src/compat/NeuroXRCompat.h"
 
 #include <cassert>
 #include <cmath>

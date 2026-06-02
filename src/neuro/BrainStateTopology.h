@@ -93,10 +93,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using CorticalRegionType = ::dnxr::CorticalRegionType;
-using NeuralNode = ::dnxr::NeuralNode;
-using CorticalRegion = ::dnxr::CorticalRegion;
-using BrainStateTopology = ::dnxr::BrainStateTopology;
-}

@@ -68,9 +68,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using SubjectiveTimeFrame = ::dnxr::SubjectiveTimeFrame;
-using SubjectiveTemporalState = ::dnxr::SubjectiveTemporalState;
-using SubjectiveTimeEngine = ::dnxr::SubjectiveTimeEngine;
-}

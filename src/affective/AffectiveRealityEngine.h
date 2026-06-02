@@ -86,10 +86,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using EmotionalStateType = ::dnxr::EmotionalStateType;
-using EmotionalVector = ::dnxr::EmotionalVector;
-using AffectiveFrame = ::dnxr::AffectiveFrame;
-using AffectiveRealityEngine = ::dnxr::AffectiveRealityEngine;
-}

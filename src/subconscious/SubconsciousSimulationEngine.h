@@ -117,10 +117,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using SubconsciousPatternType = ::dnxr::SubconsciousPatternType;
-using SubconsciousPattern = ::dnxr::SubconsciousPattern;
-using SubconsciousState = ::dnxr::SubconsciousState;
-using SubconsciousSimulationEngine = ::dnxr::SubconsciousSimulationEngine;
-}
