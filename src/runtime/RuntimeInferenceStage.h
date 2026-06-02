@@ -22,6 +22,8 @@ public:
 
     static const char* name();
     static RuntimeStageStatus validate(bool healthy, const std::string& failureReason);
+    static bool isValidCognitiveState(const CognitiveState& cognitive);
+    static bool isValidDiagnostics(const NeuroPipelineDiagnostics& diagnostics);
     static RuntimePipelineFrame execute(RuntimePipelineFrame frame, const Input& input);
 };
 
