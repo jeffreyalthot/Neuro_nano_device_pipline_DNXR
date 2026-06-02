@@ -18,6 +18,16 @@
 #include "../security/RuntimeSecret.h"
 #include "../runtime/FullDiveSynchronizationEngine.h"
 #include "../runtime/RuntimePipelineFrame.h"
+#include "../runtime/RuntimeCycleFinalizer.h"
+#include "../runtime/RuntimeSafetyStage.h"
+#include "../runtime/RuntimeFullDiveStage.h"
+#include "../runtime/RuntimeRenderStage.h"
+#include "../runtime/RuntimeStimulusStage.h"
+#include "../runtime/RuntimeAcquisitionStage.h"
+#include "../runtime/RuntimeSignalStage.h"
+#include "../runtime/RuntimeInferenceStage.h"
+#include "../runtime/RuntimeCalibrationStage.h"
+#include "../runtime/RuntimeImmersionFrameStage.h"
 
 namespace dnxr {
 
@@ -63,6 +73,19 @@ private:
     void publishRuntimeMetrics(const RuntimeMetricsSnapshot& snapshot);
     void publishRuntimeEvent(const std::string& payload);
     double computeCycleDeltaSeconds(std::chrono::steady_clock::time_point cycleStart);
+    RuntimeCycleFinalizer::Input makeCycleFinalizerInput();
+    void publishPipelineState(const RuntimePipelineFrame& pipeline);
+    RuntimeAcquisitionStage::Input makeAcquisitionStageInput();
+    RuntimeSignalStage::Input makeSignalStageInput();
+    RuntimeInferenceStage::Input makeInferenceStageInput();
+    RuntimeCalibrationStage::Input makeCalibrationStageInput();
+    RuntimeImmersionFrameStage::Input makeImmersionFrameStageInput(double timestamp);
+    RuntimeSafetyStage::Input makeSafetyStageInput(double timestamp);
+    RuntimeFullDiveStage::Input makeFullDiveStageInput(const RuntimeMetricsSnapshot& snapshot);
+    RuntimeRenderStage::Input makeRenderStageInput(
+        const std::chrono::steady_clock::time_point& renderStart,
+        SchedulerTickReport& tickReport);
+    RuntimeStimulusStage::Input makeStimulusStageInput();
 
     // Initialisation centralisée des modules
     void initializeModules();

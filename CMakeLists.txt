@@ -135,11 +135,17 @@ if(DNXR_BUILD_TESTS)
         dnxr_neural_intent_protocol_test
         dnxr_runtime_acquisition_stage_test
         dnxr_runtime_inference_stage_test
+        dnxr_runtime_calibration_stage_test
+        dnxr_runtime_immersion_frame_stage_test
+        dnxr_runtime_cycle_finalizer_test
         dnxr_runtime_safety_stage_test
         dnxr_runtime_full_dive_stage_test
         dnxr_runtime_render_stage_test
         dnxr_runtime_stimulus_stage_test
         dnxr_runtime_memory_growth_test
+        dnxr_runtime_pipeline_100k_cycles_test
+        dnxr_runtime_pipeline_memory_growth_test
+        dnxr_runtime_stage_jitter_simulation_test
         dnxr_runtime_1h_stability_test
         dnxr_vestibular_exposure_budget_long_test
         dnxr_full_dive_intervention_window_long_test
@@ -163,12 +169,18 @@ if(DNXR_BUILD_TESTS)
     set_tests_properties(dnxr_runtime_10k_cycles_test PROPERTIES LABELS "long_fast")
     set_tests_properties(dnxr_runtime_acquisition_stage_test PROPERTIES LABELS "unit;runtime;stage")
     set_tests_properties(dnxr_runtime_inference_stage_test PROPERTIES LABELS "unit;runtime;stage")
+    set_tests_properties(dnxr_runtime_calibration_stage_test PROPERTIES LABELS "unit;runtime;stage")
+    set_tests_properties(dnxr_runtime_immersion_frame_stage_test PROPERTIES LABELS "unit;runtime;stage")
+    set_tests_properties(dnxr_runtime_cycle_finalizer_test PROPERTIES LABELS "unit;runtime")
     set_tests_properties(dnxr_runtime_safety_stage_test PROPERTIES LABELS "unit;runtime;stage;safety")
     set_tests_properties(dnxr_runtime_full_dive_stage_test PROPERTIES LABELS "unit;runtime;stage;full_dive")
     set_tests_properties(dnxr_runtime_render_stage_test PROPERTIES LABELS "unit;runtime;stage")
     set_tests_properties(dnxr_runtime_stimulus_stage_test PROPERTIES LABELS "unit;runtime;stage;safety")
     set(DNXR_LONG_SIMULATED_TEST_TARGETS
         dnxr_runtime_memory_growth_test
+        dnxr_runtime_pipeline_100k_cycles_test
+        dnxr_runtime_pipeline_memory_growth_test
+        dnxr_runtime_stage_jitter_simulation_test
         dnxr_runtime_1h_stability_test
         dnxr_watchdog_stale_subsystem_long_test
     )
@@ -177,6 +189,9 @@ if(DNXR_BUILD_TESTS)
         dnxr_full_dive_intervention_window_long_test
     )
     set_tests_properties(dnxr_runtime_memory_growth_test PROPERTIES LABELS "long_simulated;soak;memory")
+    set_tests_properties(dnxr_runtime_pipeline_100k_cycles_test PROPERTIES LABELS "long_simulated;soak;runtime")
+    set_tests_properties(dnxr_runtime_pipeline_memory_growth_test PROPERTIES LABELS "long_simulated;soak;memory;runtime")
+    set_tests_properties(dnxr_runtime_stage_jitter_simulation_test PROPERTIES LABELS "long_simulated;runtime;stage")
     set_tests_properties(dnxr_runtime_1h_stability_test PROPERTIES LABELS "long_simulated;soak")
     set_tests_properties(dnxr_vestibular_exposure_budget_long_test PROPERTIES LABELS "long_real;soak;safety")
     set_tests_properties(dnxr_full_dive_intervention_window_long_test PROPERTIES LABELS "long_real;soak;full_dive;safety")

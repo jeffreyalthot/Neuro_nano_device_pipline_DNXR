@@ -5,6 +5,7 @@
 #include "../calibration/CalibrationDriftMonitor.h"
 #include "../hardware/NeuralChipHAL.h"
 #include "../immersion/MultisensoryClock.h"
+#include "../immersion/SensoryRenderer.h"
 #include "../neurotech/DeepImmersionPlatform.h"
 #include "../safety/RealityAnchorSystem.h"
 #include "../safety/SafetyGovernor.h"
@@ -23,6 +24,7 @@ struct RuntimePipelineFrame {
     std::vector<float> rawNeuralSignals;
     std::vector<float> cleanSignals;
     std::vector<float> features;
+    std::vector<float> calibratedFeatures;
     std::vector<float> sensoryFrame;
     std::vector<float> telemetry;
     std::vector<float> normalizedTelemetryRisk;
@@ -35,6 +37,8 @@ struct RuntimePipelineFrame {
     NeuroPipelineDiagnostics diagnostics;
     CalibrationDriftAssessment calibrationDrift;
     MultisensoryAlignmentReport sensorySync;
+    XRFullBodyCommand bodyCommand;
+    NeuralSensoryFrame neuralSensoryFrame;
     SafetyDecision safetyDecision;
     SafetyDecision fusedSafetyDecision;
     RealityAnchorPlan realityAnchorPlan;
@@ -44,6 +48,8 @@ struct RuntimePipelineFrame {
     RuntimeStageStatus acquisitionStatus = RuntimeStageStatus::ok("acquisition");
     RuntimeStageStatus signalStatus = RuntimeStageStatus::ok("signal");
     RuntimeStageStatus inferenceStatus = RuntimeStageStatus::ok("inference");
+    RuntimeStageStatus calibrationStatus = RuntimeStageStatus::ok("calibration");
+    RuntimeStageStatus immersionFrameStatus = RuntimeStageStatus::ok("immersion_frame");
     RuntimeStageStatus safetyStatus = RuntimeStageStatus::ok("safety");
     RuntimeStageStatus fullDiveStatus = RuntimeStageStatus::ok("fulldive");
     RuntimeStageStatus renderStatus = RuntimeStageStatus::ok("render");
