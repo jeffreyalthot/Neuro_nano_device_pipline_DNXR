@@ -9,6 +9,7 @@ option(DNXR_ENABLE_TSAN "Enable ThreadSanitizer" OFF)
 option(DNXR_SIMULATION_ONLY "Force simulation-only runtime guardrails" ON)
 option(DNXR_ENABLE_LONG_SIMULATED_TESTS "Enable long simulated tests" ON)
 option(DNXR_ENABLE_LONG_REAL_TESTS "Enable long real soak tests" OFF)
+option(DNXR_ENABLE_CONTROLLER_10K_TEST "Enable 10k deterministic controller pipeline test" OFF)
 
 if(DNXR_ENABLE_TSAN AND DNXR_ENABLE_ASAN)
     message(FATAL_ERROR "DNXR_ENABLE_TSAN and DNXR_ENABLE_ASAN cannot be enabled together")
@@ -35,6 +36,7 @@ function(dnxr_apply_sanitizers target)
         else()
             target_compile_options(${target} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
             target_link_options(${target} PRIVATE -fsanitize=address)
+            target_compile_definitions(${target} PRIVATE DNXR_ASAN_ENABLED=1)
         endif()
     endif()
 
@@ -49,6 +51,7 @@ function(dnxr_apply_sanitizers target)
         if(NOT MSVC)
             target_compile_options(${target} PRIVATE -fsanitize=thread -fno-omit-frame-pointer)
             target_link_options(${target} PRIVATE -fsanitize=thread)
+            target_compile_definitions(${target} PRIVATE DNXR_TSAN_ENABLED=1)
         endif()
     endif()
 endfunction()
@@ -139,6 +142,8 @@ if(DNXR_BUILD_TESTS)
         dnxr_runtime_immersion_frame_stage_test
         dnxr_runtime_cycle_finalizer_test
         dnxr_runtime_pipeline_runner_test
+        dnxr_runtime_pipeline_services_only_test
+        dnxr_runtime_pipeline_legacy_input_test
         dnxr_runtime_controller_pipeline_smoke_test
         dnxr_runtime_controller_pipeline_10k_cycles_test
         dnxr_runtime_controller_pipeline_memory_growth_test
@@ -179,8 +184,13 @@ if(DNXR_BUILD_TESTS)
     set_tests_properties(dnxr_runtime_immersion_frame_stage_test PROPERTIES LABELS "unit;runtime;stage")
     set_tests_properties(dnxr_runtime_cycle_finalizer_test PROPERTIES LABELS "unit;runtime")
     set_tests_properties(dnxr_runtime_pipeline_runner_test PROPERTIES LABELS "unit;runtime;stage")
+    set_tests_properties(dnxr_runtime_pipeline_services_only_test PROPERTIES LABELS "unit;runtime;services")
+    set_tests_properties(dnxr_runtime_pipeline_legacy_input_test PROPERTIES LABELS "unit;runtime;legacy")
     set_tests_properties(dnxr_runtime_controller_pipeline_smoke_test PROPERTIES LABELS "unit;runtime;controller")
-    set_tests_properties(dnxr_runtime_controller_pipeline_10k_cycles_test PROPERTIES LABELS "long_simulated;runtime;controller" DISABLED TRUE)
+    set_tests_properties(dnxr_runtime_controller_pipeline_10k_cycles_test PROPERTIES LABELS "long_simulated;runtime;controller")
+    if(NOT DNXR_ENABLE_CONTROLLER_10K_TEST)
+        set_tests_properties(dnxr_runtime_controller_pipeline_10k_cycles_test PROPERTIES DISABLED TRUE)
+    endif()
     set_tests_properties(dnxr_runtime_controller_pipeline_memory_growth_test PROPERTIES LABELS "long_simulated;runtime;controller;memory")
     set_tests_properties(dnxr_runtime_controller_jitter_budget_test PROPERTIES LABELS "long_fast;runtime;controller")
     set_tests_properties(dnxr_runtime_safety_stage_test PROPERTIES LABELS "unit;runtime;stage;safety")

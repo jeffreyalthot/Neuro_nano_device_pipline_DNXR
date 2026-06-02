@@ -36,7 +36,12 @@ int main() {
 
     assert(controller.getCycleCount() == kWarmup + kMeasuredCycles);
     assert(afterKb >= beforeKb);
-    assert((afterKb - beforeKb) < 8192L);
+#if defined(DNXR_ASAN_ENABLED) || defined(DNXR_TSAN_ENABLED)
+    constexpr long kResidentSetGrowthLimitKb = 65536L;
+#else
+    constexpr long kResidentSetGrowthLimitKb = 8192L;
+#endif
+    assert((afterKb - beforeKb) < kResidentSetGrowthLimitKb);
     controller.stop();
     return 0;
 }

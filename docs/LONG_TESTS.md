@@ -28,10 +28,13 @@ ctest --test-dir build --output-on-failure
 
 `dnxr_runtime_controller_pipeline_smoke_test` is the default short controller loop and always runs 64 deterministic cycles.
 
-`dnxr_runtime_controller_pipeline_10k_cycles_test` is now the unambiguous 10,000-cycle controller validation. It is labeled `long_simulated` and disabled in default CTest registration so normal validation remains quick; run the executable directly when scheduling the 10k lane.
+`dnxr_runtime_controller_pipeline_10k_cycles_test` is now the unambiguous 10,000-cycle controller validation. It is labeled `long_simulated` and disabled in default CTest registration so normal validation remains quick. Enable `DNXR_ENABLE_CONTROLLER_10K_TEST` when the 10k lane should be scheduled through CTest, or run the executable directly for an ad hoc check.
 
 ```bash
 ctest --test-dir build -R dnxr_runtime_controller_pipeline_smoke_test --output-on-failure
+cmake -S . -B build_10k -DDNXR_ENABLE_CONTROLLER_10K_TEST=ON
+cmake --build build_10k -j2
+ctest --test-dir build_10k -R dnxr_runtime_controller_pipeline_10k_cycles_test --output-on-failure
 ./build/dnxr_runtime_controller_pipeline_10k_cycles_test
 ```
 

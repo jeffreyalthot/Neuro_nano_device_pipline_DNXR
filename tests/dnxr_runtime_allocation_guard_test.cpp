@@ -3,7 +3,7 @@
 #include <cassert>
 
 int main() {
-    dnxr::RuntimeAllocationGuard guard;
+    dnxr::RuntimeAllocationGuard guard(dnxr::RuntimeAllocationGuardConfig{2U, 1.10f, 16U});
     dnxr::RuntimePipelineFrame frame;
     frame.rawNeuralSignals.reserve(8U);
     frame.cleanSignals.reserve(8U);
@@ -14,20 +14,32 @@ int main() {
     frame.stimulusCommand.boundedChannels.reserve(8U);
 
     const auto baseline = guard.observe(frame);
+    assert(!baseline.growthObserved);
+    assert(!baseline.growthSuspicious);
     assert(!baseline.allocationGrowthSuspicious);
     assert(baseline.suspiciousFieldCount == 0U);
 
-    const auto stable = guard.observe(frame);
-    assert(!stable.allocationGrowthSuspicious);
+    frame.sensoryFrame.reserve(12U);
+    const auto warmupGrowth = guard.observe(frame);
+    assert(warmupGrowth.growthObserved);
+    assert(!warmupGrowth.growthSuspicious);
 
-    frame.sensoryFrame.reserve(16U);
-    frame.stimulusCommand.boundedChannels.reserve(32U);
+    const auto stable = guard.observe(frame);
+    assert(!stable.growthObserved);
+    assert(!stable.growthSuspicious);
+
+    frame.sensoryFrame.reserve(32U);
+    frame.stimulusCommand.boundedChannels.reserve(64U);
     const auto growth = guard.observe(frame);
+    assert(growth.growthObserved);
+    assert(growth.growthSuspicious);
     assert(growth.allocationGrowthSuspicious);
+    assert(growth.growthCritical);
     assert(growth.suspiciousFieldCount == 2U);
 
     guard.reset();
     const auto afterReset = guard.observe(frame);
-    assert(!afterReset.allocationGrowthSuspicious);
+    assert(!afterReset.growthObserved);
+    assert(!afterReset.growthSuspicious);
     return 0;
 }

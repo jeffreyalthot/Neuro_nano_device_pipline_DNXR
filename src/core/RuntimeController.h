@@ -77,6 +77,7 @@ private:
     void publishRuntimeEvent(const std::string& payload);
     double computeCycleDeltaSeconds(std::chrono::steady_clock::time_point cycleStart);
     RuntimeCycleFinalizer::Input makeCycleFinalizerInput();
+    RuntimeCycleFinalizer::Context makeCycleFinalizerContext(const RuntimeMetricsSnapshot& previousMetricsSnapshot);
     void publishPipelineState(const RuntimePipelineFrame& pipeline);
     RuntimeAcquisitionStage::Input makeAcquisitionStageInput();
     RuntimeSignalStage::Input makeSignalStageInput();

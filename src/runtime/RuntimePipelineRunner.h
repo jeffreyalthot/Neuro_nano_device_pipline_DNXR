@@ -37,26 +37,47 @@ public:
         RuntimeCycleFinalizer::Input finalizer;
     };
 
-    struct RunInput {
+    struct LegacyRunInput {
         RuntimeStageContext context;
         StageInputs stages;
         SchedulerTickReport& tickReport;
         RuntimeCallback<RuntimeRenderStage::Input(SchedulerTickReport&)> makeRenderStageInput;
         RuntimePipelineSinks sinks;
-        RuntimeStageServices* services = nullptr;
     };
 
-    RuntimePipelineFrame run(const RunInput& input) const;
+    using RunInput = LegacyRunInput;
+
+    struct RuntimePipelineRunInput {
+        RuntimeStageContext context;
+        SchedulerTickReport& tickReport;
+        RuntimeStageServices& services;
+        RuntimePipelineSinks& sinks;
+        RuntimeMetricsSnapshot runtimeMetricsSnapshot;
+        RuntimeCycleFinalizer::Context finalizer;
+    };
+
+    RuntimePipelineFrame run(const RuntimePipelineRunInput& input) const;
+    RuntimePipelineFrame runLegacy(const LegacyRunInput& input) const;
+    RuntimePipelineFrame run(const LegacyRunInput& input) const;
 
 private:
     static std::vector<float> normalizedTelemetryRiskVector(const std::vector<float>& telemetry);
-    static void finishCycle(RuntimePipelineFrame& frame,
-                            SchedulerTickReport& tickReport,
-                            const RuntimeCycleFinalizer::Input& input,
-                            bool safeDecision,
-                            bool emergencyActive,
-                            const std::string& reason,
-                            bool emitBudgetWarning = false);
+    static void finishLegacyCycle(RuntimePipelineFrame& frame,
+                                  SchedulerTickReport& tickReport,
+                                  const RuntimeCycleFinalizer::Input& input,
+                                  bool safeDecision,
+                                  bool emergencyActive,
+                                  const std::string& reason,
+                                  bool emitBudgetWarning = false);
+    static void finishModernCycle(RuntimePipelineFrame& frame,
+                                  SchedulerTickReport& tickReport,
+                                  RuntimeStageServices& services,
+                                  RuntimePipelineSinks& sinks,
+                                  const RuntimeCycleFinalizer::Context& finalizer,
+                                  bool safeDecision,
+                                  bool emergencyActive,
+                                  const std::string& reason,
+                                  bool emitBudgetWarning = false);
 };
 
 } // namespace dnxr

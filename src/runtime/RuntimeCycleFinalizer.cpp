@@ -1,26 +1,35 @@
 #include "RuntimeCycleFinalizer.h"
 
 namespace dnxr {
+namespace {
 
-RuntimeMetricsSnapshot RuntimeCycleFinalizer::finish(
+RuntimeMetricsSnapshot finishWithCallbacks(
     SchedulerTickReport& tickReport,
+    NeuroRealtimeScheduler& scheduler,
+    RuntimeMetrics& metrics,
+    RuntimeTraceRecorder& traceRecorder,
+    std::mutex& metricsMutex,
+    std::mutex& traceMutex,
+    std::atomic<std::uint64_t>& cycleCounter,
+    std::atomic<std::uint64_t>& droppedFrames,
+    const RuntimeCallback<void(const RuntimeMetricsSnapshot&)>& publishRuntimeMetrics,
+    const RuntimeCallback<void(const std::string&)>& logWarn,
     bool safeDecision,
     bool emergencyActive,
     const std::string& reason,
-    const Input& input,
     bool emitBudgetWarning) {
-    input.scheduler.endTick(tickReport);
+    scheduler.endTick(tickReport);
 
     RuntimeMetricsSnapshot snapshot;
     {
-        std::lock_guard<std::mutex> lock(input.metricsMutex);
-        input.metrics.recordCycleMeasurement(tickReport.totalMs, safeDecision, emergencyActive, reason);
-        snapshot = input.metrics.snapshot();
+        std::lock_guard<std::mutex> lock(metricsMutex);
+        metrics.recordCycleMeasurement(tickReport.totalMs, safeDecision, emergencyActive, reason);
+        snapshot = metrics.snapshot();
     }
     {
-        std::lock_guard<std::mutex> traceLock(input.traceMutex);
-        input.traceRecorder.record(
-            input.cycleCounter.load(),
+        std::lock_guard<std::mutex> traceLock(traceMutex);
+        traceRecorder.record(
+            cycleCounter.load(),
             "RuntimeController",
             safeDecision ? "cycle_complete" : "cycle_degraded",
             tickReport.totalMs,
@@ -29,24 +38,76 @@ RuntimeMetricsSnapshot RuntimeCycleFinalizer::finish(
             reason);
     }
 
-    if (input.publishRuntimeMetrics) {
-        input.publishRuntimeMetrics(snapshot);
+    if (publishRuntimeMetrics) {
+        publishRuntimeMetrics(snapshot);
     }
 
     if (emitBudgetWarning && !tickReport.withinBudget) {
-        ++input.droppedFrames;
-        if (input.logWarn) {
-            input.logWarn("⚠️ Runtime frame budget exceeded total_ms="
-                          + std::to_string(tickReport.totalMs)
-                          + " jitter_ms=" + std::to_string(tickReport.jitterMs)
-                          + " over_budget_tasks=" + std::to_string(tickReport.overBudgetTaskCount)
-                          + " p99_ms=" + std::to_string(snapshot.p99LatencyMs)
-                          + " latency_health=" + runtimeLatencyHealthToString(snapshot.latencyHealth));
+        ++droppedFrames;
+        if (logWarn) {
+            logWarn("⚠️ Runtime frame budget exceeded total_ms="
+                    + std::to_string(tickReport.totalMs)
+                    + " jitter_ms=" + std::to_string(tickReport.jitterMs)
+                    + " over_budget_tasks=" + std::to_string(tickReport.overBudgetTaskCount)
+                    + " p99_ms=" + std::to_string(snapshot.p99LatencyMs)
+                    + " latency_health=" + runtimeLatencyHealthToString(snapshot.latencyHealth));
         }
     }
 
-    ++input.cycleCounter;
+    ++cycleCounter;
     return snapshot;
+}
+
+} // namespace
+
+RuntimeMetricsSnapshot RuntimeCycleFinalizer::finish(
+    SchedulerTickReport& tickReport,
+    bool safeDecision,
+    bool emergencyActive,
+    const std::string& reason,
+    const Input& input,
+    bool emitBudgetWarning) {
+    return finishWithCallbacks(
+        tickReport,
+        input.scheduler,
+        input.metrics,
+        input.traceRecorder,
+        input.metricsMutex,
+        input.traceMutex,
+        input.cycleCounter,
+        input.droppedFrames,
+        input.publishRuntimeMetrics,
+        input.logWarn,
+        safeDecision,
+        emergencyActive,
+        reason,
+        emitBudgetWarning);
+}
+
+RuntimeMetricsSnapshot RuntimeCycleFinalizer::finish(
+    SchedulerTickReport& tickReport,
+    const RuntimePipelineFrame& frame,
+    RuntimeStageServices& services,
+    RuntimePipelineSinks& sinks,
+    const Context& context,
+    const Options& options) {
+    (void)frame;
+    (void)services;
+    return finishWithCallbacks(
+        tickReport,
+        context.scheduler,
+        context.metrics,
+        context.traceRecorder,
+        context.metricsMutex,
+        context.traceMutex,
+        context.cycleCounter,
+        context.droppedFrames,
+        sinks.publishRuntimeMetrics,
+        sinks.logWarn,
+        options.safeDecision,
+        options.emergencyActive,
+        options.reason,
+        options.emitBudgetWarning);
 }
 
 } // namespace dnxr
