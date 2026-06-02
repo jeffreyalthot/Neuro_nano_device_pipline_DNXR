@@ -8,7 +8,7 @@ This project separates always-on checks from longer simulated and real-environme
 - `runtime`: runtime-controller and runtime-stage checks.
 - `stage`: isolated runtime stage tests.
 - `long_fast`: larger deterministic runs that are still suitable for normal CI.
-- `long_simulated`: simulated soak, stability, watchdog, and memory-growth tests.
+- `long_simulated`: simulated soak, stability, watchdog, 10k controller, and memory-growth tests.
 - `long_real`: tests intended for real or extended validation contexts; disabled by default.
 - `soak`: repeated-cycle or endurance-oriented tests.
 - `memory`: memory-growth or allocation-stability checks.
@@ -22,6 +22,17 @@ This project separates always-on checks from longer simulated and real-environme
 cmake -S . -B build
 cmake --build build -j1
 ctest --test-dir build --output-on-failure
+```
+
+## Controller smoke versus 10k validation
+
+`dnxr_runtime_controller_pipeline_smoke_test` is the default short controller loop and always runs 64 deterministic cycles.
+
+`dnxr_runtime_controller_pipeline_10k_cycles_test` is now the unambiguous 10,000-cycle controller validation. It is labeled `long_simulated` and disabled in default CTest registration so normal validation remains quick; run the executable directly when scheduling the 10k lane.
+
+```bash
+ctest --test-dir build -R dnxr_runtime_controller_pipeline_smoke_test --output-on-failure
+./build/dnxr_runtime_controller_pipeline_10k_cycles_test
 ```
 
 ## Run only long simulated tests

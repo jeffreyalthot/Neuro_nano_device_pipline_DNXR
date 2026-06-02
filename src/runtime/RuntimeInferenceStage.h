@@ -1,9 +1,9 @@
 #pragma once
 
 #include "RuntimePipelineFrame.h"
+#include "RuntimeCallback.h"
 #include "RuntimeStageTypes.h"
 
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -14,12 +14,12 @@ class RuntimeStageServices;
 class RuntimeInferenceStage {
 public:
     struct Input {
-        std::function<std::string(const std::vector<float>&, double)> inferSymbolicState;
-        std::function<BiometricFrame(const std::vector<float>&)> buildBiometricFrame;
-        std::function<CognitiveState(const std::vector<float>&, const BiometricFrame&)> runInferenceTick;
-        std::function<XRAdaptationFrame(const CognitiveState&, const BiometricFrame&)> runAdaptationTick;
-        std::function<NeuroPipelineDiagnostics()> lastDiagnostics;
-        std::function<void()> heartbeatInference;
+        RuntimeCallback<std::string(const std::vector<float>&, double)> inferSymbolicState;
+        RuntimeCallback<BiometricFrame(const std::vector<float>&)> buildBiometricFrame;
+        RuntimeCallback<CognitiveState(const std::vector<float>&, const BiometricFrame&)> runInferenceTick;
+        RuntimeCallback<XRAdaptationFrame(const CognitiveState&, const BiometricFrame&)> runAdaptationTick;
+        RuntimeCallback<NeuroPipelineDiagnostics()> lastDiagnostics;
+        RuntimeCallback<void()> heartbeatInference;
     };
 
     static const char* name();

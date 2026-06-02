@@ -1,12 +1,12 @@
 #pragma once
 
+#include "RuntimeCallback.h"
 #include "../core/NeuroRealtimeScheduler.h"
 #include "../utils/RuntimeMetrics.h"
 #include "../utils/RuntimeTraceRecorder.h"
 
 #include <atomic>
 #include <cstdint>
-#include <functional>
 #include <mutex>
 #include <string>
 
@@ -22,8 +22,8 @@ public:
         std::mutex& traceMutex;
         std::atomic<std::uint64_t>& cycleCounter;
         std::atomic<std::uint64_t>& droppedFrames;
-        std::function<void(const RuntimeMetricsSnapshot&)> publishRuntimeMetrics;
-        std::function<void(const std::string&)> logWarn;
+        RuntimeCallback<void(const RuntimeMetricsSnapshot&)> publishRuntimeMetrics;
+        RuntimeCallback<void(const std::string&)> logWarn;
     };
 
     static RuntimeMetricsSnapshot finish(

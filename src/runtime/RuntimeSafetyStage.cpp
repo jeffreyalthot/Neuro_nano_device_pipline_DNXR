@@ -1,5 +1,12 @@
 #include "RuntimeSafetyStage.h"
 
+#include "RuntimeStageServices.h"
+#include "../safety/CognitiveReversibilitySystem.h"
+#include "../safety/EmergencyShutdown.h"
+#include "../safety/RealityAnchorSystem.h"
+#include "../safety/SafetyGovernor.h"
+#include "../signal/EnergyThermalOptimizer.h"
+
 #include <algorithm>
 
 namespace dnxr {
@@ -168,6 +175,47 @@ RuntimePipelineFrame RuntimeSafetyStage::execute(RuntimePipelineFrame frame, con
 
     frame.safetyStatus = validate(true, "safety_stage_unhealthy");
     return frame;
+}
+
+RuntimePipelineFrame RuntimeSafetyStage::execute(
+    RuntimePipelineFrame frame,
+    RuntimeStageServices& services,
+    const RuntimeStageContext& context) {
+    Input input;
+    input.evaluateSafety = [&services](const SafetyGovernorInput& safetyInput) {
+        return services.safetyGovernor.evaluate(safetyInput);
+    };
+    input.recordSafetyEvent = [&services](const std::string& category, const std::string& message, float riskScore, const SessionAuditMetadata& metadata) {
+        return services.safetyJournal.record(category, message, riskScore, metadata);
+    };
+    input.observeSafetyDecision = [&services](const SafetyDecision& decision) {
+        return services.safetyStateMachine.observeSafetyDecision(decision);
+    };
+    input.evaluateRealityAnchor = [&services](const RealityAnchorContext& anchorContext, const SafetyDecision& decision) {
+        return services.realityAnchor.evaluate(anchorContext, decision);
+    };
+    input.observeRealityAnchorPlan = [&services](const RealityAnchorPlan& plan) {
+        return services.safetyStateMachine.observeRealityAnchorPlan(plan);
+    };
+    input.applySafetyToFrame = [&services](const std::vector<float>& sensoryFrame, const SafetyDecision& decision) {
+        return services.safetyGovernor.applyDecisionToFrame(sensoryFrame, decision);
+    };
+    input.applyAnchorToFrame = [&services](const std::vector<float>& sensoryFrame, const RealityAnchorPlan& plan) {
+        return services.realityAnchor.applyPlanToFrame(sensoryFrame, plan);
+    };
+    input.optimizeThermalFrame = [&services](const std::vector<float>& sensoryFrame, float criticality) {
+        return services.thermalOptimizer.optimize(sensoryFrame, criticality);
+    };
+    input.shouldStartReturnToReality = [&services](const std::vector<float>& telemetry) {
+        return services.reversibility.shouldStartReturnToReality(telemetry);
+    };
+    input.runDecompression = [&services](const std::vector<float>& sensoryFrame) {
+        return services.reversibility.runDecompression(sensoryFrame);
+    };
+    input.triggerEmergency = [&services]() { services.emergency.trigger(); };
+    input.sessionElapsedSeconds = context.timestamp;
+    input.emergencyStable = services.emergency.isStable();
+    return execute(std::move(frame), input);
 }
 
 } // namespace dnxr

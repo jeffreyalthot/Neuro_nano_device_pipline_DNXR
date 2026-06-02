@@ -50,6 +50,35 @@ Disabled long-real tests:
 - `dnxr_vestibular_exposure_budget_long_test`
 - `dnxr_full_dive_intervention_window_long_test`
 
+
+## 0.3.5 normal validation
+
+After completing the Safety/FullDive/Render service migration, adding pipeline sinks,
+and introducing the allocation guard, the normal CTest lane was re-run:
+
+```bash
+cmake -S . -B build
+cmake --build build -j2
+ctest --test-dir build --output-on-failure
+```
+
+Result: PASS — 67/67 active tests passed out of 70 registered tests.
+
+Disabled tests:
+
+- `dnxr_runtime_controller_pipeline_10k_cycles_test`
+- `dnxr_vestibular_exposure_budget_long_test`
+- `dnxr_full_dive_intervention_window_long_test`
+
+The sanitizer presets configured successfully for this pass:
+
+```bash
+cmake --preset asan
+cmake --preset tsan
+```
+
+Full ASAN/TSAN build-and-test lanes remain to be run after this migration pass.
+
 ## AddressSanitizer / UndefinedBehaviorSanitizer
 
 Preset: `asan`
@@ -64,8 +93,8 @@ ctest --test-dir build/asan --output-on-failure
 
 Latest recorded full sanitizer result: PASS — 56/56 executed tests passed.
 
-Current required follow-up for 0.3.4: re-run the commands above and replace the
-recorded count with the new CTest total that includes the RuntimeController tests.
+Current required follow-up for 0.3.5: re-run the commands above and replace the
+recorded count with the latest CTest total after the service-migration tests.
 
 ## ThreadSanitizer
 
@@ -81,8 +110,8 @@ ctest --test-dir build/tsan --output-on-failure
 
 Latest recorded full sanitizer result: PASS — 56/56 executed tests passed.
 
-Current required follow-up for 0.3.4: re-run the commands above and replace the
-recorded count with the new CTest total that includes the RuntimeController tests.
+Current required follow-up for 0.3.5: re-run the commands above and replace the
+recorded count with the latest CTest total after the service-migration tests.
 
 ## Long-real validation lane
 

@@ -1,5 +1,11 @@
 #include "RuntimeRenderStage.h"
 
+#include "RuntimeStageServices.h"
+#include "../devices/XRHeadsetInterface.h"
+#include "../rendering/XRRenderer.h"
+#include "../safety/EmergencyShutdown.h"
+#include "../safety/IndependentWatchdog.h"
+
 namespace dnxr {
 
 const char* RuntimeRenderStage::name() {
@@ -64,6 +70,37 @@ RuntimePipelineFrame RuntimeRenderStage::execute(RuntimePipelineFrame frame, con
     }
 
     input.pushSensoryFrame(frame.sensoryFrame);
+    return frame;
+}
+
+RuntimePipelineFrame RuntimeRenderStage::execute(
+    RuntimePipelineFrame frame,
+    RuntimeStageServices& services,
+    SchedulerTickReport& tickReport) {
+    if (!frame.continueCycle) {
+        return frame;
+    }
+
+    services.renderer.present(frame.sensoryFrame);
+    services.watchdog.heartbeat("renderer");
+
+    const WatchdogAssessment watchdog = services.watchdog.assess(
+        tickReport.totalMs,
+        !frame.rawNeuralSignals.empty(),
+        frame.fusedSafetyDecision.riskScore,
+        frame.diagnostics.decisionDrift);
+    if (watchdog.requiresEmergencyStop) {
+        services.emergency.trigger();
+        services.safetyStateMachine.latchEmergency("watchdog:" + watchdog.reason);
+        frame.continueCycle = false;
+        frame.emergencyActive = true;
+        frame.stopReason = "watchdog:" + watchdog.reason;
+        frame.renderStatus = RuntimeStageStatus::emergency(frame.stopReason);
+        return frame;
+    }
+
+    services.headset.pushSensoryFrame(frame.sensoryFrame);
+    frame.renderStatus = validate(true, "render_stage_unhealthy");
     return frame;
 }
 

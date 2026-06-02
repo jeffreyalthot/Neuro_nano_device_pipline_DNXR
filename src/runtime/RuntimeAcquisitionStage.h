@@ -1,10 +1,10 @@
 #pragma once
 
 #include "RuntimePipelineFrame.h"
+#include "RuntimeCallback.h"
 #include "RuntimeStageContext.h"
 #include "RuntimeStageTypes.h"
 
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -15,12 +15,12 @@ class RuntimeStageServices;
 class RuntimeAcquisitionStage {
 public:
     struct Input {
-        std::function<std::vector<float>()> pullBioTelemetry;
-        std::function<bool(const std::vector<float>&)> enforcePhysiologicalGuard;
-        std::function<void()> heartbeatRuntimeCycle;
-        std::function<void()> heartbeatAcquisition;
-        std::function<std::vector<float>()> readNeuralNodeSignals;
-        std::function<NeuralChipFrame()> readChipFrame;
+        RuntimeCallback<std::vector<float>()> pullBioTelemetry;
+        RuntimeCallback<bool(const std::vector<float>&)> enforcePhysiologicalGuard;
+        RuntimeCallback<void()> heartbeatRuntimeCycle;
+        RuntimeCallback<void()> heartbeatAcquisition;
+        RuntimeCallback<std::vector<float>()> readNeuralNodeSignals;
+        RuntimeCallback<NeuralChipFrame()> readChipFrame;
     };
 
     static const char* name();

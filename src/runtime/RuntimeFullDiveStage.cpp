@@ -1,5 +1,10 @@
 #include "RuntimeFullDiveStage.h"
 
+#include "RuntimeStageServices.h"
+#include "FullDiveSafetyBridge.h"
+#include "../safety/CognitiveReversibilitySystem.h"
+#include "../safety/EmergencyShutdown.h"
+
 #include <algorithm>
 
 namespace dnxr {
@@ -90,6 +95,36 @@ RuntimePipelineFrame RuntimeFullDiveStage::execute(RuntimePipelineFrame frame, c
 
     frame.fullDiveStatus = validate(true, "full_dive_stage_unhealthy");
     return frame;
+}
+
+RuntimePipelineFrame RuntimeFullDiveStage::execute(
+    RuntimePipelineFrame frame,
+    RuntimeStageServices& services,
+    const RuntimeStageContext& context,
+    const RuntimeMetricsSnapshot& metricsSnapshot) {
+    (void)context;
+    Input input;
+    input.updateFromRuntime = [&services](const FullDiveRuntimeInput& runtimeInput) {
+        services.fullDiveSynchronization.updateFromRuntime(runtimeInput);
+    };
+    input.evaluateAndRemember = [&services]() {
+        return services.fullDiveBridge.evaluateAndRemember(services.fullDiveSynchronization);
+    };
+    input.mergeIntoDecision = [&services](const FullDiveRuntimeSnapshot& snapshot, const SafetyDecision& decision) {
+        return services.fullDiveBridge.mergeIntoDecision(snapshot, decision);
+    };
+    input.applyToSafetyStateMachine = [&services](const FullDiveRuntimeSnapshot& snapshot) {
+        services.fullDiveBridge.apply(snapshot, services.safetyStateMachine);
+    };
+    input.recordSafetyEvent = [&services](const std::string& category, const std::string& message, float riskScore, const SessionAuditMetadata& metadata) {
+        return services.safetyJournal.record(category, message, riskScore, metadata);
+    };
+    input.triggerEmergency = [&services]() { services.emergency.trigger(); };
+    input.runDecompression = [&services](const std::vector<float>& sensoryFrame) {
+        return services.reversibility.runDecompression(sensoryFrame);
+    };
+    input.runtimeMetrics = metricsSnapshot;
+    return execute(std::move(frame), input);
 }
 
 } // namespace dnxr

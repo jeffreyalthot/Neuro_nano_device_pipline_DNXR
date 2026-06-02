@@ -149,14 +149,16 @@ dnxr::RuntimePipelineRunner::RunInput makeNominalInput(
                 {},
                 1.0};
         },
-        [&](const dnxr::RuntimePipelineFrame&) { ++publishedStates; },
-        [&](const std::vector<float>&, double) { ++replayedFrames; },
-        {},
-        {},
-        {},
-        {},
-        [&] { ++droppedFrames; },
-        {}};
+        dnxr::RuntimePipelineSinks{
+            [&](const dnxr::RuntimePipelineFrame&) { ++publishedStates; },
+            {},
+            [&](const std::vector<float>&, double) { ++replayedFrames; },
+            {},
+            {},
+            [&] { ++droppedFrames; },
+            {},
+            {},
+            {}}};
 }
 
 } // namespace
