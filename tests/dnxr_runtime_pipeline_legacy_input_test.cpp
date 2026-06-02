@@ -4,9 +4,9 @@
 #include <type_traits>
 
 int main() {
-    static_assert(std::is_same<dnxr::RuntimePipelineRunner::RunInput,
+    static_assert(std::is_same<dnxr::RuntimePipelineRunner::LegacyRunInput,
                                dnxr::RuntimePipelineRunner::LegacyRunInput>::value,
-                  "RunInput remains a temporary legacy compatibility alias");
+                  "LegacyRunInput remains available explicitly");
     static_assert(!std::is_same<dnxr::RuntimePipelineRunner::RuntimePipelineRunInput,
                                 dnxr::RuntimePipelineRunner::LegacyRunInput>::value,
                   "The services-only input is intentionally separate from legacy StageInputs");

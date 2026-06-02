@@ -44,7 +44,7 @@ void RuntimePipelineRunner::finishLegacyCycle(RuntimePipelineFrame& frame,
 void RuntimePipelineRunner::finishModernCycle(RuntimePipelineFrame& frame,
                                               SchedulerTickReport& tickReport,
                                               RuntimeStageServices& services,
-                                              RuntimePipelineSinks& sinks,
+                                              RuntimePipelineSinkRefs sinks,
                                               const RuntimeCycleFinalizer::Context& finalizer,
                                               bool safeDecision,
                                               bool emergencyActive,
@@ -63,6 +63,17 @@ void RuntimePipelineRunner::finishModernCycle(RuntimePipelineFrame& frame,
 }
 
 RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInput& input) const {
+    RuntimePipelineRunInputRef refInput{
+        input.context,
+        input.tickReport,
+        input.services,
+        RuntimePipelineSinkRefs::fromSinks(input.sinks),
+        input.runtimeMetricsSnapshot,
+        input.finalizer};
+    return run(refInput);
+}
+
+RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef& input) const {
     RuntimePipelineFrame pipeline;
 
     const auto tAcq = std::chrono::steady_clock::now();

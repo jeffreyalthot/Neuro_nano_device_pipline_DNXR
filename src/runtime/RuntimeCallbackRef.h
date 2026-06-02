@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <utility>
 
 namespace dnxr {
@@ -14,21 +15,29 @@ public:
 
     template <typename Callable>
     RuntimeCallbackRef(Callable& callable)
-        : object_(static_cast<void*>(&callable)),
-          invoker_([](void* object, Args... args) -> Return {
-              return (*static_cast<Callable*>(object))(std::forward<Args>(args)...);
+        : object_(static_cast<const void*>(&callable)),
+          invoker_([](const void* object, Args... args) -> Return {
+              return (*const_cast<Callable*>(static_cast<const Callable*>(object)))(std::forward<Args>(args)...);
+          }) {}
+
+    template <typename Callable>
+    RuntimeCallbackRef(const Callable& callable)
+        : object_(static_cast<const void*>(&callable)),
+          invoker_([](const void* object, Args... args) -> Return {
+              return (*static_cast<const Callable*>(object))(std::forward<Args>(args)...);
           }) {}
 
     bool empty() const noexcept { return invoker_ == nullptr; }
     explicit operator bool() const noexcept { return !empty(); }
 
     Return operator()(Args... args) const {
+        assert(invoker_ && "RuntimeCallbackRef invoked while empty");
         return invoker_(object_, std::forward<Args>(args)...);
     }
 
 private:
-    void* object_ = nullptr;
-    Return (*invoker_)(void*, Args...) = nullptr;
+    const void* object_ = nullptr;
+    Return (*invoker_)(const void*, Args...) = nullptr;
 };
 
 } // namespace dnxr

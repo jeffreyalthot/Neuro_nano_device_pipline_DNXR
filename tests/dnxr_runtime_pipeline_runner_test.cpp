@@ -7,7 +7,7 @@
 
 namespace {
 
-dnxr::RuntimePipelineRunner::RunInput makeNominalInput(
+dnxr::RuntimePipelineRunner::LegacyRunInput makeNominalInput(
     dnxr::SchedulerTickReport& tickReport,
     dnxr::NeuroRealtimeScheduler& scheduler,
     dnxr::RuntimeMetrics& metrics,
@@ -20,7 +20,7 @@ dnxr::RuntimePipelineRunner::RunInput makeNominalInput(
     std::uint64_t& finalizedCycles,
     std::atomic<std::uint64_t>& cycleCounter,
     std::atomic<std::uint64_t>& droppedFrames) {
-    return dnxr::RuntimePipelineRunner::RunInput{
+    return dnxr::RuntimePipelineRunner::LegacyRunInput{
         dnxr::RuntimeStageContext{cycleCounter.load(), 42.0, 0.011},
         dnxr::RuntimePipelineRunner::StageInputs{
             dnxr::RuntimeAcquisitionStage::Input{

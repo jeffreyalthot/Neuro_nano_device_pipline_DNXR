@@ -30,6 +30,7 @@
 #include "../runtime/RuntimeImmersionFrameStage.h"
 #include "../runtime/RuntimePipelineRunner.h"
 #include "../runtime/RuntimeStageServices.h"
+#include "../runtime/RuntimePipelineSinks.h"
 
 namespace dnxr {
 
@@ -91,6 +92,7 @@ private:
         SchedulerTickReport& tickReport);
     RuntimeStimulusStage::Input makeStimulusStageInput();
     RuntimeStageServices makeRuntimeStageServices();
+    RuntimePipelineSinks makeRuntimePipelineSinks();
 
     // Initialisation centralisée des modules
     void initializeModules();
@@ -142,6 +144,8 @@ private:
     std::unique_ptr<dnxr::FullDiveSynchronizationEngine> fullDiveSynchronization_;
     std::unique_ptr<class FullDiveSafetyBridge> fullDiveBridge_;
     std::unique_ptr<RuntimePipelineRunner> pipelineRunner_;
+    std::unique_ptr<RuntimeStageServices> stageServices_;
+    std::unique_ptr<RuntimePipelineSinks> pipelineSinks_;
 
     mutable std::mutex mtx_;
 };

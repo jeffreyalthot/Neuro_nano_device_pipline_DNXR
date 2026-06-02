@@ -266,9 +266,14 @@ void RuntimeController::initializeModules() {
 
     const std::string sessionIdentityToken = identityVault_.tokenizeIdentity("runtime_user");
     Logger::info("identity_token_initialized=" + sessionIdentityToken);
+
+    stageServices_ = std::make_unique<RuntimeStageServices>(makeRuntimeStageServices());
+    pipelineSinks_ = std::make_unique<RuntimePipelineSinks>(makeRuntimePipelineSinks());
 }
 
 void RuntimeController::shutdownModules() {
+    pipelineSinks_.reset();
+    stageServices_.reset();
     safetyJournal_.reset();
     nodes_.reset();
     bridge_.reset();
@@ -575,21 +580,13 @@ RuntimeStageServices RuntimeController::makeRuntimeStageServices() {
         identityVault_};
 }
 
-RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) {
-    const auto cycleStart = std::chrono::steady_clock::now();
-    const double runtimeDeltaSeconds = computeCycleDeltaSeconds(cycleStart);
-    SchedulerTickReport tickReport = scheduler_.beginTick();
-
-    RuntimeMetricsSnapshot fullDiveMetricsSnapshot;
-    {
-        std::lock_guard<std::mutex> lock(metricsMutex_);
-        fullDiveMetricsSnapshot = runtimeMetrics_.snapshot();
-    }
-
+RuntimePipelineSinks RuntimeController::makeRuntimePipelineSinks() {
     RuntimePipelineSinks sinks;
     sinks.publishPipelineState = [this](const RuntimePipelineFrame& pipeline) { publishPipelineState(pipeline); };
     sinks.publishRuntimeMetrics = [this](const RuntimeMetricsSnapshot& snapshot) { publishRuntimeMetrics(snapshot); };
-    sinks.recordReplayFrame = [this, timestamp](const std::vector<float>& cleanSignals, double) { replay_.record({cleanSignals, timestamp}); };
+    sinks.recordReplayFrame = [this](const std::vector<float>& cleanSignals, double timestamp) {
+        replay_.record({cleanSignals, timestamp});
+    };
     sinks.triggerEmergency = [this]() { emergency_->trigger(); };
     sinks.throttleEmergency = [this]() { throttleEmergency(); };
     sinks.recordDroppedFrame = [this]() { ++droppedFrames_; };
@@ -604,13 +601,26 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
     };
     sinks.logWarn = [](const std::string& message) { Logger::warn(message); };
     sinks.logError = [](const std::string& message) { Logger::error(message); };
+    return sinks;
+}
 
-    RuntimeStageServices services = makeRuntimeStageServices();
-    RuntimePipelineRunner::RuntimePipelineRunInput input{
+RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) {
+    const auto cycleStart = std::chrono::steady_clock::now();
+    const double runtimeDeltaSeconds = computeCycleDeltaSeconds(cycleStart);
+    SchedulerTickReport tickReport = scheduler_.beginTick();
+
+    RuntimeMetricsSnapshot fullDiveMetricsSnapshot;
+    {
+        std::lock_guard<std::mutex> lock(metricsMutex_);
+        fullDiveMetricsSnapshot = runtimeMetrics_.snapshot();
+    }
+
+    RuntimeStageServices& services = *stageServices_;
+    RuntimePipelineRunner::RuntimePipelineRunInputRef input{
         RuntimeStageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds},
         tickReport,
         services,
-        sinks,
+        RuntimePipelineSinkRefs::fromSinks(*pipelineSinks_),
         fullDiveMetricsSnapshot,
         makeCycleFinalizerContext(fullDiveMetricsSnapshot)};
 
