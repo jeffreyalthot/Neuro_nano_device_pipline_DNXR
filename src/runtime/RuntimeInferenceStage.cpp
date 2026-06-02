@@ -1,5 +1,10 @@
 #include "RuntimeInferenceStage.h"
 
+#include "RuntimeStageServices.h"
+#include "../cognition/StateInferenceEngine.h"
+#include "../neurotech/DeepImmersionPlatform.h"
+#include "../safety/IndependentWatchdog.h"
+
 #include <cmath>
 
 namespace dnxr {
@@ -71,6 +76,46 @@ RuntimePipelineFrame RuntimeInferenceStage::execute(RuntimePipelineFrame frame, 
     }
 
     frame.inferenceStatus = validate(true, "inference_stage_unhealthy");
+    return frame;
+}
+
+namespace {
+
+BiometricFrame buildRuntimeBiometricFrame(const std::vector<float>& telemetry) {
+    BiometricFrame bio{};
+    if (!telemetry.empty()) {
+        bio.heartRate = telemetry[0];
+        bio.galvanicSkinResponse = telemetry.size() > 1 ? telemetry[1] : 0.0f;
+        bio.eyeFocus = telemetry.size() > 2 ? telemetry[2] : 0.0f;
+        bio.respirationRate = 12.0f + bio.galvanicSkinResponse * 8.0f;
+        bio.postureStability = telemetry.size() > 5 ? telemetry[5] : 0.75f;
+        bio.movementEnergy = telemetry.size() > 6 ? telemetry[6] / 128.0f : 0.2f;
+    }
+    return bio;
+}
+
+} // namespace
+
+RuntimePipelineFrame RuntimeInferenceStage::execute(RuntimePipelineFrame frame, RuntimeStageServices& services) {
+    if (!frame.continueCycle) {
+        return frame;
+    }
+
+    services.watchdog.heartbeat("inference");
+    frame.symbolicState = services.brain.inferState(frame.features, frame.timestamp);
+    frame.biometric = buildRuntimeBiometricFrame(frame.telemetry);
+    frame.cognitive = services.deepImmersion.runInferenceTick(frame.cleanSignals, frame.biometric, "runtime_controller");
+    frame.adaptation = services.deepImmersion.runAdaptationTick(frame.cognitive, frame.biometric);
+    frame.diagnostics = services.deepImmersion.lastDiagnostics();
+
+    const bool valid = !frame.symbolicState.empty() &&
+        isValidCognitiveState(frame.cognitive) &&
+        isValidDiagnostics(frame.diagnostics);
+    frame.inferenceStatus = validate(valid, "invalid_inference_output");
+    frame.continueCycle = frame.inferenceStatus.continueCycle;
+    if (!frame.continueCycle) {
+        frame.stopReason = frame.inferenceStatus.reason;
+    }
     return frame;
 }
 

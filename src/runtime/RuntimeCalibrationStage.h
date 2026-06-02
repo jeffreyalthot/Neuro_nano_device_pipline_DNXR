@@ -11,6 +11,8 @@
 
 namespace dnxr {
 
+class RuntimeStageServices;
+
 class RuntimeCalibrationStage {
 public:
     struct Input {
@@ -28,6 +30,7 @@ public:
     static const char* name();
     static RuntimeStageStatus validate(bool healthy, const std::string& failureReason);
     static RuntimePipelineFrame execute(RuntimePipelineFrame frame, const Input& input);
+    static RuntimePipelineFrame execute(RuntimePipelineFrame frame, RuntimeStageServices& services);
 };
 
 } // namespace dnxr

@@ -1,5 +1,12 @@
 #include "RuntimeStimulusStage.h"
 
+#include "RuntimeStageServices.h"
+#include "../devices/HostComputerBridge.h"
+#include "../devices/NanoNodeInterface.h"
+#include "../hardware/NeuralChipHAL.h"
+#include "../safety/IndependentWatchdog.h"
+#include "../safety/NeuralStimulusSafetyEnvelope.h"
+
 #include <algorithm>
 
 namespace dnxr {
@@ -47,6 +54,33 @@ RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, c
 
     const auto down = input.downlink(frame.sensoryFrame);
     input.writeNeuralStimulus(down);
+    return frame;
+}
+
+RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, RuntimeStageServices& services) {
+    if (!frame.continueCycle) {
+        return frame;
+    }
+
+    frame.stimulusCommand = services.stimulusEnvelope.buildCommand(
+        frame.cycleId,
+        frame.sensoryFrame,
+        frame.fusedSafetyDecision,
+        std::max(0.0, frame.deltaTimeSeconds));
+    services.watchdog.heartbeat("stimulus");
+
+    if (!services.neuralChipHal.writeSafeStimulus(frame.stimulusCommand)) {
+        services.neuralChipHal.emergencyStop("unsafe_stimulus_rejected");
+        frame.continueCycle = false;
+        frame.emergencyActive = true;
+        frame.stopReason = "unsafe_stimulus_rejected";
+        frame.stimulusStatus = RuntimeStageStatus::emergency(frame.stopReason);
+        return frame;
+    }
+
+    const auto down = services.bridge.downlink(frame.sensoryFrame);
+    services.nodes.writeNeuralStimulus(down);
+    frame.stimulusStatus = validate(true, "stimulus_stage_unhealthy");
     return frame;
 }
 

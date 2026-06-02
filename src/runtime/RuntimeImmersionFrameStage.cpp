@@ -1,5 +1,10 @@
 #include "RuntimeImmersionFrameStage.h"
 
+#include "RuntimeStageServices.h"
+#include "../immersion/ImmersionCore.h"
+#include "../immersion/MultisensoryClock.h"
+#include "../neurotech/DeepImmersionPlatform.h"
+
 namespace dnxr {
 
 const char* RuntimeImmersionFrameStage::name() {
@@ -58,6 +63,29 @@ RuntimePipelineFrame RuntimeImmersionFrameStage::execute(RuntimePipelineFrame fr
         }
     }
 
+    frame.immersionFrameStatus = validate(true, "immersion_frame_stage_unhealthy");
+    return frame;
+}
+
+RuntimePipelineFrame RuntimeImmersionFrameStage::execute(RuntimePipelineFrame frame, RuntimeStageServices& services) {
+    if (!frame.continueCycle) {
+        return frame;
+    }
+
+    frame.bodyCommand = services.deepImmersion.runFullBodyControlTick(frame.cleanSignals, frame.cognitive);
+    frame.neuralSensoryFrame = services.immersion.buildImmersiveFrameFromChip(
+        frame.cognitive,
+        frame.bodyCommand,
+        frame.adaptation,
+        frame.diagnostics);
+
+    std::vector<float> sensoryFrame = frame.neuralSensoryFrame.toVector();
+    if (!sensoryFrame.empty() && !frame.calibratedFeatures.empty()) {
+        sensoryFrame[0] = (sensoryFrame[0] * 0.85f) + (frame.calibratedFeatures.front() * 0.15f);
+    }
+
+    frame.sensorySync = services.multisensoryClock.alignVector(sensoryFrame, frame.cycleId, frame.timestamp * 1000.0, 2.0);
+    frame.sensoryFrame = frame.sensorySync.alignedFrame;
     frame.immersionFrameStatus = validate(true, "immersion_frame_stage_unhealthy");
     return frame;
 }

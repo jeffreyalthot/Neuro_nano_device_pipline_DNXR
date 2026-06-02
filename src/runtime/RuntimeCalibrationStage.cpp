@@ -1,5 +1,9 @@
 #include "RuntimeCalibrationStage.h"
 
+#include "RuntimeStageServices.h"
+#include "../calibration/CalibrationDriftMonitor.h"
+#include "../calibration/NeuralCalibrationEngine.h"
+
 namespace dnxr {
 
 const char* RuntimeCalibrationStage::name() {
@@ -59,6 +63,36 @@ RuntimePipelineFrame RuntimeCalibrationStage::execute(RuntimePipelineFrame frame
         if (frame.calibrationDrift.blockCriticalActions && input.resetStabilization) {
             input.resetStabilization();
         }
+    }
+
+    frame.calibrationStatus = validate(true, "calibration_stage_unhealthy");
+    return frame;
+}
+
+RuntimePipelineFrame RuntimeCalibrationStage::execute(RuntimePipelineFrame frame, RuntimeStageServices& services) {
+    if (!frame.continueCycle) {
+        return frame;
+    }
+
+    frame.calibratedFeatures = services.calibration.calibrateForImmersion(frame.features, 1.05f, frame.timestamp);
+
+    if (frame.cycleId == 0U) {
+        services.driftMonitor.setBaseline(services.driftMonitor.buildBaseline(
+            frame.calibratedFeatures,
+            frame.diagnostics.neuralSignalQuality,
+            frame.timestamp,
+            "runtime_baseline"));
+    }
+
+    frame.calibrationDrift = services.driftMonitor.assess(
+        frame.calibratedFeatures,
+        frame.diagnostics.neuralSignalQuality,
+        frame.diagnostics.intentConfidence,
+        frame.cognitive.fatigue,
+        frame.timestamp);
+
+    if (frame.calibrationDrift.blockCriticalActions) {
+        services.calibration.resetStabilization();
     }
 
     frame.calibrationStatus = validate(true, "calibration_stage_unhealthy");

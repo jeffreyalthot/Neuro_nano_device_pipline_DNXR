@@ -51,7 +51,9 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RunInput& input) const {
     RuntimePipelineFrame pipeline;
 
     const auto tAcq = std::chrono::steady_clock::now();
-    pipeline = RuntimeAcquisitionStage::execute(input.context, input.stages.acquisition);
+    pipeline = input.services
+        ? RuntimeAcquisitionStage::execute(input.context, *input.services)
+        : RuntimeAcquisitionStage::execute(input.context, input.stages.acquisition);
     input.stages.finalizer.scheduler.endTask(RuntimeAcquisitionStage::name(), tAcq, input.tickReport);
     if (!pipeline.continueCycle) {
         if (pipeline.emergencyActive) {
@@ -67,7 +69,9 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RunInput& input) const {
     }
 
     const auto tSignal = std::chrono::steady_clock::now();
-    pipeline = RuntimeSignalStage::execute(std::move(pipeline), input.stages.signal);
+    pipeline = input.services
+        ? RuntimeSignalStage::execute(std::move(pipeline), *input.services)
+        : RuntimeSignalStage::execute(std::move(pipeline), input.stages.signal);
     input.stages.finalizer.scheduler.endTask(RuntimeSignalStage::name(), tSignal, input.tickReport);
     if (!pipeline.continueCycle) {
         finishCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.signalStatus.emergencyActive, pipeline.stopReason);
@@ -77,7 +81,9 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RunInput& input) const {
     pipeline.normalizedTelemetryRisk = normalizedTelemetryRiskVector(pipeline.telemetry);
 
     const auto tInference = std::chrono::steady_clock::now();
-    pipeline = RuntimeInferenceStage::execute(std::move(pipeline), input.stages.inference);
+    pipeline = input.services
+        ? RuntimeInferenceStage::execute(std::move(pipeline), *input.services)
+        : RuntimeInferenceStage::execute(std::move(pipeline), input.stages.inference);
     const bool inferenceOk = input.stages.finalizer.scheduler.endTask(RuntimeInferenceStage::name(), tInference, input.tickReport);
     if (!inferenceOk) {
         if (input.recordDroppedFrame) input.recordDroppedFrame();
@@ -88,13 +94,17 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RunInput& input) const {
 
     if (input.publishPipelineState) input.publishPipelineState(pipeline);
 
-    pipeline = RuntimeCalibrationStage::execute(std::move(pipeline), input.stages.calibration);
+    pipeline = input.services
+        ? RuntimeCalibrationStage::execute(std::move(pipeline), *input.services)
+        : RuntimeCalibrationStage::execute(std::move(pipeline), input.stages.calibration);
     if (!pipeline.continueCycle) {
         finishCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.calibrationStatus.emergencyActive, pipeline.stopReason);
         return pipeline;
     }
 
-    pipeline = RuntimeImmersionFrameStage::execute(std::move(pipeline), input.stages.immersionFrame);
+    pipeline = input.services
+        ? RuntimeImmersionFrameStage::execute(std::move(pipeline), *input.services)
+        : RuntimeImmersionFrameStage::execute(std::move(pipeline), input.stages.immersionFrame);
     if (!pipeline.continueCycle) {
         finishCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.immersionFrameStatus.emergencyActive, pipeline.stopReason);
         return pipeline;
@@ -121,15 +131,18 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RunInput& input) const {
     }
 
     pipeline.stimulusStatus = RuntimeStimulusStage::validate(
-        static_cast<bool>(input.stages.stimulus.buildCommand) &&
-        static_cast<bool>(input.stages.stimulus.writeSafeStimulus),
+        input.services ||
+            (static_cast<bool>(input.stages.stimulus.buildCommand) &&
+             static_cast<bool>(input.stages.stimulus.writeSafeStimulus)),
         "stimulus_stage_unavailable");
     if (!pipeline.stimulusStatus.continueCycle) {
         finishCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.stimulusStatus.emergencyActive, pipeline.stimulusStatus.reason);
         return pipeline;
     }
 
-    pipeline = RuntimeStimulusStage::execute(std::move(pipeline), input.stages.stimulus);
+    pipeline = input.services
+        ? RuntimeStimulusStage::execute(std::move(pipeline), *input.services)
+        : RuntimeStimulusStage::execute(std::move(pipeline), input.stages.stimulus);
     if (!pipeline.continueCycle) {
         if (pipeline.stopReason == "unsafe_stimulus_rejected") {
             if (input.auditRejectedStimulus) input.auditRejectedStimulus(pipeline.stimulusCommand);

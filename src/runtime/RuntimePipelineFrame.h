@@ -1,14 +1,10 @@
 #pragma once
 
 #include "RuntimeStageTypes.h"
-#include "FullDiveRuntimeSnapshot.h"
-#include "../calibration/CalibrationDriftMonitor.h"
-#include "../hardware/NeuralChipHAL.h"
-#include "../immersion/MultisensoryClock.h"
-#include "../immersion/SensoryRenderer.h"
-#include "../neurotech/DeepImmersionPlatform.h"
-#include "../safety/RealityAnchorSystem.h"
-#include "../safety/SafetyGovernor.h"
+#include "RuntimePipelineDiagnostics.h"
+#include "RuntimePipelineImmersionTypes.h"
+#include "RuntimePipelineNeuralTypes.h"
+#include "RuntimePipelineSafetyTypes.h"
 
 #include <cstdint>
 #include <string>
