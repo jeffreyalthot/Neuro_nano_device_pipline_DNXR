@@ -45,6 +45,9 @@
 #include "../runtime/RuntimeAcquisitionStage.h"
 #include "../runtime/RuntimeSignalStage.h"
 #include "../runtime/RuntimeInferenceStage.h"
+#include "../runtime/RuntimeCalibrationStage.h"
+#include "../runtime/RuntimeImmersionFrameStage.h"
+#include "../runtime/RuntimeCycleFinalizer.h"
 #include "../runtime/RuntimeSafetyStage.h"
 #include "../runtime/RuntimeFullDiveStage.h"
 #include "../runtime/RuntimeRenderStage.h"
@@ -325,98 +328,41 @@ double RuntimeController::computeCycleDeltaSeconds(std::chrono::steady_clock::ti
     return measuredDeltaSeconds;
 }
 
-void RuntimeController::runSingleCycle(double timestamp) {
-    const auto cycleStart = std::chrono::steady_clock::now();
-    const double runtimeDeltaSeconds = computeCycleDeltaSeconds(cycleStart);
-    SchedulerTickReport tickReport = scheduler_.beginTick();
-    auto finishCycle = [&](bool safeDecision, bool emergencyActive, const std::string& reason) {
-        scheduler_.endTick(tickReport);
-        RuntimeMetricsSnapshot snapshot;
-        {
-            std::lock_guard<std::mutex> lock(metricsMutex_);
-            runtimeMetrics_.recordCycleMeasurement(
-                tickReport.totalMs,
-                safeDecision,
-                emergencyActive,
-                reason);
-            snapshot = runtimeMetrics_.snapshot();
-        }
-        {
-            std::lock_guard<std::mutex> traceLock(traceMutex_);
-            traceRecorder_.record(
-                cycleCounter_,
-                "RuntimeController",
-                safeDecision ? "cycle_complete" : "cycle_degraded",
-                tickReport.totalMs,
-                emergencyActive ? 1.0f : 0.0f,
-                !safeDecision || emergencyActive,
-                reason);
-        }
-        publishRuntimeMetrics(snapshot);
-        return snapshot;
-    };
 
-    RuntimeStageContext stageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds};
-    RuntimePipelineFrame pipeline;
-
-    // Stage 1 — acquisition biométrique + signaux neuronaux.
-    const auto tAcq = std::chrono::steady_clock::now();
-    pipeline = RuntimeAcquisitionStage::execute(stageContext, RuntimeAcquisitionStage::Input{
+RuntimeAcquisitionStage::Input RuntimeController::makeAcquisitionStageInput() {
+    return RuntimeAcquisitionStage::Input{
         [this]() { return headset_->pullBioTelemetry(); },
         [this](const std::vector<float>& telemetry) { return guard_->enforce(telemetry); },
         [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("runtime_cycle"); },
         [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("acquisition"); },
         [this]() { return nodes_->readNeuralNodeSignals(); },
         [this]() { return neuralChipHal_->readFrame(); }
-    });
-    scheduler_.endTask(RuntimeAcquisitionStage::name(), tAcq, tickReport);
-    if (!pipeline.continueCycle) {
-        if (pipeline.emergencyActive) {
-            emergency_->trigger();
-            Logger::warn("⚠️  Physiological guard triggered.");
-            finishCycle(false, true, pipeline.stopReason);
-            ++cycleCounter_;
-            throttleEmergency();
-            return;
-        }
-        Logger::warn("⚠️  Empty neural signal frame.");
-        finishCycle(false, pipeline.acquisitionStatus.emergencyActive, pipeline.stopReason);
-        ++cycleCounter_;
-        return;
-    }
+    };
+}
 
-    // Stage 2 — transport simulation, uplink, débruitage et vectorisation.
-    const auto tSignal = std::chrono::steady_clock::now();
-    pipeline = RuntimeSignalStage::execute(std::move(pipeline), RuntimeSignalStage::Input{
+RuntimeSignalStage::Input RuntimeController::makeSignalStageInput() {
+    return RuntimeSignalStage::Input{
         [this](const std::vector<float>& raw) { return crypto_.encrypt(raw, neuralTransportSecret_.value); },
         [this](const std::vector<std::uint8_t>& encrypted) { return crypto_.decrypt(encrypted, neuralTransportSecret_.value); },
         [this](const std::vector<float>& decrypted) { return bridge_->uplink(decrypted); },
         [this](const std::vector<float>& uplinked) { return dsp_->denoise(uplinked); },
         [this](const std::vector<float>& clean) { return vec_->vectorize(clean); },
         [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("signal_processing"); }
-    });
-    scheduler_.endTask(RuntimeSignalStage::name(), tSignal, tickReport);
-    if (!pipeline.continueCycle) {
-        finishCycle(false, pipeline.signalStatus.emergencyActive, pipeline.stopReason);
-        ++cycleCounter_;
-        return;
-    }
+    };
+}
 
-    pipeline.normalizedTelemetryRisk = normalizedTelemetryRiskVector(pipeline.telemetry);
-
-    // Stage 3 — inférence symbolique + inférence full-immersion et diagnostics.
-    const auto tInference = std::chrono::steady_clock::now();
-    pipeline = RuntimeInferenceStage::execute(std::move(pipeline), RuntimeInferenceStage::Input{
+RuntimeInferenceStage::Input RuntimeController::makeInferenceStageInput() {
+    return RuntimeInferenceStage::Input{
         [this](const std::vector<float>& features, double ts) { return brain_->inferState(features, ts); },
         [](const std::vector<float>& telemetry) {
             BiometricFrame bio{};
             if (!telemetry.empty()) {
-                bio.heartRate            = telemetry[0];
+                bio.heartRate = telemetry[0];
                 bio.galvanicSkinResponse = telemetry.size() > 1 ? telemetry[1] : 0.0f;
-                bio.eyeFocus             = telemetry.size() > 2 ? telemetry[2] : 0.0f;
-                bio.respirationRate      = 12.0f + bio.galvanicSkinResponse * 8.0f;
-                bio.postureStability     = telemetry.size() > 5 ? telemetry[5] : 0.75f;
-                bio.movementEnergy       = telemetry.size() > 6 ? telemetry[6] / 128.0f : 0.2f;
+                bio.eyeFocus = telemetry.size() > 2 ? telemetry[2] : 0.0f;
+                bio.respirationRate = 12.0f + bio.galvanicSkinResponse * 8.0f;
+                bio.postureStability = telemetry.size() > 5 ? telemetry[5] : 0.75f;
+                bio.movementEnergy = telemetry.size() > 6 ? telemetry[6] / 128.0f : 0.2f;
             }
             return bio;
         },
@@ -424,29 +370,14 @@ void RuntimeController::runSingleCycle(double timestamp) {
         [this](const CognitiveState& cognitive, const BiometricFrame& bio) { return deepImmersion_->runAdaptationTick(cognitive, bio); },
         [this]() { return deepImmersion_->lastDiagnostics(); },
         [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("inference"); }
-    });
-    const bool inferenceOk = scheduler_.endTask(RuntimeInferenceStage::name(), tInference, tickReport);
+    };
+}
 
-    if (!inferenceOk) {
-        ++droppedFrames_;
-        Logger::warn("⚠️ Inference budget exceeded — frame degraded, skipping render. task=inference");
-        finishCycle(true, false, "inference_budget_exceeded");
-        ++cycleCounter_;
-        return;
-    }
-
-    const auto& telemetry = pipeline.telemetry;
-    const auto& raw = pipeline.rawNeuralSignals;
-    const auto& clean = pipeline.cleanSignals;
-    const auto& features = pipeline.features;
-    const auto& normalizedRiskTelemetry = pipeline.normalizedTelemetryRisk;
-    const auto& state = pipeline.symbolicState;
-    const auto& bio = pipeline.biometric;
+void RuntimeController::publishPipelineState(const RuntimePipelineFrame& pipeline) {
     const auto& cognitive = pipeline.cognitive;
     const auto& adaptation = pipeline.adaptation;
     const auto& diag = pipeline.diagnostics;
-
-    std::string statePayload = state
+    const std::string statePayload = pipeline.symbolicState
         + "|immersion=" + std::to_string(cognitive.immersionIndex)
         + "|stress="    + std::to_string(cognitive.stress)
         + "|shader="    + adaptation.shaderProfile
@@ -459,92 +390,70 @@ void RuntimeController::runSingleCycle(double timestamp) {
         std::lock_guard<std::mutex> lock(mtx_);
         lastState_ = statePayload;
     }
-
     publishRuntimeEvent("state:" + statePayload);
-
     Logger::info("🧠 State -> " + statePayload);
+}
 
-    constexpr float kUserSensitivity = 1.05f;
-    auto calibrated = calib_->calibrateForImmersion(features, kUserSensitivity, timestamp);
-    if (cycleCounter_ == 0U) {
-        calibrationDriftMonitor_->setBaseline(calibrationDriftMonitor_->buildBaseline(
-            calibrated,
-            diag.neuralSignalQuality,
-            timestamp,
-            "runtime_baseline"));
-    }
-    const CalibrationDriftAssessment calibrationDrift = calibrationDriftMonitor_->assess(
-        calibrated,
-        diag.neuralSignalQuality,
-        diag.intentConfidence,
-        cognitive.fatigue,
-        timestamp);
-    if (calibrationDrift.requiresRecalibration) {
-        Logger::warn("[CalibrationDriftMonitor] " + calibrationDrift.reason +
-                     " drift=" + std::to_string(calibrationDrift.driftScore) +
-                     " velocity=" + std::to_string(calibrationDrift.driftVelocity) +
-                     " age_s=" + std::to_string(calibrationDrift.calibrationAgeSeconds));
-        {
+RuntimeCalibrationStage::Input RuntimeController::makeCalibrationStageInput() {
+    return RuntimeCalibrationStage::Input{
+        [this](const std::vector<float>& features, float sensitivity, double ts) {
+            return calib_->calibrateForImmersion(features, sensitivity, ts);
+        },
+        [this](const std::vector<float>& calibratedFeatures, float quality, double ts, const std::string& label) {
+            return calibrationDriftMonitor_->buildBaseline(calibratedFeatures, quality, ts, label);
+        },
+        [this](const UserBaselineProfile& baseline) { calibrationDriftMonitor_->setBaseline(baseline); },
+        [this](const std::vector<float>& calibratedFeatures, float quality, float confidence, float fatigue, double ts) {
+            return calibrationDriftMonitor_->assess(calibratedFeatures, quality, confidence, fatigue, ts);
+        },
+        [this]() { calib_->resetStabilization(); },
+        [this](std::uint64_t cycleId, const std::string& component, const std::string& event, double latencyMs, float riskScore, bool degraded, const std::string& reason) {
             std::lock_guard<std::mutex> traceLock(traceMutex_);
-            traceRecorder_.record(
-                cycleCounter_,
-                "CalibrationDriftMonitor",
-                "recalibration_recommended",
-                calibrationDrift.calibrationAgeSeconds,
-                calibrationDrift.driftScore,
-                calibrationDrift.blockCriticalActions,
-                calibrationDrift.reason);
-        }
-        if (calibrationDrift.blockCriticalActions) {
-            calib_->resetStabilization();
-        }
-    }
+            traceRecorder_.record(cycleId, component, event, latencyMs, riskScore, degraded, reason);
+        },
+        [](const std::string& message) { Logger::warn(message); },
+        1.05f,
+        cycleCounter_ == 0U
+    };
+}
 
-    const XRFullBodyCommand bodyCommand =
-        deepImmersion_->runFullBodyControlTick(clean, cognitive);
+RuntimeImmersionFrameStage::Input RuntimeController::makeImmersionFrameStageInput(double timestamp) {
+    return RuntimeImmersionFrameStage::Input{
+        [this](const std::vector<float>& cleanSignals, const CognitiveState& cognitiveState) {
+            return deepImmersion_->runFullBodyControlTick(cleanSignals, cognitiveState);
+        },
+        [this](const CognitiveState& cognitiveState, const XRFullBodyCommand& bodyCommand, const XRAdaptationFrame& xrAdaptation, const NeuroPipelineDiagnostics& diagnostics) {
+            return immersion_->buildImmersiveFrameFromChip(cognitiveState, bodyCommand, xrAdaptation, diagnostics);
+        },
+        [this](const std::vector<float>& sensoryFrame, std::uint64_t cycleId, double timestampMs, double toleranceMs) {
+            return multisensoryClock_->alignVector(sensoryFrame, cycleId, timestampMs, toleranceMs);
+        },
+        [this](std::uint64_t cycleId, const std::string& component, const std::string& event, double latencyMs, float riskScore, bool degraded, const std::string& reason) {
+            std::lock_guard<std::mutex> traceLock(traceMutex_);
+            traceRecorder_.record(cycleId, component, event, latencyMs, riskScore, degraded, reason);
+        },
+        [](const std::string& message) { Logger::warn(message); },
+        timestamp * 1000.0,
+        2.0
+    };
+}
 
-    const NeuralSensoryFrame neuralFrame =
-        immersion_->buildImmersiveFrameFromChip(
-            cognitive,
-            bodyCommand,
-            adaptation,
-            diag);
-
-    auto frame = neuralFrame.toVector();
-    if (!frame.empty() && !calibrated.empty()) {
-        const float calibrationAnchor = calibrated.front();
-        frame[0] = (frame[0] * 0.85f) + (calibrationAnchor * 0.15f);
-    }
-
-    const MultisensoryAlignmentReport sensorySync = multisensoryClock_->alignVector(
-        frame,
+RuntimeCycleFinalizer::Input RuntimeController::makeCycleFinalizerInput() {
+    return RuntimeCycleFinalizer::Input{
+        scheduler_,
+        runtimeMetrics_,
+        traceRecorder_,
+        metricsMutex_,
+        traceMutex_,
         cycleCounter_,
-        (timestamp * 1000.0),
-        2.0);
-    frame = sensorySync.alignedFrame;
-    pipeline.sensoryFrame = frame;
-    pipeline.sensorySync = sensorySync;
-    if (sensorySync.degradationApplied) {
-        {
-            std::lock_guard<std::mutex> traceLock(traceMutex_);
-            traceRecorder_.record(
-                cycleCounter_,
-                "MultisensoryClock",
-                "alignment_degraded",
-                sensorySync.maxObservedPhaseErrorMs,
-                1.0f - sensorySync.recommendedIntensityScale,
-                true,
-                sensorySync.reason);
-        }
-        Logger::warn("[MultisensoryClock] " + sensorySync.reason +
-                     " phase_ms=" + std::to_string(sensorySync.maxObservedPhaseErrorMs) +
-                     " confidence=" + std::to_string(sensorySync.confidence) +
-                     " scale=" + std::to_string(sensorySync.recommendedIntensityScale));
-    }
+        droppedFrames_,
+        [this](const RuntimeMetricsSnapshot& snapshot) { publishRuntimeMetrics(snapshot); },
+        [](const std::string& message) { Logger::warn(message); }
+    };
+}
 
-    pipeline.calibrationDrift = calibrationDrift;
-
-    pipeline = RuntimeSafetyStage::execute(std::move(pipeline), RuntimeSafetyStage::Input{
+RuntimeSafetyStage::Input RuntimeController::makeSafetyStageInput(double timestamp) {
+    return RuntimeSafetyStage::Input{
         [this](const SafetyGovernorInput& input) { return safetyGovernor_->evaluate(input); },
         [this](const std::string& category, const std::string& message, float riskScore, const SessionAuditMetadata& metadata) {
             return safetyJournal_->record(category, message, riskScore, metadata);
@@ -576,25 +485,11 @@ void RuntimeController::runSingleCycle(double timestamp) {
         [](const std::string& message) { Logger::error(message); },
         timestamp,
         emergency_->isStable()
-    });
+    };
+}
 
-    if (!pipeline.continueCycle) {
-        finishCycle(false, pipeline.emergencyActive, pipeline.stopReason);
-        ++cycleCounter_;
-        return;
-    }
-
-    frame = pipeline.sensoryFrame;
-    SafetyDecision fusedSafetyDecision = pipeline.fusedSafetyDecision;
-
-    replay_.record({clean, timestamp});
-
-    RuntimeMetricsSnapshot fullDiveMetricsSnapshot;
-    {
-        std::lock_guard<std::mutex> lock(metricsMutex_);
-        fullDiveMetricsSnapshot = runtimeMetrics_.snapshot();
-    }
-    pipeline = RuntimeFullDiveStage::execute(std::move(pipeline), RuntimeFullDiveStage::Input{
+RuntimeFullDiveStage::Input RuntimeController::makeFullDiveStageInput(const RuntimeMetricsSnapshot& snapshot) {
+    return RuntimeFullDiveStage::Input{
         [this](const FullDiveRuntimeInput& input) { fullDiveSynchronization_->updateFromRuntime(input); },
         [this]() { return fullDiveBridge_->evaluateAndRemember(*fullDiveSynchronization_); },
         [this](const FullDiveRuntimeSnapshot& snapshot, const SafetyDecision& decision) {
@@ -610,24 +505,16 @@ void RuntimeController::runSingleCycle(double timestamp) {
         },
         [this]() { emergency_->trigger(); },
         [this](const std::vector<float>& sensoryFrame) { return reversibility_->runDecompression(sensoryFrame); },
-        fullDiveMetricsSnapshot
-    });
+        snapshot
+    };
+}
 
-    if (!pipeline.continueCycle) {
-        finishCycle(false, pipeline.emergencyActive, pipeline.stopReason);
-        ++cycleCounter_;
-        return;
-    }
-
-    frame = pipeline.sensoryFrame;
-    fusedSafetyDecision = pipeline.fusedSafetyDecision;
-
-    const auto tRender = std::chrono::steady_clock::now();
-    pipeline.sensoryFrame = frame;
-    pipeline.fusedSafetyDecision = fusedSafetyDecision;
-    pipeline = RuntimeRenderStage::execute(std::move(pipeline), RuntimeRenderStage::Input{
+RuntimeRenderStage::Input RuntimeController::makeRenderStageInput(
+    const std::chrono::steady_clock::time_point& renderStart,
+    SchedulerTickReport& tickReport) {
+    return RuntimeRenderStage::Input{
         [this](const std::vector<float>& sensoryFrame) { renderer_->present(sensoryFrame); },
-        [this, &tRender, &tickReport]() { return scheduler_.endTask(RuntimeRenderStage::name(), tRender, tickReport); },
+        [this, &renderStart, &tickReport]() { return scheduler_.endTask(RuntimeRenderStage::name(), renderStart, tickReport); },
         [this]() { ++droppedFrames_; },
         [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("renderer"); },
         [this](double latencyMs, bool neuralSignalValid, float biometricRisk, float driftScore) {
@@ -645,28 +532,11 @@ void RuntimeController::runSingleCycle(double timestamp) {
         [](const std::string& message) { Logger::warn(message); },
         [](const std::string& message) { Logger::error(message); },
         tickReport.totalMs
-    });
+    };
+}
 
-    if (!pipeline.continueCycle) {
-        finishCycle(false, pipeline.emergencyActive, pipeline.stopReason);
-        ++cycleCounter_;
-        return;
-    }
-
-    frame = pipeline.sensoryFrame;
-    fusedSafetyDecision = pipeline.fusedSafetyDecision;
-
-    pipeline.sensoryFrame = frame;
-    pipeline.fusedSafetyDecision = fusedSafetyDecision;
-    pipeline.stimulusStatus = RuntimeStimulusStage::validate(
-        stimulusEnvelope_ != nullptr && neuralChipHal_ != nullptr,
-        "stimulus_stage_unavailable");
-    if (!pipeline.stimulusStatus.continueCycle) {
-        finishCycle(false, pipeline.stimulusStatus.emergencyActive, pipeline.stimulusStatus.reason);
-        ++cycleCounter_;
-        return;
-    }
-    pipeline = RuntimeStimulusStage::execute(std::move(pipeline), RuntimeStimulusStage::Input{
+RuntimeStimulusStage::Input RuntimeController::makeStimulusStageInput() {
+    return RuntimeStimulusStage::Input{
         [this](std::uint64_t cycleId, const std::vector<float>& sensoryFrame, const SafetyDecision& decision, double deltaSeconds) {
             return stimulusEnvelope_->buildCommand(cycleId, sensoryFrame, decision, deltaSeconds);
         },
@@ -675,7 +545,120 @@ void RuntimeController::runSingleCycle(double timestamp) {
         [this](const std::string& reason) { neuralChipHal_->emergencyStop(reason); },
         [this](const std::vector<float>& sensoryFrame) { return bridge_->downlink(sensoryFrame); },
         [this](const std::vector<float>& downlinkFrame) { nodes_->writeNeuralStimulus(downlinkFrame); }
-    });
+    };
+}
+
+void RuntimeController::runSingleCycle(double timestamp) {
+    const auto cycleStart = std::chrono::steady_clock::now();
+    const double runtimeDeltaSeconds = computeCycleDeltaSeconds(cycleStart);
+    SchedulerTickReport tickReport = scheduler_.beginTick();
+    const RuntimeCycleFinalizer::Input finalizerInput = makeCycleFinalizerInput();
+    auto finishCycle = [&](bool safeDecision, bool emergencyActive, const std::string& reason, bool budgetWarning = false) {
+        return RuntimeCycleFinalizer::finish(
+            tickReport,
+            safeDecision,
+            emergencyActive,
+            reason,
+            finalizerInput,
+            budgetWarning);
+    };
+
+    RuntimeStageContext stageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds};
+    RuntimePipelineFrame pipeline;
+
+    // Stage 1 — acquisition biométrique + signaux neuronaux.
+    const auto tAcq = std::chrono::steady_clock::now();
+    pipeline = RuntimeAcquisitionStage::execute(stageContext, makeAcquisitionStageInput());
+    scheduler_.endTask(RuntimeAcquisitionStage::name(), tAcq, tickReport);
+    if (!pipeline.continueCycle) {
+        if (pipeline.emergencyActive) {
+            emergency_->trigger();
+            Logger::warn("⚠️  Physiological guard triggered.");
+            finishCycle(false, true, pipeline.stopReason);
+            throttleEmergency();
+            return;
+        }
+        Logger::warn("⚠️  Empty neural signal frame.");
+        finishCycle(false, pipeline.acquisitionStatus.emergencyActive, pipeline.stopReason);
+        return;
+    }
+
+    // Stage 2 — transport simulation, uplink, débruitage et vectorisation.
+    const auto tSignal = std::chrono::steady_clock::now();
+    pipeline = RuntimeSignalStage::execute(std::move(pipeline), makeSignalStageInput());
+    scheduler_.endTask(RuntimeSignalStage::name(), tSignal, tickReport);
+    if (!pipeline.continueCycle) {
+        finishCycle(false, pipeline.signalStatus.emergencyActive, pipeline.stopReason);
+        return;
+    }
+
+    pipeline.normalizedTelemetryRisk = normalizedTelemetryRiskVector(pipeline.telemetry);
+
+    // Stage 3 — inférence symbolique + inférence full-immersion et diagnostics.
+    const auto tInference = std::chrono::steady_clock::now();
+    pipeline = RuntimeInferenceStage::execute(std::move(pipeline), makeInferenceStageInput());
+    const bool inferenceOk = scheduler_.endTask(RuntimeInferenceStage::name(), tInference, tickReport);
+
+    if (!inferenceOk) {
+        ++droppedFrames_;
+        Logger::warn("⚠️ Inference budget exceeded — frame degraded, skipping render. task=inference");
+        finishCycle(true, false, "inference_budget_exceeded");
+        return;
+    }
+
+    publishPipelineState(pipeline);
+
+    pipeline = RuntimeCalibrationStage::execute(std::move(pipeline), makeCalibrationStageInput());
+
+    if (!pipeline.continueCycle) {
+        finishCycle(false, pipeline.calibrationStatus.emergencyActive, pipeline.stopReason);
+        return;
+    }
+
+    pipeline = RuntimeImmersionFrameStage::execute(std::move(pipeline), makeImmersionFrameStageInput(timestamp));
+
+    if (!pipeline.continueCycle) {
+        finishCycle(false, pipeline.immersionFrameStatus.emergencyActive, pipeline.stopReason);
+        return;
+    }
+
+    pipeline = RuntimeSafetyStage::execute(std::move(pipeline), makeSafetyStageInput(timestamp));
+
+    if (!pipeline.continueCycle) {
+        finishCycle(false, pipeline.emergencyActive, pipeline.stopReason);
+        return;
+    }
+
+    replay_.record({pipeline.cleanSignals, timestamp});
+
+    RuntimeMetricsSnapshot fullDiveMetricsSnapshot;
+    {
+        std::lock_guard<std::mutex> lock(metricsMutex_);
+        fullDiveMetricsSnapshot = runtimeMetrics_.snapshot();
+    }
+    pipeline = RuntimeFullDiveStage::execute(std::move(pipeline), makeFullDiveStageInput(fullDiveMetricsSnapshot));
+
+    if (!pipeline.continueCycle) {
+        finishCycle(false, pipeline.emergencyActive, pipeline.stopReason);
+        return;
+    }
+
+    const auto tRender = std::chrono::steady_clock::now();
+    pipeline = RuntimeRenderStage::execute(std::move(pipeline), makeRenderStageInput(tRender, tickReport));
+
+    if (!pipeline.continueCycle) {
+        finishCycle(false, pipeline.emergencyActive, pipeline.stopReason);
+        return;
+    }
+
+    pipeline.stimulusStatus = RuntimeStimulusStage::validate(
+        stimulusEnvelope_ != nullptr && neuralChipHal_ != nullptr,
+        "stimulus_stage_unavailable");
+    if (!pipeline.stimulusStatus.continueCycle) {
+        finishCycle(false, pipeline.stimulusStatus.emergencyActive, pipeline.stimulusStatus.reason);
+        return;
+    }
+    pipeline = RuntimeStimulusStage::execute(std::move(pipeline), makeStimulusStageInput());
 
     if (!pipeline.continueCycle) {
         if (pipeline.stopReason == "unsafe_stimulus_rejected") {
@@ -688,23 +671,10 @@ void RuntimeController::runSingleCycle(double timestamp) {
                           rejectionAudit.eventHash);
         }
         finishCycle(false, pipeline.emergencyActive, pipeline.stopReason);
-        ++cycleCounter_;
         return;
     }
 
-    const RuntimeMetricsSnapshot metricsSnapshot = finishCycle(true, false, "nominal_runtime");
-
-    if (!tickReport.withinBudget) {
-        ++droppedFrames_;
-        Logger::warn("⚠️ Runtime frame budget exceeded total_ms="
-                     + std::to_string(tickReport.totalMs)
-                     + " jitter_ms=" + std::to_string(tickReport.jitterMs)
-                     + " over_budget_tasks=" + std::to_string(tickReport.overBudgetTaskCount)
-                     + " p99_ms=" + std::to_string(metricsSnapshot.p99LatencyMs)
-                     + " latency_health=" + runtimeLatencyHealthToString(metricsSnapshot.latencyHealth));
-    }
-
-    ++cycleCounter_;
+    finishCycle(true, false, "nominal_runtime", true);
 }
 
 void RuntimeController::run() {
