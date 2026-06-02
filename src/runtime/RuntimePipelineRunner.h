@@ -21,6 +21,8 @@
 
 namespace dnxr {
 
+struct RuntimeStageServices;
+
 class RuntimePipelineRunner {
 public:
     struct StageInputs {
@@ -48,6 +50,7 @@ public:
         std::function<void(const std::string&)> logError;
         std::function<void()> recordDroppedFrame;
         std::function<void(const SafeNeuralStimulusCommand&)> auditRejectedStimulus;
+        RuntimeStageServices* services = nullptr;
     };
 
     RuntimePipelineFrame run(const RunInput& input) const;

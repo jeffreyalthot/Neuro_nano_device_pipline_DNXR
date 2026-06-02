@@ -29,6 +29,7 @@
 #include "../runtime/RuntimeCalibrationStage.h"
 #include "../runtime/RuntimeImmersionFrameStage.h"
 #include "../runtime/RuntimePipelineRunner.h"
+#include "../runtime/RuntimeStageServices.h"
 
 namespace dnxr {
 
@@ -41,6 +42,7 @@ public:
 
     /// Effectue un cycle complet de traitement (1 frame).
     void runSingleCycle(double timestamp);
+    RuntimePipelineFrame runDeterministicCycle(double timestamp);
 
     /// Lance la boucle continue.
     void run();
@@ -87,6 +89,7 @@ private:
         const std::chrono::steady_clock::time_point& renderStart,
         SchedulerTickReport& tickReport);
     RuntimeStimulusStage::Input makeStimulusStageInput();
+    RuntimeStageServices makeRuntimeStageServices();
 
     // Initialisation centralisée des modules
     void initializeModules();

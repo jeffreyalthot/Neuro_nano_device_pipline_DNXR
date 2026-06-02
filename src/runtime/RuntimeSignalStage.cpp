@@ -1,5 +1,11 @@
 #include "RuntimeSignalStage.h"
 
+#include "RuntimeStageServices.h"
+#include "../devices/HostComputerBridge.h"
+#include "../safety/IndependentWatchdog.h"
+#include "../signal/FeatureVectorizer.h"
+#include "../signal/SignalStreamProcessor.h"
+
 namespace dnxr {
 
 const char* RuntimeSignalStage::name() {
@@ -27,6 +33,26 @@ RuntimePipelineFrame RuntimeSignalStage::execute(RuntimePipelineFrame frame, con
     if (input.heartbeatSignalProcessing) {
         input.heartbeatSignalProcessing();
     }
+    frame.signalStatus = validate(!frame.features.empty(), "empty_feature_vector");
+    frame.continueCycle = frame.signalStatus.continueCycle;
+    if (!frame.continueCycle) {
+        frame.stopReason = frame.signalStatus.reason;
+    }
+    return frame;
+}
+
+RuntimePipelineFrame RuntimeSignalStage::execute(RuntimePipelineFrame frame, RuntimeStageServices& services) {
+    if (!frame.continueCycle) {
+        return frame;
+    }
+
+    const auto encrypted = services.crypto.encrypt(frame.rawNeuralSignals, services.neuralTransportSecret.value);
+    const auto decrypted = services.crypto.decrypt(encrypted, services.neuralTransportSecret.value);
+    const auto uplinked = services.bridge.uplink(decrypted.empty() ? frame.rawNeuralSignals : decrypted);
+    frame.cleanSignals = services.dsp.denoise(uplinked);
+    frame.features = services.vectorizer.vectorize(frame.cleanSignals);
+    services.watchdog.heartbeat("signal_processing");
+
     frame.signalStatus = validate(!frame.features.empty(), "empty_feature_vector");
     frame.continueCycle = frame.signalStatus.continueCycle;
     if (!frame.continueCycle) {

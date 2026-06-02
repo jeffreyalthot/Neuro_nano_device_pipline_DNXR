@@ -9,6 +9,8 @@
 
 namespace dnxr {
 
+class RuntimeStageServices;
+
 class RuntimeInferenceStage {
 public:
     struct Input {
@@ -25,6 +27,7 @@ public:
     static bool isValidCognitiveState(const CognitiveState& cognitive);
     static bool isValidDiagnostics(const NeuroPipelineDiagnostics& diagnostics);
     static RuntimePipelineFrame execute(RuntimePipelineFrame frame, const Input& input);
+    static RuntimePipelineFrame execute(RuntimePipelineFrame frame, RuntimeStageServices& services);
 };
 
 } // namespace dnxr

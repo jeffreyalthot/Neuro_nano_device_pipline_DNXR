@@ -530,7 +530,39 @@ RuntimeStimulusStage::Input RuntimeController::makeStimulusStageInput() {
     };
 }
 
-void RuntimeController::runSingleCycle(double timestamp) {
+RuntimeStageServices RuntimeController::makeRuntimeStageServices() {
+    return RuntimeStageServices{
+        *nodes_,
+        *bridge_,
+        *headset_,
+        *dsp_,
+        *vec_,
+        *brain_,
+        *calib_,
+        *calibrationDriftMonitor_,
+        *immersion_,
+        *multisensoryClock_,
+        *renderer_,
+        *guard_,
+        *emergency_,
+        *reversibility_,
+        *realityAnchor_,
+        *thermalOptimizer_,
+        *safetyGovernor_,
+        *safetyStateMachine_,
+        *independentWatchdog_,
+        *stimulusEnvelope_,
+        *neuralChipHal_,
+        *deepImmersion_,
+        *fullDiveSynchronization_,
+        *fullDiveBridge_,
+        *safetyJournal_,
+        crypto_,
+        neuralTransportSecret_,
+        identityVault_};
+}
+
+RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) {
     const auto cycleStart = std::chrono::steady_clock::now();
     const double runtimeDeltaSeconds = computeCycleDeltaSeconds(cycleStart);
     SchedulerTickReport tickReport = scheduler_.beginTick();
@@ -544,14 +576,14 @@ void RuntimeController::runSingleCycle(double timestamp) {
     RuntimePipelineRunner::RunInput input{
         RuntimeStageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds},
         RuntimePipelineRunner::StageInputs{
-            makeAcquisitionStageInput(),
-            makeSignalStageInput(),
-            makeInferenceStageInput(),
-            makeCalibrationStageInput(),
-            makeImmersionFrameStageInput(timestamp),
+            RuntimeAcquisitionStage::Input{},
+            RuntimeSignalStage::Input{},
+            RuntimeInferenceStage::Input{},
+            RuntimeCalibrationStage::Input{},
+            RuntimeImmersionFrameStage::Input{},
             makeSafetyStageInput(timestamp),
             makeFullDiveStageInput(fullDiveMetricsSnapshot),
-            makeStimulusStageInput(),
+            RuntimeStimulusStage::Input{},
             makeCycleFinalizerInput()},
         tickReport,
         [this](SchedulerTickReport& report) { return makeRenderStageInput(std::chrono::steady_clock::now(), report); },
@@ -572,7 +604,13 @@ void RuntimeController::runSingleCycle(double timestamp) {
                           rejectionAudit.eventHash);
         }};
 
-    pipelineRunner_->run(input);
+    RuntimeStageServices services = makeRuntimeStageServices();
+    input.services = &services;
+    return pipelineRunner_->run(input);
+}
+
+void RuntimeController::runSingleCycle(double timestamp) {
+    (void)runDeterministicCycle(timestamp);
 }
 
 void RuntimeController::run() {
