@@ -141,10 +141,14 @@ if(DNXR_BUILD_TESTS)
         dnxr_runtime_calibration_stage_test
         dnxr_runtime_immersion_frame_stage_test
         dnxr_runtime_cycle_finalizer_test
+        dnxr_runtime_callback_ref_test
         dnxr_runtime_pipeline_runner_test
         dnxr_runtime_pipeline_services_only_test
+        dnxr_runtime_pipeline_sink_refs_test
+        dnxr_runtime_pipeline_run_input_ref_test
         dnxr_runtime_pipeline_legacy_input_test
         dnxr_runtime_controller_pipeline_smoke_test
+        dnxr_runtime_controller_no_allocation_smoke_test
         dnxr_runtime_controller_pipeline_10k_cycles_test
         dnxr_runtime_controller_pipeline_memory_growth_test
         dnxr_runtime_controller_jitter_budget_test
@@ -183,10 +187,14 @@ if(DNXR_BUILD_TESTS)
     set_tests_properties(dnxr_runtime_calibration_stage_test PROPERTIES LABELS "unit;runtime;stage")
     set_tests_properties(dnxr_runtime_immersion_frame_stage_test PROPERTIES LABELS "unit;runtime;stage")
     set_tests_properties(dnxr_runtime_cycle_finalizer_test PROPERTIES LABELS "unit;runtime")
+    set_tests_properties(dnxr_runtime_callback_ref_test PROPERTIES LABELS "unit;runtime;callback")
     set_tests_properties(dnxr_runtime_pipeline_runner_test PROPERTIES LABELS "unit;runtime;stage")
     set_tests_properties(dnxr_runtime_pipeline_services_only_test PROPERTIES LABELS "unit;runtime;services")
+    set_tests_properties(dnxr_runtime_pipeline_sink_refs_test PROPERTIES LABELS "unit;runtime;sinks")
+    set_tests_properties(dnxr_runtime_pipeline_run_input_ref_test PROPERTIES LABELS "unit;runtime;services")
     set_tests_properties(dnxr_runtime_pipeline_legacy_input_test PROPERTIES LABELS "unit;runtime;legacy")
     set_tests_properties(dnxr_runtime_controller_pipeline_smoke_test PROPERTIES LABELS "unit;runtime;controller")
+    set_tests_properties(dnxr_runtime_controller_no_allocation_smoke_test PROPERTIES LABELS "unit;runtime;controller;memory")
     set_tests_properties(dnxr_runtime_controller_pipeline_10k_cycles_test PROPERTIES LABELS "long_simulated;runtime;controller")
     if(NOT DNXR_ENABLE_CONTROLLER_10K_TEST)
         set_tests_properties(dnxr_runtime_controller_pipeline_10k_cycles_test PROPERTIES DISABLED TRUE)

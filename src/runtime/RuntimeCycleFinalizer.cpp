@@ -3,6 +3,7 @@
 namespace dnxr {
 namespace {
 
+template <typename PublishRuntimeMetricsCallback, typename LogWarnCallback>
 RuntimeMetricsSnapshot finishWithCallbacks(
     SchedulerTickReport& tickReport,
     NeuroRealtimeScheduler& scheduler,
@@ -12,8 +13,8 @@ RuntimeMetricsSnapshot finishWithCallbacks(
     std::mutex& traceMutex,
     std::atomic<std::uint64_t>& cycleCounter,
     std::atomic<std::uint64_t>& droppedFrames,
-    const RuntimeCallback<void(const RuntimeMetricsSnapshot&)>& publishRuntimeMetrics,
-    const RuntimeCallback<void(const std::string&)>& logWarn,
+    PublishRuntimeMetricsCallback&& publishRuntimeMetrics,
+    LogWarnCallback&& logWarn,
     bool safeDecision,
     bool emergencyActive,
     const std::string& reason,
@@ -89,6 +90,32 @@ RuntimeMetricsSnapshot RuntimeCycleFinalizer::finish(
     const RuntimePipelineFrame& frame,
     RuntimeStageServices& services,
     RuntimePipelineSinks& sinks,
+    const Context& context,
+    const Options& options) {
+    (void)frame;
+    (void)services;
+    return finishWithCallbacks(
+        tickReport,
+        context.scheduler,
+        context.metrics,
+        context.traceRecorder,
+        context.metricsMutex,
+        context.traceMutex,
+        context.cycleCounter,
+        context.droppedFrames,
+        sinks.publishRuntimeMetrics,
+        sinks.logWarn,
+        options.safeDecision,
+        options.emergencyActive,
+        options.reason,
+        options.emitBudgetWarning);
+}
+
+RuntimeMetricsSnapshot RuntimeCycleFinalizer::finish(
+    SchedulerTickReport& tickReport,
+    const RuntimePipelineFrame& frame,
+    RuntimeStageServices& services,
+    RuntimePipelineSinkRefs sinks,
     const Context& context,
     const Options& options) {
     (void)frame;

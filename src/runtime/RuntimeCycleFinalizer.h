@@ -3,6 +3,7 @@
 #include "RuntimeCallback.h"
 #include "RuntimePipelineFrame.h"
 #include "RuntimePipelineSinks.h"
+#include "RuntimePipelineSinkRefs.h"
 #include "RuntimeStageServices.h"
 #include "../core/NeuroRealtimeScheduler.h"
 #include "../utils/RuntimeMetrics.h"
@@ -60,6 +61,14 @@ public:
         const RuntimePipelineFrame& frame,
         RuntimeStageServices& services,
         RuntimePipelineSinks& sinks,
+        const Context& context,
+        const Options& options);
+
+    static RuntimeMetricsSnapshot finish(
+        SchedulerTickReport& tickReport,
+        const RuntimePipelineFrame& frame,
+        RuntimeStageServices& services,
+        RuntimePipelineSinkRefs sinks,
         const Context& context,
         const Options& options);
 };

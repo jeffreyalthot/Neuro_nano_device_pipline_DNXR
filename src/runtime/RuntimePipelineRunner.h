@@ -7,6 +7,7 @@
 #include "RuntimeImmersionFrameStage.h"
 #include "RuntimeInferenceStage.h"
 #include "RuntimeRenderStage.h"
+#include "RuntimePipelineSinkRefs.h"
 #include "RuntimePipelineSinks.h"
 #include "RuntimeSafetyStage.h"
 #include "RuntimeSignalStage.h"
@@ -45,7 +46,7 @@ public:
         RuntimePipelineSinks sinks;
     };
 
-    using RunInput = LegacyRunInput;
+    using RunInput [[deprecated("Use RuntimePipelineRunInput or LegacyRunInput explicitly")]] = LegacyRunInput;
 
     struct RuntimePipelineRunInput {
         RuntimeStageContext context;
@@ -56,7 +57,17 @@ public:
         RuntimeCycleFinalizer::Context finalizer;
     };
 
+    struct RuntimePipelineRunInputRef {
+        RuntimeStageContext context;
+        SchedulerTickReport& tickReport;
+        RuntimeStageServices& services;
+        RuntimePipelineSinkRefs sinks;
+        RuntimeMetricsSnapshot runtimeMetricsSnapshot;
+        RuntimeCycleFinalizer::Context finalizer;
+    };
+
     RuntimePipelineFrame run(const RuntimePipelineRunInput& input) const;
+    RuntimePipelineFrame run(const RuntimePipelineRunInputRef& input) const;
     RuntimePipelineFrame runLegacy(const LegacyRunInput& input) const;
     RuntimePipelineFrame run(const LegacyRunInput& input) const;
 
@@ -72,7 +83,7 @@ private:
     static void finishModernCycle(RuntimePipelineFrame& frame,
                                   SchedulerTickReport& tickReport,
                                   RuntimeStageServices& services,
-                                  RuntimePipelineSinks& sinks,
+                                  RuntimePipelineSinkRefs sinks,
                                   const RuntimeCycleFinalizer::Context& finalizer,
                                   bool safeDecision,
                                   bool emergencyActive,
