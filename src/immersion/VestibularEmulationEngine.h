@@ -61,8 +61,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using VestibularState = ::dnxr::VestibularState;
-using VestibularEmulationEngine = ::dnxr::VestibularEmulationEngine;
-}

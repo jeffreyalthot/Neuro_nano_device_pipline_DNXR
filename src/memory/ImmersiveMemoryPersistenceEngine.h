@@ -124,10 +124,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using MemoryType = ::dnxr::MemoryType;
-using MemoryFragment = ::dnxr::MemoryFragment;
-using MemoryState = ::dnxr::MemoryState;
-using ImmersiveMemoryPersistenceEngine = ::dnxr::ImmersiveMemoryPersistenceEngine;
-}

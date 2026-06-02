@@ -97,10 +97,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using NeuralDeviceStatus = ::dnxr::NeuralDeviceStatus;
-using NeuralElectrodeSignal = ::dnxr::NeuralElectrodeSignal;
-using NeuralDeviceFrame = ::dnxr::NeuralDeviceFrame;
-using NeuralLinkDeviceInterface = ::dnxr::NeuralLinkDeviceInterface;
-}

@@ -52,8 +52,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using SyntheticPerceptionFrame = ::dnxr::SyntheticPerceptionFrame;
-using NeuralPerceptionSynthesizer = ::dnxr::NeuralPerceptionSynthesizer;
-}

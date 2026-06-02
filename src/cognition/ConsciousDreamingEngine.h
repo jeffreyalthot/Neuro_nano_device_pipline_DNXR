@@ -123,10 +123,3 @@ private:
 };
 
 }
-namespace neuroxr {
-using DreamLayer = ::dnxr::DreamLayer;
-using DreamSignal = ::dnxr::DreamSignal;
-using DreamSequence = ::dnxr::DreamSequence;
-using DreamingState = ::dnxr::DreamingState;
-using ConsciousDreamingEngine = ::dnxr::ConsciousDreamingEngine;
-}

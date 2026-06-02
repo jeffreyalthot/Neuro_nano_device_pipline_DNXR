@@ -66,9 +66,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using ContinuityFrame = ::dnxr::ContinuityFrame;
-using SubjectiveState = ::dnxr::SubjectiveState;
-using SubjectiveContinuityEngine = ::dnxr::SubjectiveContinuityEngine;
-}

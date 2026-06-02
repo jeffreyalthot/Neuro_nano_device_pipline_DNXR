@@ -138,6 +138,7 @@ if(DNXR_BUILD_TESTS)
         dnxr_runtime_calibration_stage_test
         dnxr_runtime_immersion_frame_stage_test
         dnxr_runtime_cycle_finalizer_test
+        dnxr_runtime_pipeline_runner_test
         dnxr_runtime_safety_stage_test
         dnxr_runtime_full_dive_stage_test
         dnxr_runtime_render_stage_test
@@ -172,6 +173,7 @@ if(DNXR_BUILD_TESTS)
     set_tests_properties(dnxr_runtime_calibration_stage_test PROPERTIES LABELS "unit;runtime;stage")
     set_tests_properties(dnxr_runtime_immersion_frame_stage_test PROPERTIES LABELS "unit;runtime;stage")
     set_tests_properties(dnxr_runtime_cycle_finalizer_test PROPERTIES LABELS "unit;runtime")
+    set_tests_properties(dnxr_runtime_pipeline_runner_test PROPERTIES LABELS "unit;runtime;stage")
     set_tests_properties(dnxr_runtime_safety_stage_test PROPERTIES LABELS "unit;runtime;stage;safety")
     set_tests_properties(dnxr_runtime_full_dive_stage_test PROPERTIES LABELS "unit;runtime;stage;full_dive")
     set_tests_properties(dnxr_runtime_render_stage_test PROPERTIES LABELS "unit;runtime;stage")

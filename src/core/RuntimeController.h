@@ -28,6 +28,7 @@
 #include "../runtime/RuntimeInferenceStage.h"
 #include "../runtime/RuntimeCalibrationStage.h"
 #include "../runtime/RuntimeImmersionFrameStage.h"
+#include "../runtime/RuntimePipelineRunner.h"
 
 namespace dnxr {
 
@@ -136,6 +137,7 @@ private:
     std::unique_ptr<class DeepImmersionPlatform> deepImmersion_;
     std::unique_ptr<dnxr::FullDiveSynchronizationEngine> fullDiveSynchronization_;
     std::unique_ptr<class FullDiveSafetyBridge> fullDiveBridge_;
+    std::unique_ptr<RuntimePipelineRunner> pipelineRunner_;
 
     mutable std::mutex mtx_;
 };

@@ -81,10 +81,3 @@ private:
 };
 
 }
-
-namespace neuroxr {
-using ConsciousnessLayer = ::dnxr::ConsciousnessLayer;
-using ConsciousnessSignal = ::dnxr::ConsciousnessSignal;
-using ConsciousnessState = ::dnxr::ConsciousnessState;
-using ConsciousnessBridge = ::dnxr::ConsciousnessBridge;
-}
