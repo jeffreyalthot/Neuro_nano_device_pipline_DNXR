@@ -542,212 +542,119 @@ void RuntimeController::runSingleCycle(double timestamp) {
                      " scale=" + std::to_string(sensorySync.recommendedIntensityScale));
     }
 
-    const RuntimeStageStatus safetyStageStatus = RuntimeSafetyStage::validate(true, "safety_stage_unhealthy");
-    (void)safetyStageStatus;
+    pipeline.calibrationDrift = calibrationDrift;
 
-    const SafetyDecision safetyDecision = safetyGovernor_->evaluate({
-        normalizedRiskTelemetry,
-        frame,
-        state,
-        cognitive,
-        bio,
-        diag
+    pipeline = RuntimeSafetyStage::execute(std::move(pipeline), RuntimeSafetyStage::Input{
+        [this](const SafetyGovernorInput& input) { return safetyGovernor_->evaluate(input); },
+        [this](const std::string& category, const std::string& message, float riskScore, const SessionAuditMetadata& metadata) {
+            return safetyJournal_->record(category, message, riskScore, metadata);
+        },
+        [this](const SafetyDecision& decision) {
+            return safetyStateMachine_ ? safetyStateMachine_->observeSafetyDecision(decision) : SafetyStateTransition{};
+        },
+        [this](const RealityAnchorContext& context, const SafetyDecision& decision) {
+            return realityAnchor_->evaluate(context, decision);
+        },
+        [this](const RealityAnchorPlan& plan) {
+            return safetyStateMachine_ ? safetyStateMachine_->observeRealityAnchorPlan(plan) : SafetyStateTransition{};
+        },
+        [this](const std::vector<float>& sensoryFrame, const SafetyDecision& decision) {
+            return safetyGovernor_->applyDecisionToFrame(sensoryFrame, decision);
+        },
+        [this](const std::vector<float>& sensoryFrame, const RealityAnchorPlan& plan) {
+            return realityAnchor_->applyPlanToFrame(sensoryFrame, plan);
+        },
+        [this](const std::vector<float>& sensoryFrame, float immersionIndex) {
+            return thermalOptimizer_->optimize(sensoryFrame, immersionIndex);
+        },
+        [this](const std::vector<float>& riskTelemetry) {
+            return reversibility_->shouldStartReturnToReality(riskTelemetry);
+        },
+        [this](const std::vector<float>& sensoryFrame) { return reversibility_->runDecompression(sensoryFrame); },
+        [this]() { emergency_->trigger(); },
+        [](const std::string& message) { Logger::warn(message); },
+        [](const std::string& message) { Logger::error(message); },
+        timestamp,
+        emergency_->isStable()
     });
 
-    pipeline.safetyDecision = safetyDecision;
-
-    const auto safetyAudit = safetyJournal_->record(
-        "safety_decision",
-        safetyDecision.reason + "|" + safetyDecision.auditRecord,
-        safetyDecision.riskScore);
-
-    if (safetyStateMachine_) {
-        const SafetyStateTransition safetyTransition = safetyStateMachine_->observeSafetyDecision(safetyDecision);
-        if (safetyTransition.latched) {
-            emergency_->trigger();
-            finishCycle(false, true, "safety_state_machine:" + safetyTransition.reason);
-            ++cycleCounter_;
-            return;
-        }
-    }
-
-    if (safetyDecision.requiresEmergencyStop || !safetyDecision.allowRender) {
-        emergency_->trigger();
-        Logger::error("[SafetyGovernor] Emergency stop before render | " +
-                      safetyDecision.reason + " | " + safetyDecision.auditRecord +
-                      " | journal=" + safetyAudit.eventHash);
-        finishCycle(false, true, "safety_governor:" + safetyDecision.reason);
+    if (!pipeline.continueCycle) {
+        finishCycle(false, pipeline.emergencyActive, pipeline.stopReason);
         ++cycleCounter_;
         return;
     }
 
-    RealityAnchorContext anchorContext;
-    anchorContext.userAlias = "runtime_user";
-    anchorContext.sessionId = "runtime_session";
-    anchorContext.realEnvironmentLabel = "simulation_lab";
-    anchorContext.sessionElapsedSeconds = timestamp;
-    anchorContext.consentActive = diag.autonomyPreservation >= 0.20f;
-    anchorContext.emergencyActive = !emergency_->isStable();
-    anchorContext.identityContinuity = diag.autonomyPreservation;
-    anchorContext.temporalOrientation = cognitive.attention;
-    anchorContext.realWorldOrientation = bio.postureStability;
-    anchorContext.sensoryOverload = std::max(
-        std::max(
-            std::clamp(cognitive.stress + cognitive.fatigue, 0.0f, 1.0f),
-            sensorySync.degradationApplied ? 1.0f - sensorySync.recommendedIntensityScale : 0.0f),
-        calibrationDrift.blockCriticalActions ? calibrationDrift.driftScore : 0.0f);
-
-    const RealityAnchorPlan anchorPlan = realityAnchor_->evaluate(anchorContext, safetyDecision);
-    pipeline.realityAnchorPlan = anchorPlan;
-
-    if (safetyStateMachine_) {
-        const SafetyStateTransition anchorTransition = safetyStateMachine_->observeRealityAnchorPlan(anchorPlan);
-        if (anchorTransition.latched) {
-            emergency_->trigger();
-            safetyJournal_->record(
-                "reality_anchor_state_transition",
-                anchorTransition.reason,
-                anchorPlan.riskScore);
-            finishCycle(false, true, "safety_state_machine:" + anchorTransition.reason);
-            ++cycleCounter_;
-            return;
-        }
-    }
-
-    if (anchorPlan.requiresEmergencyStop || !anchorPlan.allowRender) {
-        emergency_->trigger();
-        const auto anchorAudit = safetyJournal_->record(
-            "reality_anchor_stop",
-            anchorPlan.traceTag + "|" + anchorPlan.recoveryAction,
-            anchorPlan.riskScore);
-        Logger::error("[RealityAnchorSystem] Emergency anchor before render | " +
-                      anchorPlan.traceTag + " | journal=" + anchorAudit.eventHash);
-        finishCycle(false, true, anchorPlan.traceTag);
-        ++cycleCounter_;
-        return;
-    }
-
-    frame = safetyGovernor_->applyDecisionToFrame(frame, safetyDecision);
-    frame = realityAnchor_->applyPlanToFrame(frame, anchorPlan);
-    if (safetyDecision.action != SafetyAction::Continue || anchorPlan.mode != RealityAnchorMode::Maintain) {
-        Logger::warn("[SafetyGovernor] action=" + safetyDecision.reason +
-                     " risk=" + std::to_string(safetyDecision.riskScore) +
-                     " scale=" + std::to_string(safetyDecision.intensityScale) +
-                     " anchor=" + anchorPlan.traceTag);
-    }
-
-    frame = thermalOptimizer_->optimize(frame, cognitive.immersionIndex);
-
-    if (safetyDecision.action == SafetyAction::Decompress ||
-        safetyDecision.action == SafetyAction::RealityAnchor ||
-        anchorPlan.mode == RealityAnchorMode::RealityAnchor ||
-        reversibility_->shouldStartReturnToReality(normalizedRiskTelemetry)) {
-        frame = reversibility_->runDecompression(frame);
-        Logger::warn("[CognitiveReversibility] Return-to-reality decompression applied. anchor=" +
-                     anchorPlan.traceTag);
-    }
+    frame = pipeline.sensoryFrame;
+    SafetyDecision fusedSafetyDecision = pipeline.fusedSafetyDecision;
 
     replay_.record({clean, timestamp});
 
-    SafetyDecision fusedSafetyDecision = safetyDecision;
-    pipeline.fusedSafetyDecision = fusedSafetyDecision;
-
-    const RuntimeStageStatus fullDiveStageStatus = RuntimeFullDiveStage::validate(fullDiveSynchronization_ != nullptr && fullDiveBridge_ != nullptr, "full_dive_stage_disabled");
-    (void)fullDiveStageStatus;
-
-    if (fullDiveSynchronization_ && fullDiveBridge_) {
-        RuntimeMetricsSnapshot metricsSnapshot;
-        {
-            std::lock_guard<std::mutex> lock(metricsMutex_);
-            metricsSnapshot = runtimeMetrics_.snapshot();
-        }
-        FullDiveRuntimeInput fullDiveInput;
-        fullDiveInput.cognitive = cognitive;
-        fullDiveInput.biometric = bio;
-        fullDiveInput.diagnostics = diag;
-        fullDiveInput.calibrationDrift = calibrationDrift;
-        fullDiveInput.safetyDecision = fusedSafetyDecision;
-        fullDiveInput.realityAnchorPlan = anchorPlan;
-        fullDiveInput.sensorySync = sensorySync;
-        fullDiveInput.runtimeMetrics = metricsSnapshot;
-        fullDiveInput.deltaTimeSeconds = runtimeDeltaSeconds;
-        fullDiveSynchronization_->updateFromRuntime(fullDiveInput);
-
-        const auto fullDiveSnapshot = fullDiveBridge_->evaluateAndRemember(*fullDiveSynchronization_);
-        pipeline.fullDiveSnapshot = fullDiveSnapshot;
-        fusedSafetyDecision = fullDiveBridge_->mergeIntoDecision(fullDiveSnapshot, fusedSafetyDecision);
-        pipeline.fusedSafetyDecision = fusedSafetyDecision;
-        if (fullDiveSnapshot.safetyInterventionRequired()) {
-            if (safetyJournal_) {
-                SessionAuditMetadata metadata;
-                metadata.runtimeCycle = cycleCounter_;
-                metadata.safetyAction = fullDiveSnapshot.traceTag;
-                metadata.renderAllowed = fullDiveSnapshot.intervention != FullDiveInterventionLevel::EmergencyStop &&
-                                         fullDiveSnapshot.intervention != FullDiveInterventionLevel::Lockout;
-                metadata.emergencyStop = fullDiveSnapshot.intervention == FullDiveInterventionLevel::EmergencyStop ||
-                                         fullDiveSnapshot.intervention == FullDiveInterventionLevel::Lockout;
-                safetyJournal_->record(
-                    "full_dive_intervention",
-                    fullDiveSnapshot.traceTag + "|" + fullDiveSnapshot.reason,
-                    fullDiveSnapshot.severity,
-                    metadata);
-            }
+    RuntimeMetricsSnapshot fullDiveMetricsSnapshot;
+    {
+        std::lock_guard<std::mutex> lock(metricsMutex_);
+        fullDiveMetricsSnapshot = runtimeMetrics_.snapshot();
+    }
+    pipeline = RuntimeFullDiveStage::execute(std::move(pipeline), RuntimeFullDiveStage::Input{
+        [this](const FullDiveRuntimeInput& input) { fullDiveSynchronization_->updateFromRuntime(input); },
+        [this]() { return fullDiveBridge_->evaluateAndRemember(*fullDiveSynchronization_); },
+        [this](const FullDiveRuntimeSnapshot& snapshot, const SafetyDecision& decision) {
+            return fullDiveBridge_->mergeIntoDecision(snapshot, decision);
+        },
+        [this](const FullDiveRuntimeSnapshot& snapshot) {
             if (safetyStateMachine_) {
-                fullDiveBridge_->apply(fullDiveSnapshot, *safetyStateMachine_);
+                fullDiveBridge_->apply(snapshot, *safetyStateMachine_);
             }
-            if (fullDiveSnapshot.intervention == FullDiveInterventionLevel::EmergencyStop ||
-                fullDiveSnapshot.intervention == FullDiveInterventionLevel::Lockout) {
-                emergency_->trigger();
-                finishCycle(false, true, fullDiveSnapshot.reason);
-                ++cycleCounter_;
-                return;
-            }
-            if (fullDiveSnapshot.intervention == FullDiveInterventionLevel::Decompress ||
-                fullDiveSnapshot.intervention == FullDiveInterventionLevel::RealityAnchor) {
-                frame = reversibility_->runDecompression(frame);
-            }
-            if (fullDiveSnapshot.intervention == FullDiveInterventionLevel::ReduceIntensity) {
-                for (float& channel : frame) {
-                    channel *= std::clamp(1.0f - fullDiveSnapshot.severity, 0.25f, 1.0f);
-                }
-            }
-        }
+        },
+        [this](const std::string& category, const std::string& message, float riskScore, const SessionAuditMetadata& metadata) {
+            return safetyJournal_->record(category, message, riskScore, metadata);
+        },
+        [this]() { emergency_->trigger(); },
+        [this](const std::vector<float>& sensoryFrame) { return reversibility_->runDecompression(sensoryFrame); },
+        fullDiveMetricsSnapshot
+    });
+
+    if (!pipeline.continueCycle) {
+        finishCycle(false, pipeline.emergencyActive, pipeline.stopReason);
+        ++cycleCounter_;
+        return;
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // [AMÉLIORATION 3] endTask("render") : même logique d'abandon actif.
-    // Si le rendu dépasse son budget, on loggue mais on continue pour ne
-    // pas perdre le uplink/downlink (données biométriques critiques).
-    // ─────────────────────────────────────────────────────────────────────
+    frame = pipeline.sensoryFrame;
+    fusedSafetyDecision = pipeline.fusedSafetyDecision;
+
     const auto tRender = std::chrono::steady_clock::now();
-    renderer_->present(frame);
-    const bool renderOk = scheduler_.endTask(RuntimeRenderStage::name(), tRender, tickReport);
-
-    if (!renderOk) {
-        Logger::warn("⚠️ Render budget exceeded — jitter risk. task=render");
-        ++droppedFrames_;
-    }
-
-    if (independentWatchdog_) {
-        independentWatchdog_->heartbeat("renderer");
-        const WatchdogAssessment watchdog = independentWatchdog_->assess(
-            tickReport.totalMs,
-            !raw.empty(),
-            fusedSafetyDecision.riskScore,
-            diag.decisionDrift);
-        if (watchdog.requiresEmergencyStop) {
-            emergency_->trigger();
+    pipeline.sensoryFrame = frame;
+    pipeline.fusedSafetyDecision = fusedSafetyDecision;
+    pipeline = RuntimeRenderStage::execute(std::move(pipeline), RuntimeRenderStage::Input{
+        [this](const std::vector<float>& sensoryFrame) { renderer_->present(sensoryFrame); },
+        [this, &tRender, &tickReport]() { return scheduler_.endTask(RuntimeRenderStage::name(), tRender, tickReport); },
+        [this]() { ++droppedFrames_; },
+        [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("renderer"); },
+        [this](double latencyMs, bool neuralSignalValid, float biometricRisk, float driftScore) {
+            return independentWatchdog_
+                ? independentWatchdog_->assess(latencyMs, neuralSignalValid, biometricRisk, driftScore)
+                : WatchdogAssessment{};
+        },
+        [this]() { emergency_->trigger(); },
+        [this](const std::string& reason) {
             if (safetyStateMachine_) {
-                safetyStateMachine_->latchEmergency("watchdog:" + watchdog.reason);
+                safetyStateMachine_->latchEmergency(reason);
             }
-            Logger::error("[IndependentWatchdog] " + watchdog.reason);
-            finishCycle(false, true, "watchdog:" + watchdog.reason);
-            ++cycleCounter_;
-            return;
-        }
+        },
+        [this](const std::vector<float>& sensoryFrame) { headset_->pushSensoryFrame(sensoryFrame); },
+        [](const std::string& message) { Logger::warn(message); },
+        [](const std::string& message) { Logger::error(message); },
+        tickReport.totalMs
+    });
+
+    if (!pipeline.continueCycle) {
+        finishCycle(false, pipeline.emergencyActive, pipeline.stopReason);
+        ++cycleCounter_;
+        return;
     }
 
-    headset_->pushSensoryFrame(frame);
+    frame = pipeline.sensoryFrame;
+    fusedSafetyDecision = pipeline.fusedSafetyDecision;
 
     pipeline.sensoryFrame = frame;
     pipeline.fusedSafetyDecision = fusedSafetyDecision;
