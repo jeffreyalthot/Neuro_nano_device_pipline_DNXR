@@ -71,6 +71,7 @@ private:
     mutable std::atomic<float> neuralNoise_;
     mutable std::atomic<float> oxygenLevel_;
     mutable std::atomic<float> eyeStability_;
+    mutable std::atomic<std::uint64_t> telemetryPhaseTicks_;
 
     std::function<void(const std::vector<float>&)> telemetryCallback_;
     std::thread telemetryThread_;

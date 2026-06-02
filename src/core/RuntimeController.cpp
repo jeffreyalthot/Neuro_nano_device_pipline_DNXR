@@ -434,6 +434,19 @@ RuntimeCycleFinalizer::Input RuntimeController::makeCycleFinalizerInput() {
     };
 }
 
+RuntimeCycleFinalizer::Context RuntimeController::makeCycleFinalizerContext(const RuntimeMetricsSnapshot& previousMetricsSnapshot) {
+    return RuntimeCycleFinalizer::Context{
+        scheduler_,
+        runtimeMetrics_,
+        traceRecorder_,
+        metricsMutex_,
+        traceMutex_,
+        cycleCounter_,
+        droppedFrames_,
+        previousMetricsSnapshot
+    };
+}
+
 RuntimeSafetyStage::Input RuntimeController::makeSafetyStageInput(double timestamp) {
     return RuntimeSafetyStage::Input{
         [this](const SafetyGovernorInput& input) { return safetyGovernor_->evaluate(input); },
@@ -592,25 +605,15 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
     sinks.logWarn = [](const std::string& message) { Logger::warn(message); };
     sinks.logError = [](const std::string& message) { Logger::error(message); };
 
-    RuntimePipelineRunner::RunInput input{
-        RuntimeStageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds},
-        RuntimePipelineRunner::StageInputs{
-            RuntimeAcquisitionStage::Input{},
-            RuntimeSignalStage::Input{},
-            RuntimeInferenceStage::Input{},
-            RuntimeCalibrationStage::Input{},
-            RuntimeImmersionFrameStage::Input{},
-            RuntimeSafetyStage::Input{},
-            RuntimeFullDiveStage::Input{
-                {}, {}, {}, {}, {}, {}, {}, fullDiveMetricsSnapshot},
-            RuntimeStimulusStage::Input{},
-            makeCycleFinalizerInput()},
-        tickReport,
-        [this](SchedulerTickReport& report) { return makeRenderStageInput(std::chrono::steady_clock::now(), report); },
-        sinks};
-
     RuntimeStageServices services = makeRuntimeStageServices();
-    input.services = &services;
+    RuntimePipelineRunner::RuntimePipelineRunInput input{
+        RuntimeStageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds},
+        tickReport,
+        services,
+        sinks,
+        fullDiveMetricsSnapshot,
+        makeCycleFinalizerContext(fullDiveMetricsSnapshot)};
+
     return pipelineRunner_->run(input);
 }
 
@@ -652,8 +655,13 @@ void RuntimeController::throttleEmergency() {
 
 void RuntimeController::setFrameBudgetMs(int ms) {
     frameBudgetMs_ = std::max(1, ms);
-    std::lock_guard<std::mutex> lock(metricsMutex_);
-    runtimeMetrics_.setLatencyBudgetMs(static_cast<double>(frameBudgetMs_));
+    {
+        std::lock_guard<std::mutex> lock(metricsMutex_);
+        runtimeMetrics_.setLatencyBudgetMs(static_cast<double>(frameBudgetMs_));
+    }
+    if (independentWatchdog_) {
+        independentWatchdog_->setLatencyBudgetMs(static_cast<double>(frameBudgetMs_));
+    }
 }
 
 int RuntimeController::getFrameBudgetMs() const {

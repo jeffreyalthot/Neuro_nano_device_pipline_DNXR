@@ -26,7 +26,8 @@ XRHeadsetInterface::XRHeadsetInterface(XRHeadsetRuntimeConfig config)
       focusIndex_(0.85f),
       neuralNoise_(0.02f),
       oxygenLevel_(0.98f),
-      eyeStability_(0.90f) {
+      eyeStability_(0.90f),
+      telemetryPhaseTicks_(0U) {
 
     validateRuntimeConfig();
     runtimeReady_ = true;
@@ -99,8 +100,7 @@ std::vector<float> XRHeadsetInterface::pullBioTelemetry() const {
 }
 
 void XRHeadsetInterface::updateDynamicTelemetry() const {
-    static float phase = 0.0f;
-    phase += 0.035f;
+    const float phase = static_cast<float>(telemetryPhaseTicks_.fetch_add(1U) + 1U) * 0.035f;
 
     heartRate_ = 72.0f + std::sin(phase * 0.8f) * 4.0f + generateNoise(1.0f);
     stressIndex_ = 0.15f + std::sin(phase * 0.3f) * 0.04f + generateNoise(0.005f);

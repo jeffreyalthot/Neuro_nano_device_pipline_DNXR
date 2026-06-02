@@ -41,6 +41,11 @@ RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, c
         input.heartbeatStimulus();
     }
 
+    if (!frame.stimulusCommand.allowStimulusDispatch) {
+        frame.stimulusStatus = RuntimeStageStatus::degraded("stimulus_dispatch_suppressed");
+        return frame;
+    }
+
     if (!input.writeSafeStimulus(frame.stimulusCommand)) {
         if (input.emergencyStopHardware) {
             input.emergencyStopHardware("unsafe_stimulus_rejected");
@@ -68,6 +73,11 @@ RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, R
         frame.fusedSafetyDecision,
         std::max(0.0, frame.deltaTimeSeconds));
     services.watchdog.heartbeat("stimulus");
+
+    if (!frame.stimulusCommand.allowStimulusDispatch) {
+        frame.stimulusStatus = RuntimeStageStatus::degraded("stimulus_dispatch_suppressed");
+        return frame;
+    }
 
     if (!services.neuralChipHal.writeSafeStimulus(frame.stimulusCommand)) {
         services.neuralChipHal.emergencyStop("unsafe_stimulus_rejected");

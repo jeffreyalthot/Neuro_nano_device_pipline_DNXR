@@ -79,6 +79,42 @@ cmake --preset tsan
 
 Full ASAN/TSAN build-and-test lanes remain to be run after this migration pass.
 
+## 0.3.6 runtime cleanup validation
+
+After adding the services-only `RuntimePipelineRunInput`, preserving an explicit
+legacy input lane, migrating the modern finalizer path to services/sinks, adding
+allocation-guard warmup thresholds, and fixing the XR telemetry phase race, the
+normal CTest lane was re-run:
+
+```bash
+cmake -S . -B build -DDNXR_ENABLE_LONG_SIMULATED_TESTS=ON
+cmake --build build -j2
+ctest --test-dir build --output-on-failure
+```
+
+Result: PASS — 69/69 active tests passed out of 72 registered tests.
+
+Disabled tests:
+
+- `dnxr_runtime_controller_pipeline_10k_cycles_test`
+- `dnxr_vestibular_exposure_budget_long_test`
+- `dnxr_full_dive_intervention_window_long_test`
+
+The full sanitizer lanes were also re-run for this pass:
+
+```bash
+cmake --preset asan
+cmake --build build/asan -j2
+ctest --test-dir build/asan --output-on-failure
+
+cmake --preset tsan
+cmake --build build/tsan -j2
+ctest --test-dir build/tsan --output-on-failure
+```
+
+ASAN/UBSAN result: PASS — 69/69 active tests passed out of 72 registered tests.
+TSAN result: PASS — 69/69 active tests passed out of 72 registered tests.
+
 ## AddressSanitizer / UndefinedBehaviorSanitizer
 
 Preset: `asan`
@@ -91,10 +127,7 @@ cmake --build build/asan -j2
 ctest --test-dir build/asan --output-on-failure
 ```
 
-Latest recorded full sanitizer result: PASS — 56/56 executed tests passed.
-
-Current required follow-up for 0.3.5: re-run the commands above and replace the
-recorded count with the latest CTest total after the service-migration tests.
+Latest recorded full sanitizer result: PASS — 69/69 active tests passed out of 72 registered tests.
 
 ## ThreadSanitizer
 
@@ -108,10 +141,7 @@ cmake --build build/tsan -j2
 ctest --test-dir build/tsan --output-on-failure
 ```
 
-Latest recorded full sanitizer result: PASS — 56/56 executed tests passed.
-
-Current required follow-up for 0.3.5: re-run the commands above and replace the
-recorded count with the latest CTest total after the service-migration tests.
+Latest recorded full sanitizer result: PASS — 69/69 active tests passed out of 72 registered tests.
 
 ## Long-real validation lane
 
