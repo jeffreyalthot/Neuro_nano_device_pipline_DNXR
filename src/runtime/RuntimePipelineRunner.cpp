@@ -57,13 +57,13 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RunInput& input) const {
     input.stages.finalizer.scheduler.endTask(RuntimeAcquisitionStage::name(), tAcq, input.tickReport);
     if (!pipeline.continueCycle) {
         if (pipeline.emergencyActive) {
-            if (input.triggerEmergency) input.triggerEmergency();
-            if (input.logWarn) input.logWarn("⚠️  Physiological guard triggered.");
+            if (input.sinks.triggerEmergency) input.sinks.triggerEmergency();
+            if (input.sinks.logWarn) input.sinks.logWarn("⚠️  Physiological guard triggered.");
             finishCycle(pipeline, input.tickReport, input.stages.finalizer, false, true, pipeline.stopReason);
-            if (input.throttleEmergency) input.throttleEmergency();
+            if (input.sinks.throttleEmergency) input.sinks.throttleEmergency();
             return pipeline;
         }
-        if (input.logWarn) input.logWarn("⚠️  Empty neural signal frame.");
+        if (input.sinks.logWarn) input.sinks.logWarn("⚠️  Empty neural signal frame.");
         finishCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.acquisitionStatus.emergencyActive, pipeline.stopReason);
         return pipeline;
     }
@@ -86,13 +86,13 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RunInput& input) const {
         : RuntimeInferenceStage::execute(std::move(pipeline), input.stages.inference);
     const bool inferenceOk = input.stages.finalizer.scheduler.endTask(RuntimeInferenceStage::name(), tInference, input.tickReport);
     if (!inferenceOk) {
-        if (input.recordDroppedFrame) input.recordDroppedFrame();
-        if (input.logWarn) input.logWarn("⚠️ Inference budget exceeded — frame degraded, skipping render. task=inference");
+        if (input.sinks.recordDroppedFrame) input.sinks.recordDroppedFrame();
+        if (input.sinks.logWarn) input.sinks.logWarn("⚠️ Inference budget exceeded — frame degraded, skipping render. task=inference");
         finishCycle(pipeline, input.tickReport, input.stages.finalizer, true, false, "inference_budget_exceeded");
         return pipeline;
     }
 
-    if (input.publishPipelineState) input.publishPipelineState(pipeline);
+    if (input.sinks.publishPipelineState) input.sinks.publishPipelineState(pipeline);
 
     pipeline = input.services
         ? RuntimeCalibrationStage::execute(std::move(pipeline), *input.services)
@@ -110,21 +110,38 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RunInput& input) const {
         return pipeline;
     }
 
-    pipeline = RuntimeSafetyStage::execute(std::move(pipeline), input.stages.safety);
+    pipeline = input.services
+        ? RuntimeSafetyStage::execute(std::move(pipeline), *input.services, input.context)
+        : RuntimeSafetyStage::execute(std::move(pipeline), input.stages.safety);
     if (!pipeline.continueCycle) {
         finishCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;
     }
 
-    if (input.recordReplayFrame) input.recordReplayFrame(pipeline.cleanSignals, input.context.timestamp);
+    if (input.sinks.recordReplayFrame) input.sinks.recordReplayFrame(pipeline.cleanSignals, input.context.timestamp);
 
-    pipeline = RuntimeFullDiveStage::execute(std::move(pipeline), input.stages.fullDive);
+    pipeline = input.services
+        ? RuntimeFullDiveStage::execute(std::move(pipeline), *input.services, input.context, input.stages.fullDive.runtimeMetrics)
+        : RuntimeFullDiveStage::execute(std::move(pipeline), input.stages.fullDive);
     if (!pipeline.continueCycle) {
         finishCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;
     }
 
-    pipeline = RuntimeRenderStage::execute(std::move(pipeline), input.makeRenderStageInput(input.tickReport));
+    if (input.services) {
+        const auto tRender = std::chrono::steady_clock::now();
+        pipeline = RuntimeRenderStage::execute(std::move(pipeline), *input.services, input.tickReport);
+        const bool renderOk = input.stages.finalizer.scheduler.endTask(RuntimeRenderStage::name(), tRender, input.tickReport);
+        if (renderOk && pipeline.continueCycle) {
+            pipeline.renderStatus = RuntimeRenderStage::validate(true, "render_stage_unhealthy");
+        } else if (!renderOk && pipeline.continueCycle) {
+            pipeline.renderStatus = RuntimeStageStatus::degraded("render_budget_exceeded");
+            if (input.sinks.recordDroppedFrame) input.sinks.recordDroppedFrame();
+            if (input.sinks.logWarn) input.sinks.logWarn("⚠️ Render budget exceeded — jitter risk. task=render");
+        }
+    } else {
+        pipeline = RuntimeRenderStage::execute(std::move(pipeline), input.makeRenderStageInput(input.tickReport));
+    }
     if (!pipeline.continueCycle) {
         finishCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;
@@ -145,7 +162,7 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RunInput& input) const {
         : RuntimeStimulusStage::execute(std::move(pipeline), input.stages.stimulus);
     if (!pipeline.continueCycle) {
         if (pipeline.stopReason == "unsafe_stimulus_rejected") {
-            if (input.auditRejectedStimulus) input.auditRejectedStimulus(pipeline.stimulusCommand);
+            if (input.sinks.auditRejectedStimulus) input.sinks.auditRejectedStimulus(pipeline.stimulusCommand);
         }
         finishCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;

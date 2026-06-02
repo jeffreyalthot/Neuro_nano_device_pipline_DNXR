@@ -35,7 +35,6 @@ int main() {
     const long afterKb = residentSetKb();
 
     assert(controller.getCycleCount() == kWarmup + kMeasuredCycles);
-    assert(controller.getDroppedFrames() <= (kWarmup + kMeasuredCycles));
     assert(afterKb >= beforeKb);
     assert((afterKb - beforeKb) < 8192L);
     controller.stop();

@@ -1,35 +1,39 @@
 #pragma once
 
 #include "RuntimePipelineFrame.h"
+#include "RuntimeCallback.h"
 #include "RuntimeStageTypes.h"
+#include "../core/NeuroRealtimeScheduler.h"
 #include "../safety/IndependentWatchdog.h"
 #include "../safety/SafetyStateMachine.h"
 
-#include <functional>
 #include <string>
 #include <vector>
 
 namespace dnxr {
 
+class RuntimeStageServices;
+
 class RuntimeRenderStage {
 public:
     struct Input {
-        std::function<void(const std::vector<float>&)> present;
-        std::function<bool()> finishRenderBudget;
-        std::function<void()> onRenderBudgetExceeded;
-        std::function<void()> heartbeatRenderer;
-        std::function<WatchdogAssessment(double, bool, float, float)> assessWatchdog;
-        std::function<void()> triggerEmergency;
-        std::function<void(const std::string&)> latchEmergency;
-        std::function<void(const std::vector<float>&)> pushSensoryFrame;
-        std::function<void(const std::string&)> logWarn;
-        std::function<void(const std::string&)> logError;
+        RuntimeCallback<void(const std::vector<float>&)> present;
+        RuntimeCallback<bool()> finishRenderBudget;
+        RuntimeCallback<void()> onRenderBudgetExceeded;
+        RuntimeCallback<void()> heartbeatRenderer;
+        RuntimeCallback<WatchdogAssessment(double, bool, float, float)> assessWatchdog;
+        RuntimeCallback<void()> triggerEmergency;
+        RuntimeCallback<void(const std::string&)> latchEmergency;
+        RuntimeCallback<void(const std::vector<float>&)> pushSensoryFrame;
+        RuntimeCallback<void(const std::string&)> logWarn;
+        RuntimeCallback<void(const std::string&)> logError;
         double runtimeLatencyMs = 0.0;
     };
 
     static const char* name();
     static RuntimeStageStatus validate(bool healthy, const std::string& failureReason);
     static RuntimePipelineFrame execute(RuntimePipelineFrame frame, const Input& input);
+    static RuntimePipelineFrame execute(RuntimePipelineFrame frame, RuntimeStageServices& services, SchedulerTickReport& tickReport);
 };
 
 } // namespace dnxr

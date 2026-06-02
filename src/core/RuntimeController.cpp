@@ -573,6 +573,25 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
         fullDiveMetricsSnapshot = runtimeMetrics_.snapshot();
     }
 
+    RuntimePipelineSinks sinks;
+    sinks.publishPipelineState = [this](const RuntimePipelineFrame& pipeline) { publishPipelineState(pipeline); };
+    sinks.publishRuntimeMetrics = [this](const RuntimeMetricsSnapshot& snapshot) { publishRuntimeMetrics(snapshot); };
+    sinks.recordReplayFrame = [this, timestamp](const std::vector<float>& cleanSignals, double) { replay_.record({cleanSignals, timestamp}); };
+    sinks.triggerEmergency = [this]() { emergency_->trigger(); };
+    sinks.throttleEmergency = [this]() { throttleEmergency(); };
+    sinks.recordDroppedFrame = [this]() { ++droppedFrames_; };
+    sinks.auditRejectedStimulus = [this](const SafeNeuralStimulusCommand& command) {
+        const auto rejectionAudit = safetyJournal_->record(
+            "hal_reject",
+            command.safetyMode,
+            command.riskScore);
+        emergency_->trigger();
+        Logger::error("[NeuralChipHAL] Safe stimulus command rejected before node dispatch. journal=" +
+                      rejectionAudit.eventHash);
+    };
+    sinks.logWarn = [](const std::string& message) { Logger::warn(message); };
+    sinks.logError = [](const std::string& message) { Logger::error(message); };
+
     RuntimePipelineRunner::RunInput input{
         RuntimeStageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds},
         RuntimePipelineRunner::StageInputs{
@@ -581,28 +600,14 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
             RuntimeInferenceStage::Input{},
             RuntimeCalibrationStage::Input{},
             RuntimeImmersionFrameStage::Input{},
-            makeSafetyStageInput(timestamp),
-            makeFullDiveStageInput(fullDiveMetricsSnapshot),
+            RuntimeSafetyStage::Input{},
+            RuntimeFullDiveStage::Input{
+                {}, {}, {}, {}, {}, {}, {}, fullDiveMetricsSnapshot},
             RuntimeStimulusStage::Input{},
             makeCycleFinalizerInput()},
         tickReport,
         [this](SchedulerTickReport& report) { return makeRenderStageInput(std::chrono::steady_clock::now(), report); },
-        [this](const RuntimePipelineFrame& pipeline) { publishPipelineState(pipeline); },
-        [this, timestamp](const std::vector<float>& cleanSignals, double) { replay_.record({cleanSignals, timestamp}); },
-        [this]() { emergency_->trigger(); },
-        [this]() { throttleEmergency(); },
-        [](const std::string& message) { Logger::warn(message); },
-        [](const std::string& message) { Logger::error(message); },
-        [this]() { ++droppedFrames_; },
-        [this](const SafeNeuralStimulusCommand& command) {
-            const auto rejectionAudit = safetyJournal_->record(
-                "hal_reject",
-                command.safetyMode,
-                command.riskScore);
-            emergency_->trigger();
-            Logger::error("[NeuralChipHAL] Safe stimulus command rejected before node dispatch. journal=" +
-                          rejectionAudit.eventHash);
-        }};
+        sinks};
 
     RuntimeStageServices services = makeRuntimeStageServices();
     input.services = &services;

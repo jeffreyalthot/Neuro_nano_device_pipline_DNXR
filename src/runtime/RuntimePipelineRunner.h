@@ -7,6 +7,7 @@
 #include "RuntimeImmersionFrameStage.h"
 #include "RuntimeInferenceStage.h"
 #include "RuntimeRenderStage.h"
+#include "RuntimePipelineSinks.h"
 #include "RuntimeSafetyStage.h"
 #include "RuntimeSignalStage.h"
 #include "RuntimeStimulusStage.h"
@@ -15,7 +16,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -41,15 +41,8 @@ public:
         RuntimeStageContext context;
         StageInputs stages;
         SchedulerTickReport& tickReport;
-        std::function<RuntimeRenderStage::Input(SchedulerTickReport&)> makeRenderStageInput;
-        std::function<void(const RuntimePipelineFrame&)> publishPipelineState;
-        std::function<void(const std::vector<float>&, double)> recordReplayFrame;
-        std::function<void()> triggerEmergency;
-        std::function<void()> throttleEmergency;
-        std::function<void(const std::string&)> logWarn;
-        std::function<void(const std::string&)> logError;
-        std::function<void()> recordDroppedFrame;
-        std::function<void(const SafeNeuralStimulusCommand&)> auditRejectedStimulus;
+        RuntimeCallback<RuntimeRenderStage::Input(SchedulerTickReport&)> makeRenderStageInput;
+        RuntimePipelineSinks sinks;
         RuntimeStageServices* services = nullptr;
     };
 

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "RuntimePipelineFrame.h"
+#include "RuntimeCallback.h"
 #include "RuntimeStageTypes.h"
 
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -14,12 +14,12 @@ class RuntimeStageServices;
 class RuntimeStimulusStage {
 public:
     struct Input {
-        std::function<SafeNeuralStimulusCommand(std::uint64_t, const std::vector<float>&, const SafetyDecision&, double)> buildCommand;
-        std::function<void()> heartbeatStimulus;
-        std::function<bool(const SafeNeuralStimulusCommand&)> writeSafeStimulus;
-        std::function<void(const std::string&)> emergencyStopHardware;
-        std::function<std::vector<float>(const std::vector<float>&)> downlink;
-        std::function<void(const std::vector<float>&)> writeNeuralStimulus;
+        RuntimeCallback<SafeNeuralStimulusCommand(std::uint64_t, const std::vector<float>&, const SafetyDecision&, double)> buildCommand;
+        RuntimeCallback<void()> heartbeatStimulus;
+        RuntimeCallback<bool(const SafeNeuralStimulusCommand&)> writeSafeStimulus;
+        RuntimeCallback<void(const std::string&)> emergencyStopHardware;
+        RuntimeCallback<std::vector<float>(const std::vector<float>&)> downlink;
+        RuntimeCallback<void(const std::vector<float>&)> writeNeuralStimulus;
     };
 
     static const char* name();
