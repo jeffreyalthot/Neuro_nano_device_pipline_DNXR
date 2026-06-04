@@ -1,0 +1,3 @@
+#include "../src/readiness/ClinicalTestReadinessAssessor.h"
+#include <cassert>
+int main(){ dnxr::ReadinessScorecard s; dnxr::ClinicalTestReadinessAssessor a; auto r=a.assess(s); assert(r.level==dnxr::ClinicalReadinessLevel::SimulationOnly); assert(!r.clinicalTestReady); s.fullDiveCapabilityEvidence=true; s.integratedSimulationEvidence=true; s.hilEvidenceComplete=true; s.riskManagementComplete=true; s.traceabilityComplete=true; s.cybersecurityDocsComplete=true; s.verificationValidationComplete=true; s.qmsDocsComplete=true; s.physicianReviewPackageComplete=true; s.canadaUsReadinessDocsComplete=true; s.protocolReadinessPackageComplete=true; r=a.assess(s); assert(r.level==dnxr::ClinicalReadinessLevel::ClinicalTestReady); assert(r.gaps.empty()); return 0; }

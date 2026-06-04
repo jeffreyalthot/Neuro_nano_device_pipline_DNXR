@@ -10,6 +10,9 @@ option(DNXR_SIMULATION_ONLY "Force simulation-only runtime guardrails" ON)
 option(DNXR_ENABLE_LONG_SIMULATED_TESTS "Enable long simulated tests" ON)
 option(DNXR_ENABLE_LONG_REAL_TESTS "Enable long real soak tests" OFF)
 option(DNXR_ENABLE_CONTROLLER_10K_TEST "Enable 10k deterministic controller pipeline test" OFF)
+option(DNXR_ENABLE_CONTROLLER_100K_TEST "Enable 100k deterministic controller readiness test" OFF)
+option(DNXR_ENABLE_EXTENDED_VV_TESTS "Enable extended clinical-readiness verification tests" ON)
+option(DNXR_ENABLE_NO_ALLOCATION_GUARD "Enable no-allocation guard readiness tests" ON)
 
 if(DNXR_ENABLE_TSAN AND DNXR_ENABLE_ASAN)
     message(FATAL_ERROR "DNXR_ENABLE_TSAN and DNXR_ENABLE_ASAN cannot be enabled together")
@@ -167,6 +170,30 @@ if(DNXR_BUILD_TESTS)
         dnxr_watchdog_stale_subsystem_long_test
         dnxr_full_dive_orchestrator_integration_test
         dnxr_neural_chip_immersion_integration_test
+
+        dnxr_clinical_readiness_assessor_test
+        dnxr_preclinical_readiness_assessor_test
+        dnxr_readiness_cannot_skip_hil_test
+        dnxr_readiness_requires_traceability_test
+        dnxr_full_dive_capability_matrix_test
+        dnxr_full_dive_readiness_assessor_test
+        dnxr_full_dive_session_validator_test
+        dnxr_hil_fault_injection_test
+        dnxr_hil_latency_budget_test
+        dnxr_hil_emergency_stop_test
+        dnxr_hil_phantom_disconnect_test
+        dnxr_hil_recovery_sequence_test
+        dnxr_hil_readiness_assessor_test
+        dnxr_security_audit_trail_test
+        dnxr_threat_event_test
+        dnxr_replay_attack_blocked_test
+        dnxr_packet_tamper_detection_test
+        dnxr_secure_update_policy_test
+        dnxr_runtime_controller_100k_cycles_test
+        dnxr_runtime_no_allocation_zone_test
+        dnxr_runtime_latency_profiler_test
+        dnxr_runtime_jitter_analyzer_test
+        dnxr_runtime_wcet_recorder_test
     )
 
     foreach(test_name IN LISTS DNXR_TEST_TARGETS)
@@ -214,6 +241,7 @@ if(DNXR_BUILD_TESTS)
         dnxr_runtime_stage_jitter_simulation_test
         dnxr_runtime_1h_stability_test
         dnxr_watchdog_stale_subsystem_long_test
+        dnxr_runtime_controller_100k_cycles_test
     )
     set(DNXR_LONG_REAL_TEST_TARGETS
         dnxr_vestibular_exposure_budget_long_test
@@ -227,6 +255,28 @@ if(DNXR_BUILD_TESTS)
     set_tests_properties(dnxr_vestibular_exposure_budget_long_test PROPERTIES LABELS "long_real;soak;safety")
     set_tests_properties(dnxr_full_dive_intervention_window_long_test PROPERTIES LABELS "long_real;soak;full_dive;safety")
     set_tests_properties(dnxr_watchdog_stale_subsystem_long_test PROPERTIES LABELS "long_simulated;soak;safety")
+
+    set_tests_properties(dnxr_runtime_controller_100k_cycles_test PROPERTIES LABELS "long_simulated;runtime;controller")
+    if(NOT DNXR_ENABLE_CONTROLLER_100K_TEST)
+        set_tests_properties(dnxr_runtime_controller_100k_cycles_test PROPERTIES DISABLED TRUE)
+    endif()
+    if(NOT DNXR_ENABLE_NO_ALLOCATION_GUARD)
+        set_tests_properties(dnxr_runtime_no_allocation_zone_test PROPERTIES DISABLED TRUE)
+    endif()
+    if(NOT DNXR_ENABLE_EXTENDED_VV_TESTS)
+        set_tests_properties(
+            dnxr_clinical_readiness_assessor_test
+            dnxr_preclinical_readiness_assessor_test
+            dnxr_readiness_cannot_skip_hil_test
+            dnxr_readiness_requires_traceability_test
+            dnxr_hil_fault_injection_test
+            dnxr_hil_latency_budget_test
+            dnxr_hil_emergency_stop_test
+            dnxr_hil_phantom_disconnect_test
+            dnxr_hil_recovery_sequence_test
+            dnxr_hil_readiness_assessor_test
+            PROPERTIES DISABLED TRUE)
+    endif()
     if(NOT DNXR_ENABLE_LONG_SIMULATED_TESTS)
         set_tests_properties(${DNXR_LONG_SIMULATED_TEST_TARGETS} PROPERTIES DISABLED TRUE)
     endif()

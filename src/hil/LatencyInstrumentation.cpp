@@ -1,0 +1,2 @@
+#include "LatencyInstrumentation.h"
+namespace dnxr { void LatencyInstrumentation::record(double v){samples_.push_back(v);} LatencyReport LatencyInstrumentation::report(double budgetMs) const{LatencyReport r; if(samples_.empty()){r.withinBudget=true; return r;} double sum=0; for(double v:samples_){sum+=v; if(v>r.worstMs) r.worstMs=v;} r.averageMs=sum/static_cast<double>(samples_.size()); r.withinBudget=r.worstMs<=budgetMs; return r;} }

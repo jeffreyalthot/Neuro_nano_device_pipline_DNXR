@@ -1,0 +1,3 @@
+#include "../src/readiness/ClinicalTestReadinessAssessor.h"
+#include <cassert>
+int main(){ dnxr::ReadinessScorecard s; s.fullDiveCapabilityEvidence=s.integratedSimulationEvidence=s.hilEvidenceComplete=s.riskManagementComplete=s.cybersecurityDocsComplete=s.verificationValidationComplete=s.qmsDocsComplete=s.physicianReviewPackageComplete=s.canadaUsReadinessDocsComplete=s.protocolReadinessPackageComplete=true; dnxr::ClinicalTestReadinessAssessor a; assert(!a.canReturnClinicalTestReady(s)); s.traceabilityComplete=true; assert(a.canReturnClinicalTestReady(s)); return 0; }
