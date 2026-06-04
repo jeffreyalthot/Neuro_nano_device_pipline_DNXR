@@ -1,28 +1,269 @@
 # Neuro_nano_device_pipline
 
-A C++ repository for a **simulated** "nano-device ↔ XR headset ↔ host computer" pipeline focused on deep-immersion experimental R&D.
+A C++17 repository for a **simulated** "nano-device ↔ XR headset ↔ host computer" pipeline focused on deep-immersion experimental R&D.
 
-## Structure
-See `src/` for the modular architecture: core, devices, network, signal, cognition, calibration, immersion, safety, rendering, and utilities.
+> **Safety and regulatory status:** this repository is not a certified clinical, regulatory, implant, therapeutic, or deterministic target-hardware stack. It is a software/HIL evidence package for simulation, documentation, QMS preparation, and expert preclinical review planning only.
 
-## Build
+## Repository structure
+
+- `src/` — modular C++ runtime and evidence/readiness code: core, devices, network, signal, cognition, calibration, immersion, safety, rendering, QMS, readiness, and utilities.
+- `tests/` — CTest-registered C++ unit, integration, runtime, HIL, security, and readiness tests.
+- `tools/qms/` — generators and checks for traceability, readiness, risk, verification, runtime evidence, and clinical software freeze reports.
+- `tools/hil/` — deterministic software HIL scenario, latency, session, and risk-coverage generators.
+- `tools/security/` — cybersecurity/SBOM/threat-model evidence generators.
+- `qms/` — generated and reviewed QMS artifacts, HIL reports, security reports, release records, review records, risk reviews, verification evidence, and validation evidence.
+- `docs/` — clinical readiness, regulatory, SOUP/SBOM, safety, neurorights, and transfer documentation.
+
+## Prerequisites
+
+- CMake 3.16 or newer.
+- A C++17 compiler supported by CMake.
+- Python 3 for QMS/security/HIL evidence scripts.
+- Optional: Ninja or platform build tools if you prefer a non-default CMake generator.
+
+## Normal build, run, and test procedure
+
+Use the normal lane for day-to-day development and verification.
+
 ```bash
 cmake -S . -B build
-cmake --build build
+cmake --build build -j2
+ctest --test-dir build --output-on-failure
 ./build/distributed_neural_xr
 ```
 
+Expected normal-lane behavior for the 0.4.x software evidence package:
+
+- Normal compilation should complete without errors.
+- Normal active CTest tests should pass.
+- Long/full controller soak tests are controlled by CMake options and are not all enabled in the normal lane.
+
+## Useful CMake options
+
+```bash
+# Default simulation-only guardrails are ON.
+cmake -S . -B build -DDNXR_SIMULATION_ONLY=ON
+
+# Enable the extended clinical-readiness validation lane.
+cmake -S . -B build_readiness -DDNXR_ENABLE_CLINICAL_READINESS_VALIDATION=ON
+cmake --build build_readiness -j2
+ctest --test-dir build_readiness --output-on-failure
+
+# Enable the deterministic controller 10k test target explicitly.
+cmake -S . -B build -DDNXR_ENABLE_CONTROLLER_10K_TEST=ON
+cmake --build build --target dnxr_runtime_controller_pipeline_10k_cycles_test -j2
+```
+
+Important long-lane options:
+
+- `DNXR_ENABLE_CLINICAL_READINESS_VALIDATION=ON` enables the readiness validation lane configuration.
+- `DNXR_ENABLE_CONTROLLER_10K_TEST=ON` enables the deterministic 10k controller test target.
+- `DNXR_ENABLE_CONTROLLER_100K_TEST=ON` enables the deterministic 100k controller readiness test target.
+- `DNXR_ENABLE_LONG_REAL_TESTS=ON` enables long real/soak-labelled tests; do not represent these as physical clinical evidence unless actual qualified hardware execution and signed review records exist.
+
+## Runtime 10k evidence procedure
+
+The normal bounded evidence lane may generate `qms/generated/Runtime10kBoundedEvidence.md`. That file is useful for CI/readiness checks but is **not equivalent** to full 10k execution evidence.
+
+To generate full 10k evidence, run the explicit full lane:
+
+```bash
+DNXR_CONTROLLER_10K_FULL=1 tools/qms/generate_runtime_10k_full_evidence.py
+```
+
+The script refuses to generate `qms/generated/Runtime10kFullEvidence.md` unless `DNXR_CONTROLLER_10K_FULL=1` is set and the full controller test executable actually runs. The generated report must still be reviewed and signed before it can unlock advanced readiness gates.
+
+## QMS and evidence checks
+
+Run the main generated-document and traceability checks before release review:
+
+```bash
+python3 tools/qms/check_required_docs.py
+python3 tools/qms/check_traceability_completeness.py
+python3 tools/qms/check_placeholder_content.py
+python3 tools/qms/check_evidence_artifacts.py
+```
+
+Generate or refresh supporting QMS reports:
+
+```bash
+python3 tools/qms/generate_traceability_report.py
+python3 tools/qms/generate_risk_report.py
+python3 tools/qms/generate_verification_index.py
+python3 tools/qms/generate_clinical_gap_report.py
+python3 tools/qms/generate_clinical_readiness_validation_report.py
+python3 tools/qms/generate_clinical_software_freeze_report.py
+```
+
+The clinical software freeze report summarizes what is software-complete, what remains open, and which blockers require external evidence such as physical HIL, qualified review, and clinical/regulatory authorization.
+
+## HIL software evidence procedure
+
+The deterministic software HIL evidence chain is:
+
+```bash
+python3 tools/hil/run_hil_scenarios.py
+python3 tools/hil/generate_hil_session_reports.py
+python3 tools/hil/generate_hil_latency_report.py
+python3 tools/hil/generate_hil_risk_coverage_matrix.py
+```
+
+Current HIL evidence locations include:
+
+- `qms/hil/session_reports/HIL-SESSION-0.4.3.md`
+- `qms/hil/latency_reports/HIL-LATENCY-0.4.3.md`
+- `qms/hil/risk_coverage/HIL-RISK-COVERAGE-0.4.3.csv`
+
+These artifacts are deterministic software HIL evidence only. They do not replace:
+
+- qualified physical HIL bench execution;
+- qualified phantom/simulator evidence;
+- target-hardware latency measurements;
+- raw hardware logs;
+- deviation/anomaly records;
+- named independent sign-off.
+
+## Cybersecurity evidence procedure
+
+Generate the 0.4.4 cybersecurity evidence package:
+
+```bash
+python3 tools/security/generate_sbom_report.py
+python3 tools/security/generate_threat_model_review.py
+python3 tools/security/generate_vulnerability_scan_report.py
+python3 tools/security/generate_key_revocation_evidence.py
+python3 tools/security/generate_secure_update_adversarial_report.py
+```
+
+Expected artifacts:
+
+- `qms/security/sbom_generated_0.4.4.md`
+- `qms/security/threat_model_review_0.4.4.md`
+- `qms/security/vulnerability_scan_0.4.4.md`
+- `qms/security/key_revocation_scenario_0.4.4.md`
+- `qms/security/secure_update_adversarial_test_0.4.4.md`
+- `qms/security/vulnerability_disposition_0.4.4.md`
+
+Cybersecurity plans alone cannot unlock clinical readiness. Promotion requires executed evidence, vulnerability disposition, and named cybersecurity review/sign-off.
+
+## Readiness gating model
+
+Advanced readiness decisions must use `EvidenceRepository` plus QMS review/sign-off gates. A `ReadinessScorecard` boolean cannot unlock `ClinicalTestReady` by itself.
+
+Required evidence classes for clinical-test promotion include signed artifacts for:
+
+1. physical HIL session evidence;
+2. HIL latency evidence;
+3. risk-control verification;
+4. full runtime 10k execution;
+5. executed cybersecurity evidence;
+6. Canada regulatory package;
+7. US regulatory package;
+8. clinical protocol package;
+9. independent sign-off.
+
+High-severity hazard closure is blocked unless the QMS review gate has a complete review record, valid independent sign-off, accepted residual-risk disposition, and executed cybersecurity evidence where applicable.
+
+## Clinical-test preparation procedure
+
+No clinical testing is authorized by this repository. The following is a controlled readiness checklist for qualified clinical, regulatory, ethics, and sponsor teams.
+
+### 1. Freeze software evidence
+
+```bash
+cmake -S . -B build
+cmake --build build -j2
+ctest --test-dir build --output-on-failure
+python3 tools/qms/generate_clinical_software_freeze_report.py
+```
+
+Confirm that open software gaps, non-software gaps, HIL blockers, cybersecurity blockers, and regulatory blockers are explicitly listed in `qms/generated/ClinicalSoftwareFreezeReport.md`.
+
+### 2. Complete preclinical physical evidence
+
+Before any human clinical study planning claim:
+
+- execute physical HIL on qualified bench hardware;
+- qualify the phantom/simulator and document configuration control;
+- measure p95/p99/worst-case latency on target hardware;
+- archive raw logs, operator transcript, deviations, anomalies, and repeatability runs;
+- link each run to hazards, risk controls, requirements, and tests;
+- obtain named independent safety/risk reviewer sign-off.
+
+### 3. Complete QMS review and sign-off records
+
+Create and maintain review/sign-off records for:
+
+- design review;
+- risk review and residual-risk acceptance;
+- verification and validation evidence;
+- cybersecurity evidence and vulnerability disposition;
+- release decision;
+- problem reports and open clinical blockers.
+
+Use the code-level QMS model in `src/qms/ReviewRecord.*`, `src/qms/SignOffRecord.*`, and `src/qms/ReviewGate.*` as the software-side gate model.
+
+### 4. Canada investigational testing planning
+
+For Canada, Health Canada describes the Investigational Testing Authorization guidance as covering the ITA review process, post-authorization requirements, required application format/documents, and manufacturer/importer/Health Canada roles and responsibilities: <https://www.canada.ca/en/health-canada/services/drugs-health-products/medical-devices/application-information/guidance-documents/investigational-testing-authorizations-guidance.html>.
+
+Before clinical testing in Canada, qualified owners must prepare and review at least:
+
+- classification and intended-use memo;
+- manufacturer/importer responsibilities;
+- investigational plan/protocol;
+- investigator package;
+- informed consent material;
+- risk analysis and preclinical evidence package;
+- REB workflow and approvals;
+- adverse-event/problem reporting procedure;
+- post-authorization record-keeping and reporting process.
+
+### 5. United States IDE planning
+
+For the United States, the FDA states that an Investigational Device Exemption allows an investigational device to be used in a clinical study to collect safety and effectiveness data, and that 21 CFR 812 covers device clinical study procedures including applications, sponsor/investigator responsibilities, labeling, records, and reports: <https://www.fda.gov/medical-devices/premarket-submissions-selecting-and-preparing-correct-submission/investigational-device-exemption-ide>.
+
+Before clinical testing in the United States, qualified owners must prepare and review at least:
+
+- IDE/SR-NSR pathway memo;
+- investigational plan and protocol;
+- IRB package;
+- informed consent;
+- investigational-use labeling;
+- monitoring plan;
+- adverse-event and unanticipated-adverse-device-effect reporting process;
+- sponsor/investigator responsibility matrix;
+- records and reports plan;
+- FDA submission/interaction plan when applicable.
+
+### 6. Clinical execution rule
+
+Do not initiate or advertise clinical testing until all required ethics, regulatory, sponsor, investigator, monitoring, informed-consent, labeling, safety, and reporting approvals are complete and documented by qualified parties. This repository can only support evidence preparation; it cannot authorize clinical use.
+
+## Current 0.4.x readiness position
+
+The project has advanced software simulation, deterministic software HIL evidence, QMS structure, and readiness gating. It remains blocked for clinical-test claims by:
+
+- physical HIL bench evidence;
+- phantom qualification;
+- named independent review and sign-off;
+- full 10k runtime execution evidence when not generated and signed;
+- executed cybersecurity evidence review;
+- Canada ITA / US IDE qualified regulatory review;
+- REB/IRB workflow and authorized clinical protocol execution.
+
 ## Windows / MinGW troubleshooting
+
 If you get an error like:
 
 `Le point d'entrée de procédure _ZNKSt25__codecvt_utf8_utf16_baselwE10do_unshiftERiPcS2_RS2_ est introuvable`
 
-the executable was usually built with one MinGW/GCC runtime and is started with another `libstdc++-6.dll` at runtime.
+the executable was usually built with one MinGW/GCC runtime and started with another `libstdc++-6.dll` at runtime.
 
 Recommended fix:
 
-1. Delete previous build artifacts (`build/`).
-2. Ensure a **single** compiler toolchain is used end-to-end (configure, build, and run from the same terminal/environment).
+1. Delete previous build artifacts such as `build/`.
+2. Ensure a **single** compiler toolchain is used end-to-end from the same terminal/environment.
 3. Reconfigure and rebuild:
 
    ```bash
@@ -30,61 +271,28 @@ Recommended fix:
    cmake --build build --clean-first
    ```
 
-4. Check which runtime DLL your executable loads (`libstdc++-6.dll`) and make sure it comes from the same MinGW installation as `g++.exe`.
+4. Check which runtime DLL your executable loads and make sure it comes from the same MinGW installation as `g++.exe`.
 
-Optional hardening for local binaries:
-
-```cmake
-target_link_options(distributed_neural_xr PRIVATE -static-libstdc++ -static-libgcc)
-```
-
-This often avoids runtime conflicts on machines with multiple MinGW installations.
+The project links the C/C++ runtime statically by default on Windows via `DNXR_WINDOWS_PORTABLE_RUNTIME=ON`.
 
 ## Important note
+
 Read `TERMS_OF_USE.md` before any use of this project.
 
+## Development and ideas
 
-## For Give Help For Developpement And Idees Giveway.
-Bitcoin address for donation big thanck you so mutch !
-
-1C7HaBc8oZLq7d54ni8E6XNEKF8miLEceY
-
-## Clinical readiness
-This repository is a simulation scaffold and is **not** a certified clinical, regulatory, or deterministic real-time implant stack.
-See `docs/CLINICAL_READINESS_GAP_ANALYSIS.md` for the gap analysis and roadmap.
-For clinic-facing technical transfer material, see `docs/NEURALINK_CLINIC_TRANSFER_PACKAGE.md`.
-
-
-## Dépannage Windows : erreur d'entrée de procédure introuvable
-Si Windows affiche une erreur du type `_ZNKSt25__codecvt_utf8_utf16_baselwE10do_unshift... introuvable`, l'exécutable a généralement été lancé avec une version incompatible de `libstdc++-6.dll` (cas fréquent avec MinGW).
-
-Correctifs appliqués dans ce projet :
-- Le runtime C/C++ est lié statiquement par défaut sur Windows (`DNXR_WINDOWS_PORTABLE_RUNTIME=ON`).
-- Cela évite la dépendance à une `libstdc++-6.dll` externe potentiellement incompatible.
-
-Rebuild conseillé :
-```bash
-cmake -S . -B build -G "MinGW Makefiles"
-cmake --build build --config Release
-```
-
+For development discussions, open issues or proposals with reproducible build/test commands, evidence artifacts, and safety/regulatory limitations clearly identified.
 
 ## Neural-Chip Deep Immersion (Vector-only) — 2026 update
 
-This runtime is now explicitly **neural-chip vector driven** end-to-end (no EEG device dependency in the software contract).
+This runtime is explicitly **neural-chip vector driven** end-to-end in the software contract.
 
-### Key runtime capabilities
-- Neural vector inference (`runInferenceTick`) with safety diagnostics (`neuralSignalQuality`, `neuralSignalVariance`, `safetyMode`).
-- XR adaptation with visual perception tuning:
-  - `visualClarity`
-  - `depthPrecision`
-  - `motionStability`
-  - `contrastEnhancement`
-- Precision control from neural vectors:
-  - action-level control (`runActionTick`) for movement/look/interact
-  - full-body control (`runFullBodyControlTick`) for head/torso/arms/hands/legs/locomotion/balance
-- Platform-aware behavior for Windows/Linux/macOS via `RuntimePlatformProfile` and `DNXR_TARGET_OS_*` compile tags.
+Key runtime capabilities:
+
+- Neural vector inference with safety diagnostics.
+- XR adaptation with visual perception tuning.
+- Precision action and full-body control from neural vectors.
+- Platform-aware behavior for Windows/Linux/macOS via runtime platform profiles and compile tags.
 
 See `docs/DEEP_IMMERSION_NEURAL_VECTOR_RUNTIME_SPEC.md` for complete technical documentation.
-
-See `docs/NEURAL_CHIP_XR_SOFTWARE_IMPROVEMENT_PLAN.md` for the 2026 software improvement backlog (real-time, safety, tooling, neurorights).
+See `docs/NEURAL_CHIP_XR_SOFTWARE_IMPROVEMENT_PLAN.md` for the software improvement backlog.

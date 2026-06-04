@@ -38,7 +38,26 @@ CountryReadinessStatus CountryReadinessProfile::status() const {
     return CountryReadinessStatus::ReadyForQualifiedReview;
 }
 
+CountryReadinessStatus CountryReadinessProfile::status(const EvidenceRepository& evidence, const std::string& artifactTypePrefix) const {
+    if (items_.empty()) {
+        return CountryReadinessStatus::Blocked;
+    }
+    for (const auto& item : items_) {
+        if (!item.complete) {
+            return CountryReadinessStatus::Blocked;
+        }
+        if (!evidence.hasSignedEvidenceOfType(artifactTypePrefix + item.id)) {
+            return CountryReadinessStatus::Blocked;
+        }
+    }
+    return CountryReadinessStatus::ReadyForQualifiedReview;
+}
+
 bool CountryReadinessProfile::blocksClinicalSubmission() const { return status() != CountryReadinessStatus::ReadyForQualifiedReview; }
+
+bool CountryReadinessProfile::blocksClinicalSubmission(const EvidenceRepository& evidence, const std::string& artifactTypePrefix) const {
+    return status(evidence, artifactTypePrefix) != CountryReadinessStatus::ReadyForQualifiedReview;
+}
 
 std::string toString(CountryReadinessStatus status) {
     switch (status) {

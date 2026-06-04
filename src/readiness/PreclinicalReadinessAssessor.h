@@ -1,5 +1,7 @@
 #pragma once
 
+#include "readiness/EvidenceRepository.h"
+
 #include <string>
 #include <vector>
 
@@ -22,6 +24,7 @@ struct PreclinicalReadinessReport {
 class PreclinicalReadinessAssessor {
 public:
     PreclinicalReadinessReport assess(const PreclinicalEvidenceChecklist& checklist) const;
+    PreclinicalReadinessReport assess(const PreclinicalEvidenceChecklist& checklist, const EvidenceRepository& evidence) const;
 };
 
 } // namespace dnxr

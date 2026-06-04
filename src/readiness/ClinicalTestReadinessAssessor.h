@@ -2,6 +2,7 @@
 
 #include "ClinicalReadinessLevel.h"
 #include "ReadinessScorecard.h"
+#include "readiness/EvidenceRepository.h"
 
 #include <string>
 #include <vector>
@@ -18,7 +19,9 @@ struct ClinicalReadinessAssessment {
 class ClinicalTestReadinessAssessor {
 public:
     ClinicalReadinessAssessment assess(const ReadinessScorecard& scorecard) const;
+    ClinicalReadinessAssessment assess(const ReadinessScorecard& scorecard, const EvidenceRepository& evidence) const;
     bool canReturnClinicalTestReady(const ReadinessScorecard& scorecard) const;
+    bool canReturnClinicalTestReady(const ReadinessScorecard& scorecard, const EvidenceRepository& evidence) const;
 };
 
 } // namespace dnxr

@@ -28,3 +28,24 @@ std::size_t RegulatoryEvidenceIndex::artifactCount() const {
 }
 
 } // namespace dnxr
+
+
+namespace dnxr {
+
+void RegulatoryEvidenceIndex::indexReviewedRepository(const EvidenceRepository& evidence) {
+    for (const auto& artifact : evidence.artifacts()) {
+        if (artifact.reviewState == EvidenceReviewState::Reviewed || artifact.reviewState == EvidenceReviewState::Signed) {
+            addArtifact(artifact.type, artifact.id);
+        }
+        if (artifact.reviewState == EvidenceReviewState::Signed &&
+            std::find(signedArtifactTypes_.begin(), signedArtifactTypes_.end(), artifact.type) == signedArtifactTypes_.end()) {
+            signedArtifactTypes_.push_back(artifact.type);
+        }
+    }
+}
+
+bool RegulatoryEvidenceIndex::hasSignedArtifactType(const std::string& type) const {
+    return std::find(signedArtifactTypes_.begin(), signedArtifactTypes_.end(), type) != signedArtifactTypes_.end();
+}
+
+} // namespace dnxr

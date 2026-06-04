@@ -14,4 +14,22 @@ PreclinicalReadinessReport PreclinicalReadinessAssessor::assess(const Preclinica
     return report;
 }
 
+PreclinicalReadinessReport PreclinicalReadinessAssessor::assess(const PreclinicalEvidenceChecklist& c, const EvidenceRepository& evidence) const {
+    PreclinicalReadinessReport report = assess(c);
+    if (!evidence.hasSignedEvidenceOfType("physical_hil_session")) {
+        report.gaps.push_back("signed physical HIL session report");
+    }
+    if (!evidence.hasSignedEvidenceOfType("hil_latency_report")) {
+        report.gaps.push_back("signed HIL latency report");
+    }
+    if (!evidence.hasSignedEvidenceOfType("risk_control_verification")) {
+        report.gaps.push_back("signed risk-control verification record");
+    }
+    if (!evidence.hasSignedEvidenceOfType("runtime_10k_full")) {
+        report.gaps.push_back("signed full 10k runtime execution evidence");
+    }
+    report.ready = report.gaps.empty();
+    return report;
+}
+
 } // namespace dnxr
