@@ -1,24 +1,34 @@
 #!/usr/bin/env python3
+import argparse
 import pathlib
 
-from hil_lib import BUILD_ID, QMS_HIL, VERSION, ensure_dirs, scenario_records
+from hil_lib import QMS_HIL, VERSION, build_id, ensure_dirs, scenario_records
 
 
-def main() -> pathlib.Path:
+def parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Generate versioned HIL session report evidence.")
+    parser.add_argument("--version", default=VERSION, help="software evidence version to stamp on generated artifacts")
+    return parser
+
+
+def main(version: str | None = None) -> pathlib.Path:
+    version = version or VERSION
     ensure_dirs()
-    path = QMS_HIL / "session_reports" / f"HIL-SESSION-{VERSION}.md"
-    records = scenario_records()
+    path = QMS_HIL / "session_reports" / f"HIL-SESSION-{version}.md"
+    records = scenario_records(version)
+    covered = sorted({hazard for record in records for hazard in record.hazards})
     lines = [
-        "# HIL Session Report 0.4.1",
+        f"# HIL Session Report {version}",
         "",
         "## Scope",
-        "This report persists protocol-bound HIL scenario outputs for the 0.4.1 evidence lane and links each result to hazards, risk controls, latency statistics, operator role, reviewer role, build ID, and source artifact path.",
+        f"This report persists protocol-bound HIL scenario outputs for the {version} evidence lane and links each result to hazards, risk controls, latency statistics, operator role, reviewer role, build ID, and source artifact path.",
         "",
         "## Build metadata",
-        f"- Software version: {VERSION}",
-        f"- Build ID: {BUILD_ID}",
+        f"- Software version: {version}",
+        f"- Build ID: {build_id(version)}",
         "- Execution mode: deterministic simulated HIL evidence generation; physical bench execution remains required before clinical-test claims.",
         "- Overall status: " + ("PASS" if all(r.passed for r in records) else "NOT READY"),
+        f"- HIL hazard coverage: {len(covered)}/18 covered in generated software evidence",
         "",
         "## Scenario results",
         "| Scenario ID | Hazards | Risk controls | Phantom profile | Faults | Expected outcome | Observed outcome | Pass/fail | Average ms | p95 ms | p99 ms | Worst ms | Recovery cycles | Emergency stop | Operator | Reviewer | Timestamp | Artifact path |",
@@ -40,5 +50,5 @@ def main() -> pathlib.Path:
 
 
 if __name__ == "__main__":
-    import pathlib
-    main()
+    args = parser().parse_args()
+    main(args.version)

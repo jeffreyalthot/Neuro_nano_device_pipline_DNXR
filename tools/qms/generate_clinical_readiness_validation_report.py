@@ -81,7 +81,9 @@ hil_session_report = latest_file("qms/hil/session_reports/HIL-SESSION-*.md")
 hil_risk_coverage = latest_file("qms/hil/risk_coverage/HIL-RISK-COVERAGE-*.csv")
 hil_latency_report = latest_file("qms/hil/latency_reports/HIL-LATENCY-*.md")
 hil_scenario_evidence = GENERATED / "HILScenarioEvidenceReport.md"
-runtime_10k_evidence = GENERATED / "Runtime10kEvidence.md"
+runtime_10k_bounded_evidence = GENERATED / "Runtime10kBoundedEvidence.md"
+runtime_10k_full_evidence = GENERATED / "Runtime10kFullEvidence.md"
+readiness_lane_transcript = GENERATED / "ReadinessLaneTranscript.md"
 
 hil_text = "\n".join(read_text(path) for path in [hil_session_report, hil_latency_report, hil_scenario_evidence])
 risk_summary = risk_coverage_summary(hil_risk_coverage)
@@ -94,11 +96,13 @@ hil_scenario_evidence_generated = hil_artifacts_present and "Overall status: PAS
 hil_risk_coverage_partial = bool(missing_hil_hazards)
 hil_physical_bench_evidence_missing = "physical bench" in hil_text.lower() or not any((ROOT / "qms" / "hil" / name).exists() for name in ["physical_bench", "bench_reports", "hardware_bench"])
 named_independent_signoff_missing = risk_summary["named_signoff_missing"] or "pending named" in hil_text.lower() or not (ROOT / "qms" / "signoff").exists()
-readiness_lane_passed = runtime_10k_evidence.exists() and "Overall status: PASS" in read_text(runtime_10k_evidence)
+bounded_readiness_evidence_passed = runtime_10k_bounded_evidence.exists() and "Overall status: PASS" in read_text(runtime_10k_bounded_evidence)
+full_10k_evidence_passed = runtime_10k_full_evidence.exists() and "Overall status: PASS" in read_text(runtime_10k_full_evidence)
+readiness_lane_passed = bounded_readiness_evidence_passed or full_10k_evidence_passed
 
 preclinical_incomplete = bool(high_hazards) or not hil_scenario_evidence_generated or hil_risk_coverage_partial or hil_physical_bench_evidence_missing or named_independent_signoff_missing
 submission_blocked = preclinical_incomplete or bool(doc_gaps)
-clinical_test_blocked = submission_blocked or not readiness_lane_passed or any(item["disabled_by_default"] for item in disabled_impacts)
+clinical_test_blocked = submission_blocked or not full_10k_evidence_passed or any(item["disabled_by_default"] for item in disabled_impacts)
 
 statuses = [
     "IntegratedSimulationPassed",
@@ -107,6 +111,8 @@ statuses = [
     "HILRiskCoveragePartial" if hil_risk_coverage_partial else "HILRiskCoverageComplete",
     "HILPhysicalBenchEvidenceMissing" if hil_physical_bench_evidence_missing else "HILPhysicalBenchEvidencePresent",
     "NamedIndependentSignOffMissing" if named_independent_signoff_missing else "NamedIndependentSignOffPresent",
+    "Runtime10kBoundedEvidencePassed" if bounded_readiness_evidence_passed else "Runtime10kBoundedEvidenceMissing",
+    "Runtime10kFullEvidencePassed" if full_10k_evidence_passed else "Runtime10kFullEvidenceMissing",
     "ReadinessLanePassed" if readiness_lane_passed else "ReadinessLaneIncomplete",
     "PreclinicalEvidenceIncomplete" if preclinical_incomplete else "PreclinicalEvidenceComplete",
     "RegulatoryPackageDraftReady" if not doc_gaps else "RegulatoryPackageDraftIncomplete",
@@ -128,7 +134,10 @@ out.write_text(
     "- Current generated conclusion: IntegratedSimulationPassed when the normal lane is executed and passing.\n\n"
     "## Clinical-readiness validation lane\n"
     + "\n".join(f"```bash\n{cmd}\n```" for cmd in READINESS_LANE_COMMANDS)
-    + f"\n- Runtime 10k evidence artifact: `{rel(runtime_10k_evidence)}` ({'present' if runtime_10k_evidence.exists() else 'missing'})\n"
+    + f"\n- Runtime 10k bounded evidence artifact: `{rel(runtime_10k_bounded_evidence)}` ({'present' if runtime_10k_bounded_evidence.exists() else 'missing'})\n"
+    + f"- Runtime 10k full evidence artifact: `{rel(runtime_10k_full_evidence)}` ({'present' if runtime_10k_full_evidence.exists() else 'missing'})\n"
+    + f"- Readiness lane transcript: `{rel(readiness_lane_transcript)}` ({'present' if readiness_lane_transcript.exists() else 'missing'})\n"
+    + "- Runtime evidence rule: bounded projection evidence supports routine CI readiness only; full execution evidence is required before clinical-test readiness can be unblocked.\n"
     + "\n## Disabled-test impact\n"
     + "\n".join(f"- {item['test']}: {item['readiness_impact']}" for item in disabled_impacts)
     + "\n\n## QMS checks\n"
@@ -160,7 +169,7 @@ out.write_text(
     "- USReadinessProfile tracks IDE pathway memo, SR/NSR assumption, IRB readiness, informed consent, monitoring plan, and 21 CFR Part 812 mapping.\n"
     "- Status remains blocked until those items are completed and reviewed by qualified regulatory/clinical owners.\n\n"
     "## Overall conclusion\n"
-    "ClinicalTestBlocked: preclinical physical HIL evidence, full HIL hazard coverage or justification, signed risk acceptance, cybersecurity evidence, and country-specific submission materials remain incomplete; readiness-lane execution status is reported separately above.\n",
+    "ClinicalTestBlocked: preclinical physical HIL evidence, signed risk acceptance, cybersecurity evidence, country-specific submission materials, and full 10k execution evidence remain incomplete; bounded Runtime10k evidence is reported separately and is not treated as equivalent to full execution evidence.\n",
     encoding="utf-8",
 )
 print(out)
