@@ -62,3 +62,10 @@ Covers `src/hil` emulator/controller/fault/latency/evidence components and assoc
 2. Complete independent risk review and resolve open residual-risk decisions.
 3. Execute the clinical-readiness validation lane with long-run tests enabled.
 4. Attach signed reviewer approvals, protocol identifiers, and dated evidence records.
+
+## Required future HIL artifacts
+- `qms/hil/session_reports/*.md` for protocol-bound HIL scenario execution results.
+- `qms/hil/risk_coverage_matrix.csv` for hazard/risk-control/scenario coverage.
+- `qms/hil/latency_reports/*.md` for average, p95, p99, and worst-case latency by scenario.
+- `qms/hil/phantom_qualification/*.md` for physiological replay inputs and phantom qualification.
+- Independent reviewer sign-off records for each evidence-grade HIL session.

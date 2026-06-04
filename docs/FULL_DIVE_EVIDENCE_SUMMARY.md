@@ -54,3 +54,6 @@ Covers full-dive capability matrix, session validator, readiness assessor, evide
 2. Complete independent risk review and resolve open residual-risk decisions.
 3. Execute the clinical-readiness validation lane with long-run tests enabled.
 4. Attach signed reviewer approvals, protocol identifiers, and dated evidence records.
+
+## 0.3.9 full-dive evidence limitation
+Full-dive real-use claims remain blocked until every required capability is HILValidated or better, linked to executed evidence artifacts, and reviewed with residual-risk rationale and sign-off.

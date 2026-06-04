@@ -72,3 +72,11 @@ This package defines the software evidence that must be reviewed before the proj
 2. Complete independent risk review and resolve open residual-risk decisions.
 3. Execute the clinical-readiness validation lane with long-run tests enabled.
 4. Attach signed reviewer approvals, protocol identifiers, and dated evidence records.
+
+## 0.3.9 readiness update
+- Traceability is now concrete with 190 requirements linked to hazards, risk controls, source files, tests, evidence artifacts, verification methods, reviewer placeholders, and residual-risk statements.
+- Placeholder detection exists through `tools/qms/check_placeholder_content.py` to reduce false readiness claims and generic requirement text.
+- Evidence artifact path validation exists through `tools/qms/check_evidence_artifacts.py`.
+- Disabled readiness tests are identified as blockers through `tools/qms/check_disabled_tests_impact.py` unless executed in the clinical-readiness validation lane or formally justified.
+- `qms/generated/ClinicalGapReport.md` and `qms/generated/ExtendedVVReport.md` are generated as draft QMS artifacts.
+- This update improves RegulatoryPackageDraftReady evidence structure but does not achieve PreclinicalEvidenceComplete, ClinicalSubmissionReady, or ClinicalTestReady.
