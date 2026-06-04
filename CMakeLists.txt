@@ -194,6 +194,14 @@ if(DNXR_BUILD_TESTS)
         dnxr_hil_phantom_disconnect_test
         dnxr_hil_recovery_sequence_test
         dnxr_hil_readiness_assessor_test
+        dnxr_hil_scenario_runner_test
+        dnxr_hil_session_report_test
+        dnxr_hil_risk_coverage_matrix_test
+        dnxr_hil_multi_fault_recovery_test
+        dnxr_hil_latency_p99_test
+        dnxr_canada_readiness_profile_test
+        dnxr_us_readiness_profile_test
+        dnxr_country_readiness_blocks_without_protocol_test
         dnxr_security_audit_trail_test
         dnxr_threat_event_test
         dnxr_replay_attack_blocked_test
@@ -266,6 +274,15 @@ if(DNXR_BUILD_TESTS)
     set_tests_properties(dnxr_full_dive_intervention_window_long_test PROPERTIES LABELS "long_real;soak;full_dive;safety")
     set_tests_properties(dnxr_watchdog_stale_subsystem_long_test PROPERTIES LABELS "long_simulated;soak;safety")
 
+    set_tests_properties(dnxr_hil_scenario_runner_test PROPERTIES LABELS "unit;hil;evidence")
+    set_tests_properties(dnxr_hil_session_report_test PROPERTIES LABELS "unit;hil;evidence")
+    set_tests_properties(dnxr_hil_risk_coverage_matrix_test PROPERTIES LABELS "unit;hil;risk")
+    set_tests_properties(dnxr_hil_multi_fault_recovery_test PROPERTIES LABELS "unit;hil;safety")
+    set_tests_properties(dnxr_hil_latency_p99_test PROPERTIES LABELS "unit;hil;latency")
+    set_tests_properties(dnxr_canada_readiness_profile_test PROPERTIES LABELS "unit;readiness;canada")
+    set_tests_properties(dnxr_us_readiness_profile_test PROPERTIES LABELS "unit;readiness;us")
+    set_tests_properties(dnxr_country_readiness_blocks_without_protocol_test PROPERTIES LABELS "unit;readiness;regulatory")
+
     set_tests_properties(dnxr_runtime_controller_100k_cycles_test PROPERTIES LABELS "long_simulated;runtime;controller")
     if(NOT DNXR_ENABLE_CONTROLLER_100K_TEST)
         set_tests_properties(dnxr_runtime_controller_100k_cycles_test PROPERTIES DISABLED TRUE)
@@ -285,6 +302,14 @@ if(DNXR_BUILD_TESTS)
             dnxr_hil_phantom_disconnect_test
             dnxr_hil_recovery_sequence_test
             dnxr_hil_readiness_assessor_test
+            dnxr_hil_scenario_runner_test
+            dnxr_hil_session_report_test
+            dnxr_hil_risk_coverage_matrix_test
+            dnxr_hil_multi_fault_recovery_test
+            dnxr_hil_latency_p99_test
+            dnxr_canada_readiness_profile_test
+            dnxr_us_readiness_profile_test
+            dnxr_country_readiness_blocks_without_protocol_test
             PROPERTIES DISABLED TRUE)
     endif()
     if(NOT DNXR_ENABLE_LONG_SIMULATED_TESTS)

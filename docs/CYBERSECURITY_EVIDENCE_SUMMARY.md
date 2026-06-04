@@ -57,3 +57,6 @@ Covers security audit trail, threat events, SBOM manifest, key lifecycle policy,
 2. Complete independent risk review and resolve open residual-risk decisions.
 3. Execute the clinical-readiness validation lane with long-run tests enabled.
 4. Attach signed reviewer approvals, protocol identifiers, and dated evidence records.
+
+## 0.3.9 cybersecurity evidence limitation
+Cybersecurity remains structural until penetration-test evidence, vulnerability-scan evidence, vulnerability disposition, reviewed threat-model evidence, secure-update adversarial tests, tool-generated SBOM evidence, and key rotation/revocation scenario reports exist and are reviewed.

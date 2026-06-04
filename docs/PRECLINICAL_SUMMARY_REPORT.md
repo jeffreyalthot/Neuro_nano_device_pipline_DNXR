@@ -55,3 +55,6 @@ This report covers repository evidence only. It excludes animal studies, cadaver
 2. Complete independent risk review and resolve open residual-risk decisions.
 3. Execute the clinical-readiness validation lane with long-run tests enabled.
 4. Attach signed reviewer approvals, protocol identifiers, and dated evidence records.
+
+## 0.3.9 HIL evidence limitation
+HIL evidence remains scaffold-level until `HILScenarioRunner`, `HILSessionReport`, and protocol-bound HIL session artifacts are implemented, executed, reviewed, and linked to hazards, risk controls, requirements, and traceability rows.
