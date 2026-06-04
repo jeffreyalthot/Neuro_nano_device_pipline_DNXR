@@ -1,0 +1,7 @@
+HazardID,ScenarioIDs,RiskControls,Covered,AllPassing,EvidenceArtifact,ReviewerState
+H-001,HIL-SCEN-0.4.1-001,RC-001;RC-003,true,true,qms/hil/session_reports/HIL-SESSION-0.4.1.md,role-reviewed; named sign-off pending
+H-003,HIL-SCEN-0.4.1-001,RC-001;RC-003,true,true,qms/hil/session_reports/HIL-SESSION-0.4.1.md,role-reviewed; named sign-off pending
+H-004,HIL-SCEN-0.4.1-002,RC-004;RC-008,true,true,qms/hil/session_reports/HIL-SESSION-0.4.1.md,role-reviewed; named sign-off pending
+H-006,HIL-SCEN-0.4.1-003,RC-006;RC-010,true,true,qms/hil/session_reports/HIL-SESSION-0.4.1.md,role-reviewed; named sign-off pending
+H-008,HIL-SCEN-0.4.1-002,RC-004;RC-008,true,true,qms/hil/session_reports/HIL-SESSION-0.4.1.md,role-reviewed; named sign-off pending
+H-010,HIL-SCEN-0.4.1-003,RC-006;RC-010,true,true,qms/hil/session_reports/HIL-SESSION-0.4.1.md,role-reviewed; named sign-off pending
