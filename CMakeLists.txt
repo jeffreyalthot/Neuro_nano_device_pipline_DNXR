@@ -185,6 +185,13 @@ if(DNXR_BUILD_TESTS)
         dnxr_preclinical_readiness_assessor_test
         dnxr_readiness_cannot_skip_hil_test
         dnxr_readiness_requires_traceability_test
+        dnxr_readiness_evidence_repository_test
+        dnxr_clinical_readiness_blocks_unsigned_evidence_test
+        dnxr_preclinical_readiness_requires_hil_reports_test
+        dnxr_country_readiness_requires_signed_artifacts_test
+        dnxr_qms_review_record_test
+        dnxr_qms_signoff_record_test
+        dnxr_qms_review_gate_blocks_unsigned_high_risk_test
         dnxr_full_dive_capability_matrix_test
         dnxr_full_dive_readiness_assessor_test
         dnxr_full_dive_session_validator_test
@@ -296,6 +303,13 @@ if(DNXR_BUILD_TESTS)
             dnxr_preclinical_readiness_assessor_test
             dnxr_readiness_cannot_skip_hil_test
             dnxr_readiness_requires_traceability_test
+            dnxr_readiness_evidence_repository_test
+            dnxr_clinical_readiness_blocks_unsigned_evidence_test
+            dnxr_preclinical_readiness_requires_hil_reports_test
+            dnxr_country_readiness_requires_signed_artifacts_test
+            dnxr_qms_review_record_test
+            dnxr_qms_signoff_record_test
+            dnxr_qms_review_gate_blocks_unsigned_high_risk_test
             dnxr_hil_fault_injection_test
             dnxr_hil_latency_budget_test
             dnxr_hil_emergency_stop_test

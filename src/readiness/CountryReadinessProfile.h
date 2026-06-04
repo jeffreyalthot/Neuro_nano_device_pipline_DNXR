@@ -1,5 +1,7 @@
 #pragma once
 
+#include "readiness/EvidenceRepository.h"
+
 #include <string>
 #include <vector>
 
@@ -27,7 +29,9 @@ public:
     std::vector<CountryReadinessItem> items() const;
     std::vector<CountryReadinessItem> missingItems() const;
     CountryReadinessStatus status() const;
+    CountryReadinessStatus status(const EvidenceRepository& evidence, const std::string& artifactTypePrefix) const;
     bool blocksClinicalSubmission() const;
+    bool blocksClinicalSubmission(const EvidenceRepository& evidence, const std::string& artifactTypePrefix) const;
 
 protected:
     void addItem(std::string id, std::string description, bool complete = false);
