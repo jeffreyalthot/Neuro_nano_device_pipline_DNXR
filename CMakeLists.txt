@@ -13,6 +13,16 @@ option(DNXR_ENABLE_CONTROLLER_10K_TEST "Enable 10k deterministic controller pipe
 option(DNXR_ENABLE_CONTROLLER_100K_TEST "Enable 100k deterministic controller readiness test" OFF)
 option(DNXR_ENABLE_EXTENDED_VV_TESTS "Enable extended clinical-readiness verification tests" ON)
 option(DNXR_ENABLE_NO_ALLOCATION_GUARD "Enable no-allocation guard readiness tests" ON)
+option(DNXR_ENABLE_CLINICAL_READINESS_VALIDATION "Enable all clinical-readiness validation lanes, including long simulated/real and controller soak tests" OFF)
+
+if(DNXR_ENABLE_CLINICAL_READINESS_VALIDATION)
+    set(DNXR_ENABLE_LONG_SIMULATED_TESTS ON CACHE BOOL "Enable long simulated tests" FORCE)
+    set(DNXR_ENABLE_LONG_REAL_TESTS ON CACHE BOOL "Enable long real soak tests" FORCE)
+    set(DNXR_ENABLE_CONTROLLER_10K_TEST ON CACHE BOOL "Enable 10k deterministic controller pipeline test" FORCE)
+    set(DNXR_ENABLE_CONTROLLER_100K_TEST ON CACHE BOOL "Enable 100k deterministic controller readiness test" FORCE)
+    set(DNXR_ENABLE_EXTENDED_VV_TESTS ON CACHE BOOL "Enable extended clinical-readiness verification tests" FORCE)
+    set(DNXR_ENABLE_NO_ALLOCATION_GUARD ON CACHE BOOL "Enable no-allocation guard readiness tests" FORCE)
+endif()
 
 if(DNXR_ENABLE_TSAN AND DNXR_ENABLE_ASAN)
     message(FATAL_ERROR "DNXR_ENABLE_TSAN and DNXR_ENABLE_ASAN cannot be enabled together")

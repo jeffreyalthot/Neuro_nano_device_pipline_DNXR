@@ -2,21 +2,24 @@
 
 Hazards indexed: 18
 
-H-001
-H-002
-H-003
-H-004
-H-005
-H-006
-H-007
-H-008
-H-009
-H-010
-H-011
-H-012
-H-013
-H-014
-H-015
-H-016
-H-017
-H-018
+High-severity hazards requiring independent review: 17
+
+## Hazard IDs
+- H-001
+- H-002
+- H-003
+- H-004
+- H-005
+- H-006
+- H-007
+- H-008
+- H-009
+- H-010
+- H-011
+- H-012
+- H-013
+- H-014
+- H-015
+- H-016
+- H-017
+- H-018

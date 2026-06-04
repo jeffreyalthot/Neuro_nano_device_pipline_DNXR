@@ -1,25 +1,57 @@
 # Preclinical Summary Report
 
-This package is a draft review artifact for physicians, biomedical engineers, quality/regulatory experts, and Canada/US pathway planning. It does not claim authorization, approval, or readiness for human testing by itself.
+## Purpose
+State the current preclinical evidence position for software, HIL, safety, cybersecurity, and runtime determinism.
 
-## Content required
-- Intended use draft.
-- Software/device description.
-- Full-dive theoretical model and limitations.
-- HIL evidence summary.
-- Risk management and residual risk summary.
-- Software V&V summary.
-- Cybersecurity summary.
-- Known limitations and readiness gaps.
-- Canada ITA / US IDE pathway references.
+## Scope
+This report covers repository evidence only. It excludes animal studies, cadaver/bench hardware validation outside the repository, implanted-device verification, sterilization/biocompatibility, and clinical data.
 
-## Regulatory references
-- Health Canada Investigational Testing Authorization: https://www.canada.ca/en/health-canada/services/drugs-health-products/medical-devices/application-information/guidance-documents/investigational-testing-authorizations-guidance.html
-- FDA Investigational Device Exemption: https://www.fda.gov/medical-devices/premarket-submissions-selecting-and-preparing-correct-submission/investigational-device-exemption-ide
-- 21 CFR Part 812: https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-812
-- FDA QMSR / 21 CFR Part 820: https://www.fda.gov/medical-devices/postmarket-requirements-devices/quality-management-system-regulation-qmsr
-- FDA Cybersecurity in Medical Devices: https://www.fda.gov/medical-devices/digital-health-center-excellence/cybersecurity
-- ISO 13485 overview: https://www.iso.org/standard/59752.html
-- IEC 62304 overview: https://www.iso.org/standard/38421.html
-- ISO 14971 overview: https://www.iso.org/standard/72704.html
-- TCPS 2 Canada: https://ethics.gc.ca/eng/policy-politique_tcps2-eptc2_2022.html
+## Current status
+| Readiness level | Status | Rationale |
+| --- | --- | --- |
+| SimulationOnly | Complete | Build and simulation tests are present |
+| IntegratedSimulation | Supported | Runtime, full-dive, safety, security, and readiness tests exist |
+| HILReady | Partial | HIL scaffold exists but scenario reports and risk coverage matrix are missing |
+| PreclinicalEvidenceComplete | Not met | No signed non-simulated evidence package |
+| ClinicalSubmissionReady | Not met | Protocol/regulatory package incomplete |
+| ClinicalTestReady | Not met | No approval/authorization, clinical protocol, or completed preclinical evidence |
+
+## Required evidence
+- Executed HIL scenario suite with immutable session reports.
+- Risk coverage matrix mapping hazards to controls and tests.
+- Long-run validation lane output with all clinical-readiness tests enabled.
+- Independent review of residual risks, cybersecurity, V&V, and physician-facing materials.
+
+## Available evidence
+- Normal build/test lane and 95 active CTest targets reported in the 0.3.8 review.
+- Traceability matrix with 190 concrete requirements linked to source, tests, hazards, controls, and evidence summaries.
+- HIL, full-dive, cybersecurity, and runtime summaries identify current evidence and gaps.
+
+## Missing evidence
+- Signed preclinical protocol and acceptance criteria.
+- Bench/HIL exported result artifacts.
+- Hardware phantom qualification.
+- Physiological replay dataset provenance.
+- Independent reviewer sign-off.
+
+## Linked artifacts
+- `docs/HIL_EVIDENCE_SUMMARY.md`
+- `docs/FULL_DIVE_EVIDENCE_SUMMARY.md`
+- `docs/CYBERSECURITY_EVIDENCE_SUMMARY.md`
+- `docs/SOFTWARE_SAFETY_CASE_SUMMARY.md`
+- `qms/generated/ExtendedVVReport.md`
+
+## Linked tests
+- Normal lane: `ctest --output-on-failure`
+- Readiness lane: `ctest --test-dir build_readiness --output-on-failure` after enabling clinical-readiness options
+
+## Reviewer / status
+- Document owner: QMS software lead.
+- Review state: Structured draft requiring independent clinical, regulatory, cybersecurity, and safety review before any submission.
+- Current readiness conclusion: not ClinicalTestReady; this package supports gap closure and expert review only.
+
+## Next actions
+1. Replace simulated/HIL scaffold evidence with protocol-bound bench and HIL run records.
+2. Complete independent risk review and resolve open residual-risk decisions.
+3. Execute the clinical-readiness validation lane with long-run tests enabled.
+4. Attach signed reviewer approvals, protocol identifiers, and dated evidence records.

@@ -1,25 +1,56 @@
-# Full Dive Evidence Summary
+# Full-Dive Evidence Summary
 
-This package is a draft review artifact for physicians, biomedical engineers, quality/regulatory experts, and Canada/US pathway planning. It does not claim authorization, approval, or readiness for human testing by itself.
+## Purpose
+Summarize capability evidence for full-dive functions and identify blockers before any preclinical or clinical-readiness claim.
 
-## Content required
-- Intended use draft.
-- Software/device description.
-- Full-dive theoretical model and limitations.
-- HIL evidence summary.
-- Risk management and residual risk summary.
-- Software V&V summary.
-- Cybersecurity summary.
-- Known limitations and readiness gaps.
-- Canada ITA / US IDE pathway references.
+## Scope
+Covers full-dive capability matrix, session validator, readiness assessor, evidence recorder, runtime full-dive stage, sensory exposure controls, emergency exit, reality anchor, decompression, and temporal coherence components.
 
-## Regulatory references
-- Health Canada Investigational Testing Authorization: https://www.canada.ca/en/health-canada/services/drugs-health-products/medical-devices/application-information/guidance-documents/investigational-testing-authorizations-guidance.html
-- FDA Investigational Device Exemption: https://www.fda.gov/medical-devices/premarket-submissions-selecting-and-preparing-correct-submission/investigational-device-exemption-ide
-- 21 CFR Part 812: https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-812
-- FDA QMSR / 21 CFR Part 820: https://www.fda.gov/medical-devices/postmarket-requirements-devices/quality-management-system-regulation-qmsr
-- FDA Cybersecurity in Medical Devices: https://www.fda.gov/medical-devices/digital-health-center-excellence/cybersecurity
-- ISO 13485 overview: https://www.iso.org/standard/59752.html
-- IEC 62304 overview: https://www.iso.org/standard/38421.html
-- ISO 14971 overview: https://www.iso.org/standard/72704.html
-- TCPS 2 Canada: https://ethics.gc.ca/eng/policy-politique_tcps2-eptc2_2022.html
+## Current status
+- Evidence classification: IntegratedSimulation with partial HIL scaffold.
+- PreclinicalEvidenceComplete: false.
+- ClinicalEvidenceAvailable: false.
+
+## Required evidence
+- Capability-by-capability evidence records for visual, auditory, haptic, proprioceptive, vestibular, motor prediction, reality anchor, emergency exit, cognitive reversibility, temporal coherence, calibration stability, sensory exposure control, and decompression.
+- Session validation evidence showing rejection of unsafe exposure, missing emergency exit, missing reality anchor, and unstable calibration scenarios.
+- HIL scenario evidence for vestibular overload, latency overrun, emergency exit, decompression failure, and reality-anchor failure.
+
+## Available evidence
+- `FullDiveCapabilityMatrix` tracks capabilities and evidence levels.
+- `FullDiveReadinessAssessor` blocks readiness escalation when required capabilities lack evidence.
+- `FullDiveSessionValidator` validates session constraints.
+- `FullDiveEvidenceRecorder` records evidence entries for capability-level review.
+- Unit tests cover capability matrix, readiness assessor, session validator, bridge intervention, and intervention window logic.
+
+## Missing evidence
+- No clinical evidence is present.
+- No preclinical non-simulated evidence package is present.
+- HIL scenario-to-capability coverage is not yet exported.
+- Long vestibular and intervention-window tests are not part of the normal validation lane.
+
+## Linked artifacts
+- `docs/FULL_DIVE_DEFINITION.md`
+- `docs/FULL_DIVE_LIMITATIONS.md`
+- `docs/FULL_DIVE_VALIDATION_PROTOCOL.md`
+- `docs/FULL_DIVE_HAZARD_ANALYSIS.md`
+- `docs/TRACEABILITY_MATRIX.csv`
+
+## Linked tests
+- `dnxr_full_dive_capability_matrix_test`
+- `dnxr_full_dive_readiness_assessor_test`
+- `dnxr_full_dive_session_validator_test`
+- `dnxr_full_dive_bridge_intervention_test`
+- `dnxr_full_dive_intervention_window_test`
+- Long-run lane: `dnxr_vestibular_exposure_budget_long_test`, `dnxr_full_dive_intervention_window_long_test`
+
+## Reviewer / status
+- Document owner: QMS software lead.
+- Review state: Structured draft requiring independent clinical, regulatory, cybersecurity, and safety review before any submission.
+- Current readiness conclusion: not ClinicalTestReady; this package supports gap closure and expert review only.
+
+## Next actions
+1. Replace simulated/HIL scaffold evidence with protocol-bound bench and HIL run records.
+2. Complete independent risk review and resolve open residual-risk decisions.
+3. Execute the clinical-readiness validation lane with long-run tests enabled.
+4. Attach signed reviewer approvals, protocol identifiers, and dated evidence records.

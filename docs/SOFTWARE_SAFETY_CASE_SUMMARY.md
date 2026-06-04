@@ -1,25 +1,55 @@
 # Software Safety Case Summary
 
-This package is a draft review artifact for physicians, biomedical engineers, quality/regulatory experts, and Canada/US pathway planning. It does not claim authorization, approval, or readiness for human testing by itself.
+## Purpose
+Summarize software safety claims, supporting evidence, and unresolved gaps for readiness review.
 
-## Content required
-- Intended use draft.
-- Software/device description.
-- Full-dive theoretical model and limitations.
-- HIL evidence summary.
-- Risk management and residual risk summary.
-- Software V&V summary.
-- Cybersecurity summary.
-- Known limitations and readiness gaps.
-- Canada ITA / US IDE pathway references.
+## Scope
+Covers runtime safety stages, sensory exposure controls, full-dive emergency exit, reality anchor, decompression, watchdog, HIL fault handling, cybersecurity controls, and traceability to hazards.
 
-## Regulatory references
-- Health Canada Investigational Testing Authorization: https://www.canada.ca/en/health-canada/services/drugs-health-products/medical-devices/application-information/guidance-documents/investigational-testing-authorizations-guidance.html
-- FDA Investigational Device Exemption: https://www.fda.gov/medical-devices/premarket-submissions-selecting-and-preparing-correct-submission/investigational-device-exemption-ide
-- 21 CFR Part 812: https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-812
-- FDA QMSR / 21 CFR Part 820: https://www.fda.gov/medical-devices/postmarket-requirements-devices/quality-management-system-regulation-qmsr
-- FDA Cybersecurity in Medical Devices: https://www.fda.gov/medical-devices/digital-health-center-excellence/cybersecurity
-- ISO 13485 overview: https://www.iso.org/standard/59752.html
-- IEC 62304 overview: https://www.iso.org/standard/38421.html
-- ISO 14971 overview: https://www.iso.org/standard/72704.html
-- TCPS 2 Canada: https://ethics.gc.ca/eng/policy-politique_tcps2-eptc2_2022.html
+## Current status
+- Safety case structure: present.
+- Evidence grade: draft and simulation/HIL-scaffold only.
+- Human-use readiness: not established.
+
+## Required evidence
+- Claim-argument-evidence safety case linked to each high-severity hazard.
+- Signed residual-risk acceptance and benefit-risk rationale.
+- HIL scenario evidence for emergency exit, phantom disconnect, latency overrun, overload, and recovery.
+- Long-run determinism and no-allocation evidence.
+
+## Available evidence
+- Safety and runtime tests cover watchdog, safety state machine, sensory exposure, runtime safety stage, full-dive bridge intervention, and emergency exit paths.
+- Traceability matrix links requirements to hazards and tests.
+- HIL evidence summary identifies current scaffold coverage.
+
+## Missing evidence
+- Independent safety review sign-off.
+- Non-simulated HIL session reports.
+- Residual-risk decisions with named accountable approvers.
+- Formal clinical stopping rules and operator training evidence.
+
+## Linked artifacts
+- `docs/FULL_DIVE_HAZARD_ANALYSIS.md`
+- `docs/RISK_CONTROL_MEASURES.md`
+- `docs/RESIDUAL_RISK_EVALUATION.md`
+- `docs/EMERGENCY_EXIT_SAFETY_CASE.md`
+- `docs/REALITY_ANCHOR_SAFETY_CASE.md`
+- `docs/STIMULUS_SAFETY_CASE.md`
+
+## Linked tests
+- `dnxr_safety_unit_test`
+- `dnxr_safety_state_machine_test`
+- `dnxr_watchdog_failure_test`
+- `dnxr_runtime_safety_stage_test`
+- `dnxr_hil_emergency_stop_test`
+
+## Reviewer / status
+- Document owner: QMS software lead.
+- Review state: Structured draft requiring independent clinical, regulatory, cybersecurity, and safety review before any submission.
+- Current readiness conclusion: not ClinicalTestReady; this package supports gap closure and expert review only.
+
+## Next actions
+1. Replace simulated/HIL scaffold evidence with protocol-bound bench and HIL run records.
+2. Complete independent risk review and resolve open residual-risk decisions.
+3. Execute the clinical-readiness validation lane with long-run tests enabled.
+4. Attach signed reviewer approvals, protocol identifiers, and dated evidence records.

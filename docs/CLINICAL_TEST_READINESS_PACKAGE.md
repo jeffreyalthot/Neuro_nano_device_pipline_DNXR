@@ -1,25 +1,74 @@
 # Clinical Test Readiness Package
 
-This package is a draft review artifact for physicians, biomedical engineers, quality/regulatory experts, and Canada/US pathway planning. It does not claim authorization, approval, or readiness for human testing by itself.
+## Purpose
+This package defines the software evidence that must be reviewed before the project can be evaluated for Canada ITA or United States IDE clinical-test planning. It is not an authorization, approval, or claim of readiness for human testing.
 
-## Content required
-- Intended use draft.
-- Software/device description.
-- Full-dive theoretical model and limitations.
-- HIL evidence summary.
-- Risk management and residual risk summary.
-- Software V&V summary.
-- Cybersecurity summary.
-- Known limitations and readiness gaps.
-- Canada ITA / US IDE pathway references.
+## Scope
+- C++17 simulation runtime, safety pipeline, full-dive capability model, HIL scaffold, runtime determinism utilities, and cybersecurity scaffolding.
+- Readiness artifacts covering requirements, traceability, risk controls, HIL evidence, cybersecurity, validation planning, and jurisdiction-specific clinical submission planning.
+- Excludes implanted hardware validation, biocompatibility, animal studies, clinical protocol approval, REB/IRB approval, manufacturing validation, and signed regulatory submissions.
 
-## Regulatory references
-- Health Canada Investigational Testing Authorization: https://www.canada.ca/en/health-canada/services/drugs-health-products/medical-devices/application-information/guidance-documents/investigational-testing-authorizations-guidance.html
-- FDA Investigational Device Exemption: https://www.fda.gov/medical-devices/premarket-submissions-selecting-and-preparing-correct-submission/investigational-device-exemption-ide
-- 21 CFR Part 812: https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-812
-- FDA QMSR / 21 CFR Part 820: https://www.fda.gov/medical-devices/postmarket-requirements-devices/quality-management-system-regulation-qmsr
-- FDA Cybersecurity in Medical Devices: https://www.fda.gov/medical-devices/digital-health-center-excellence/cybersecurity
-- ISO 13485 overview: https://www.iso.org/standard/59752.html
-- IEC 62304 overview: https://www.iso.org/standard/38421.html
-- ISO 14971 overview: https://www.iso.org/standard/72704.html
-- TCPS 2 Canada: https://ethics.gc.ca/eng/policy-politique_tcps2-eptc2_2022.html
+## Current status
+| Area | Current evidence state | Clinical-readiness impact |
+| --- | --- | --- |
+| Integrated simulation | Active unit/integration tests pass in normal CTest lane | Supports IntegratedSimulation only |
+| HIL | Controller, emulator, fault injection, latency instrumentation, and HIL assessor exist | HILReady remains partial until scenario evidence is exported and reviewed |
+| Full-dive capability evidence | Capability matrix and readiness assessor are present | Evidence level remains simulated/HIL-scaffold, not preclinical complete |
+| Risk management | Hazard file and traceability links exist | Residual risk requires independent review and non-simulated evidence |
+| Cybersecurity | Audit trail, threat event, SBOM, key lifecycle, and secure update policy exist | Cybersecurity evidence is structural, not penetration-test complete |
+| Regulatory package | Canada/US/REB/IRB checklists exist | Submission-ready content remains incomplete |
+
+## Required evidence
+- Concrete software requirements with source, hazard, risk-control, test, and evidence links.
+- HIL scenario report for each high-severity hazard, including latency p95/p99/worst and fault recovery outcome.
+- Software verification and validation summary from normal and clinical-readiness validation lanes.
+- Signed safety case, risk management review, cybersecurity review, and physician/regulatory review.
+- Canada ITA and US IDE pathway assumptions reviewed by qualified regulatory experts.
+
+## Available evidence
+- `docs/TRACEABILITY_MATRIX.csv` links concrete requirements to source files, tests, hazards, controls, and evidence summaries.
+- `docs/HIL_EVIDENCE_SUMMARY.md` identifies available HIL scaffold tests and missing scenario-level evidence.
+- `docs/FULL_DIVE_EVIDENCE_SUMMARY.md` identifies capability evidence levels and blockers.
+- `docs/CYBERSECURITY_EVIDENCE_SUMMARY.md` summarizes audit/update/key/SBOM evidence and missing cyber validation.
+- `docs/PRECLINICAL_SUMMARY_REPORT.md` states that current evidence is not yet preclinical complete.
+
+## Missing evidence
+- Signed independent risk review and residual-risk acceptance.
+- Exported per-session HIL reports with scenario-to-hazard-to-control coverage.
+- Long-run readiness lane evidence with disabled critical tests enabled.
+- Formal clinical protocol, investigator brochure/package, informed consent materials, monitoring plan, adverse-event reporting plan, and site readiness evidence.
+- Hardware phantom qualification, physiological replay datasets, and bench validation beyond simulation.
+
+## Linked artifacts
+- `docs/CANADA_ITA_READINESS_CHECKLIST.md`
+- `docs/US_IDE_READINESS_CHECKLIST.md`
+- `docs/REB_IRB_READINESS_CHECKLIST.md`
+- `docs/PRECLINICAL_SUMMARY_REPORT.md`
+- `docs/SOFTWARE_SAFETY_CASE_SUMMARY.md`
+- `docs/HIL_EVIDENCE_SUMMARY.md`
+- `docs/FULL_DIVE_EVIDENCE_SUMMARY.md`
+- `docs/CYBERSECURITY_EVIDENCE_SUMMARY.md`
+- `qms/generated/ClinicalGapReport.md`
+
+## Linked tests
+- `dnxr_clinical_readiness_assessor_test`
+- `dnxr_preclinical_readiness_assessor_test`
+- `dnxr_readiness_cannot_skip_hil_test`
+- `dnxr_readiness_requires_traceability_test`
+- `dnxr_hil_fault_injection_test`
+- `dnxr_hil_latency_budget_test`
+- `dnxr_hil_emergency_stop_test`
+- `dnxr_hil_phantom_disconnect_test`
+- `dnxr_hil_recovery_sequence_test`
+- Long-run lane: `dnxr_runtime_controller_pipeline_10k_cycles_test`, `dnxr_runtime_controller_100k_cycles_test`, `dnxr_vestibular_exposure_budget_long_test`, `dnxr_full_dive_intervention_window_long_test`
+
+## Reviewer / status
+- Document owner: QMS software lead.
+- Review state: Structured draft requiring independent clinical, regulatory, cybersecurity, and safety review before any submission.
+- Current readiness conclusion: not ClinicalTestReady; this package supports gap closure and expert review only.
+
+## Next actions
+1. Replace simulated/HIL scaffold evidence with protocol-bound bench and HIL run records.
+2. Complete independent risk review and resolve open residual-risk decisions.
+3. Execute the clinical-readiness validation lane with long-run tests enabled.
+4. Attach signed reviewer approvals, protocol identifiers, and dated evidence records.
