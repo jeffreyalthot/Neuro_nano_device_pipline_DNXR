@@ -1,0 +1,11 @@
+{
+  "bounded_lane": {
+    "status": "PASS_IF_RUNTIME10K_BOUNDED_EVIDENCE_PASS",
+    "artifact": "qms/generated/Runtime10kBoundedEvidence.md"
+  },
+  "full_10k_lane": {
+    "status": "PASS_IF_RUNTIME10K_FULL_EVIDENCE_PASS",
+    "artifact": "qms/generated/Runtime10kFullEvidence.md"
+  },
+  "rule": "Report bounded and full lanes separately; never infer full 10k execution from bounded evidence."
+}

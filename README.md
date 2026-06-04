@@ -2,7 +2,7 @@
 
 A C++17 repository for a **simulated** "nano-device ↔ XR headset ↔ host computer" pipeline focused on deep-immersion experimental R&D.
 
-> **Safety and regulatory status:** this repository is not a certified clinical, regulatory, implant, therapeutic, or deterministic target-hardware stack. It is a software/HIL evidence package for simulation, documentation, QMS preparation, and expert preclinical review planning only.
+> **Safety and regulatory status:** this repository is not a certified clinical, regulatory, implant, therapeutic, or deterministic target-hardware stack. It is a software/HIL evidence package for simulation, documentation, QMS preparation, clinical-test acceptance review preparation, and expert preclinical review planning only. It does not authorize human testing.
 
 ## Repository structure
 
@@ -73,6 +73,14 @@ DNXR_CONTROLLER_10K_FULL=1 tools/qms/generate_runtime_10k_full_evidence.py
 
 The script refuses to generate `qms/generated/Runtime10kFullEvidence.md` unless `DNXR_CONTROLLER_10K_FULL=1` is set and the full controller test executable actually runs. The generated report must still be reviewed and signed before it can unlock advanced readiness gates.
 
+Runtime lane evidence is intentionally split:
+
+- `qms/generated/ReadinessLaneTranscript-Bounded.md` records bounded/normal readiness evidence.
+- `qms/generated/ReadinessLaneTranscript-Full10k.md` records explicit full 10k execution evidence.
+- `qms/generated/ReadinessLaneSummary.json` records the bounded/full lane status boundary.
+
+The final reports must never infer full 10k execution from bounded evidence.
+
 ## QMS and evidence checks
 
 Run the main generated-document and traceability checks before release review:
@@ -96,6 +104,23 @@ python3 tools/qms/generate_clinical_software_freeze_report.py
 ```
 
 The clinical software freeze report summarizes what is software-complete, what remains open, and which blockers require external evidence such as physical HIL, qualified review, and clinical/regulatory authorization.
+
+### Manifest-driven QMS evidence selection
+
+The 0.4.5 evidence package uses an explicit manifest so QMS generators do **not** guess the current HIL/runtime/security artifact from file modification time.
+
+Primary files:
+
+- `qms/generated/EvidenceIndex.json` — canonical evidence path index.
+- `qms/generated/EvidenceManifest_0.4.5.md` — human-readable manifest and selection rule.
+- `qms/generated/EvidenceReuseJustification_0.4.5.md` — justification for reusing deterministic software HIL evidence from 0.4.3 when the HIL implementation is unchanged.
+
+Rule for reviewers and contributors:
+
+```text
+A QMS/readiness/freeze generator must select artifacts by EvidenceIndex.json key,
+not by newest modification time.
+```
 
 ## HIL software evidence procedure
 
@@ -150,6 +175,22 @@ Cybersecurity plans alone cannot unlock clinical readiness. Promotion requires e
 
 Advanced readiness decisions must use `EvidenceRepository` plus QMS review/sign-off gates. A `ReadinessScorecard` boolean cannot unlock `ClinicalTestReady` by itself.
 
+The readiness ladder now separates expert clinical-test acceptance review preparation from actual clinical-test readiness:
+
+```text
+SimulationOnly
+IntegratedSimulation
+HILReady
+PreclinicalEvidenceComplete
+RegulatoryPackageDraftReady
+ClinicalSubmissionReady
+ClinicalTestAcceptanceReviewReady
+ClinicalTestReady
+```
+
+`ClinicalTestAcceptanceReviewReady` means the software/QMS package is coherent enough for qualified expert review. `ClinicalTestReady` remains blocked until physical evidence, named sign-offs, regulatory/ethics authorization, and clinical protocol records exist.
+
+
 Required evidence classes for clinical-test promotion include signed artifacts for:
 
 1. physical HIL session evidence;
@@ -163,6 +204,27 @@ Required evidence classes for clinical-test promotion include signed artifacts f
 9. independent sign-off.
 
 High-severity hazard closure is blocked unless the QMS review gate has a complete review record, valid independent sign-off, accepted residual-risk disposition, and executed cybersecurity evidence where applicable.
+
+## Clinical acceptance review package
+
+The 0.4.5 review package collects the documents needed for expert preclinical, physician, cybersecurity, safety, QMS, and regulatory review:
+
+- `docs/CLINICAL_ACCEPTANCE_REVIEW_PACKAGE.md`
+- `docs/CANADA_CLINICAL_ACCEPTANCE_REVIEW_PACKAGE.md`
+- `docs/US_CLINICAL_ACCEPTANCE_REVIEW_PACKAGE.md`
+- `qms/generated/ClinicalAcceptanceReviewIndex.md`
+
+Pending sign-off packets are available under `qms/signoff/`:
+
+- `SO-RISK-0.4.5.md`
+- `SO-HIL-0.4.5.md`
+- `SO-CYBER-0.4.5.md`
+- `SO-SOFTWARE-0.4.5.md`
+- `SO-PHYSICIAN-0.4.5.md`
+- `SO-REGULATORY-CA-0.4.5.md`
+- `SO-REGULATORY-US-0.4.5.md`
+
+Each packet remains `Pending` until a named qualified reviewer records reviewer name, role, decision, accepted residual risk, open issues, signature, and date.
 
 ## Clinical-test preparation procedure
 
@@ -242,7 +304,14 @@ Do not initiate or advertise clinical testing until all required ethics, regulat
 
 ## Current 0.4.x readiness position
 
-The project has advanced software simulation, deterministic software HIL evidence, QMS structure, and readiness gating. It remains blocked for clinical-test claims by:
+The project has advanced software simulation, deterministic software HIL evidence, manifest-indexed QMS artifacts, ReviewGate/SignOffRecord readiness gating, Runtime10kFullEvidence, clinical software freeze reporting, and a clinical acceptance review package. The honest target state is:
+
+```text
+Software/QMS package ready for clinical-test acceptance review.
+ClinicalTestReady real-world status: blocked.
+```
+
+It remains blocked for clinical-test claims by:
 
 - physical HIL bench evidence;
 - phantom qualification;
@@ -251,6 +320,26 @@ The project has advanced software simulation, deterministic software HIL evidenc
 - executed cybersecurity evidence review;
 - Canada ITA / US IDE qualified regulatory review;
 - REB/IRB workflow and authorized clinical protocol execution.
+
+## 0.4.5 acceptance-review checklist
+
+Before presenting the software/QMS package for expert review, refresh and inspect:
+
+```bash
+python3 tools/qms/generate_clinical_readiness_validation_report.py
+python3 tools/qms/generate_clinical_software_freeze_report.py
+python3 tools/qms/check_required_docs.py
+python3 tools/qms/check_traceability_completeness.py
+python3 tools/qms/check_evidence_artifacts.py
+```
+
+Reviewer acceptance should confirm:
+
+- EvidenceIndex paths are correct and stable.
+- Bounded and full 10k evidence are not contradictory.
+- Reused HIL evidence includes an explicit justification.
+- Sign-off packets are ready but still pending until named reviewers sign.
+- ClinicalTestReady is not claimed without physical HIL, phantom validation, regulatory/ethics authorization, and protocol approval.
 
 ## Windows / MinGW troubleshooting
 

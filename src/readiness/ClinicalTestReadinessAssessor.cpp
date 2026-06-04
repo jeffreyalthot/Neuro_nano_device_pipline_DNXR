@@ -12,6 +12,7 @@ const char* toString(ClinicalReadinessLevel level) {
     case ClinicalReadinessLevel::PreclinicalEvidenceComplete: return "PreclinicalEvidenceComplete";
     case ClinicalReadinessLevel::RegulatoryPackageDraftReady: return "RegulatoryPackageDraftReady";
     case ClinicalReadinessLevel::ClinicalSubmissionReady: return "ClinicalSubmissionReady";
+    case ClinicalReadinessLevel::ClinicalTestAcceptanceReviewReady: return "ClinicalTestAcceptanceReviewReady";
     case ClinicalReadinessLevel::ClinicalTestReady: return "ClinicalTestReady";
     }
     return "Unknown";
@@ -98,6 +99,12 @@ ClinicalReadinessAssessment ClinicalTestReadinessAssessor::assess(const Readines
     if (result.clinicalTestReady) {
         result.level = ClinicalReadinessLevel::ClinicalTestReady;
         result.gaps.clear();
+    } else if (s.hilEvidenceComplete && s.riskManagementComplete && s.traceabilityComplete && s.cybersecurityDocsComplete &&
+               s.verificationValidationComplete && s.qmsDocsComplete && s.physicianReviewPackageComplete &&
+               s.canadaUsReadinessDocsComplete && s.protocolReadinessPackageComplete &&
+               evidence.hasSignedEvidenceOfType("runtime_10k_full") && evidence.hasSignedEvidenceOfType("cybersecurity_executed") &&
+               evidence.hasSignedEvidenceOfType("independent_signoff")) {
+        result.level = ClinicalReadinessLevel::ClinicalTestAcceptanceReviewReady;
     } else if (s.hilEvidenceComplete && s.riskManagementComplete && s.traceabilityComplete && s.cybersecurityDocsComplete &&
                s.verificationValidationComplete && s.qmsDocsComplete && s.physicianReviewPackageComplete &&
                s.canadaUsReadinessDocsComplete && hasSubmissionSignedEvidence(evidence)) {

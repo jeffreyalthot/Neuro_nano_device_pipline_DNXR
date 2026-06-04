@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import pathlib
 import subprocess
 import sys
@@ -25,13 +26,17 @@ def main() -> int:
         transcript.append(completed.stdout)
         if completed.returncode != 0:
             write_report(
-                "ClinicalReadinessLaneTranscript.md",
+                "ReadinessLaneTranscript-Bounded.md",
                 "# Clinical Readiness Lane Transcript\n\n```text\n" + "\n".join(transcript) + "\n```\n",
             )
             return completed.returncode
     write_report(
-        "ClinicalReadinessLaneTranscript.md",
+        "ReadinessLaneTranscript-Bounded.md",
         "# Clinical Readiness Lane Transcript\n\n```text\n" + "\n".join(transcript) + "\n```\n",
+    )
+    write_report(
+        "ReadinessLaneSummary.json",
+        json.dumps({"bounded_lane": {"status": "PASS", "transcript": "qms/generated/ReadinessLaneTranscript-Bounded.md"}, "full_10k_lane": {"status": "NOT_RUN_BY_BOUNDED_SCRIPT", "transcript": "qms/generated/ReadinessLaneTranscript-Full10k.md"}, "rule": "Bounded lane does not imply full 10k execution."}, indent=2) + "\n",
     )
     write_report(
         "LongRunEvidenceReport.md",
