@@ -1,12 +1,16 @@
 # ClinicalReadinessValidationReport
 
 ## Scope
-This generated report merges normal CTest expectations, clinical-readiness lane commands, disabled-test impact, QMS document checks, traceability completeness, HIL evidence status, risk review status, cybersecurity evidence status, and Canada/US readiness status. It is a software/QMS readiness index, not a regulatory authorization.
+This generated report merges normal CTest expectations, clinical-readiness lane commands, disabled-test impact, QMS document checks, traceability completeness, generated HIL evidence artifacts, risk review status, cybersecurity evidence status, and Canada/US readiness status. It is a software/QMS readiness index, not a regulatory authorization.
 
 ## Status
 - IntegratedSimulationPassed
 - HILScaffoldPassed
-- HILScenarioEvidenceIncomplete
+- HILScenarioEvidenceGenerated
+- HILRiskCoveragePartial
+- HILPhysicalBenchEvidenceMissing
+- NamedIndependentSignOffMissing
+- ReadinessLanePassed
 - PreclinicalEvidenceIncomplete
 - RegulatoryPackageDraftReady
 - ClinicalSubmissionBlocked
@@ -26,6 +30,7 @@ cmake --build build_readiness -j2
 ```bash
 ctest --test-dir build_readiness --output-on-failure
 ```
+- Runtime 10k evidence artifact: `qms/generated/Runtime10kEvidence.md` (present)
 
 ## Disabled-test impact
 - dnxr_runtime_controller_pipeline_10k_cycles_test: Blocking unless executed in the clinical-readiness validation lane or justified in the clinical gap report.
@@ -41,9 +46,14 @@ ctest --test-dir build_readiness --output-on-failure
 - Traceability rows assessed: 190
 
 ## HIL reports
-- HIL scenario runner/session report/risk coverage classes are now present as software scaffolding.
-- Protocol-bound executed session reports remain incomplete until artifacts are generated under `qms/hil/session_reports/`.
-- Required risk coverage matrix artifact remains `qms/hil/risk_coverage_matrix.csv`.
+- Session report: `qms/hil/session_reports/HIL-SESSION-0.4.1.md` (present)
+- Risk coverage matrix: `qms/hil/risk_coverage/HIL-RISK-COVERAGE-0.4.1.csv` (present)
+- Latency report: `qms/hil/latency_reports/HIL-LATENCY-0.4.1.md` (present)
+- Scenario evidence report: `qms/generated/HILScenarioEvidenceReport.md` (present)
+- Covered HIL hazards: 6/18 (H-001, H-003, H-004, H-006, H-008, H-010)
+- Missing HIL hazard coverage or justification: H-002, H-005, H-007, H-009, H-011, H-012, H-013, H-014, H-015, H-016, H-017, H-018
+- Physical bench evidence remains required before clinical-test claims.
+- Named independent sign-off remains required when reviewer state is role-reviewed or pending.
 
 ## Risk review status
 - High-severity hazards requiring independent review: 17
@@ -60,4 +70,4 @@ ctest --test-dir build_readiness --output-on-failure
 - Status remains blocked until those items are completed and reviewed by qualified regulatory/clinical owners.
 
 ## Overall conclusion
-ClinicalTestBlocked: preclinical HIL evidence, signed risk acceptance, readiness-lane execution, cybersecurity evidence, and country-specific submission materials remain incomplete.
+ClinicalTestBlocked: preclinical physical HIL evidence, full HIL hazard coverage or justification, signed risk acceptance, cybersecurity evidence, and country-specific submission materials remain incomplete; readiness-lane execution status is reported separately above.
