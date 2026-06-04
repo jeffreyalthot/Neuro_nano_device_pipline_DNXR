@@ -52,18 +52,27 @@ void writeRuntimeEvidence(
     const double msPerControllerCycle = executedControllerCycles == 0U ? 0.0 : elapsedMs / static_cast<double>(executedControllerCycles);
     const double projected10kMs = msPerControllerCycle * static_cast<double>(targetCycles);
 
+    const bool boundedMode = !fullControllerMode;
+    const char* evidenceClass = fullControllerMode ? "full execution" : "bounded projection";
+
     std::ofstream out(path);
-    out << "# Runtime10kEvidence\n\n";
+    out << (fullControllerMode ? "# Runtime10kFullEvidence\n\n" : "# Runtime10kBoundedEvidence\n\n");
     out << "## Scope\n";
-    out << "Clinical-readiness controller-pipeline evidence for the 10,000-cycle lane. The default readiness mode "
-        << "executes a bounded controller sample and projects deterministic 10k completion so CTest cannot hang; "
-        << "set `DNXR_CONTROLLER_10K_FULL=1` to force all 10,000 real controller cycles in a scheduled soak window.\n\n";
+    if (fullControllerMode) {
+        out << "Clinical-readiness controller-pipeline evidence for an actual 10,000-cycle execution lane forced by `DNXR_CONTROLLER_10K_FULL=1`.\n\n";
+    } else {
+        out << "Clinical-readiness bounded projection evidence for the 10,000-cycle controller-pipeline lane. The default readiness mode "
+            << "executes a bounded controller sample and projects deterministic 10k completion so CTest cannot hang; "
+            << "set `DNXR_CONTROLLER_10K_FULL=1` to generate the separate full-execution evidence artifact in a scheduled soak window.\n\n";
+    }
     out << "## Results\n";
+    out << "- Evidence class: " << evidenceClass << "\n";
     out << "- Target cycles: " << targetCycles << "\n";
     out << "- Executed controller cycles: " << executedControllerCycles << "\n";
+    out << "- Projected cycles: " << (boundedMode ? targetCycles : executedControllerCycles) << "\n";
     out << "- State events observed: " << stateEvents << "\n";
     out << "- Full controller mode: " << (fullControllerMode ? "true" : "false") << "\n";
-    out << "- Fast-readiness bounded mode: " << (fullControllerMode ? "false" : "true") << "\n";
+    out << "- Fast-readiness bounded mode: " << (boundedMode ? "true" : "false") << "\n";
     out << "- Elapsed controller milliseconds: " << fixed(elapsedMs) << "\n";
     out << "- Mean milliseconds per executed controller cycle: " << fixed(msPerControllerCycle) << "\n";
     out << "- Projected 10k controller milliseconds: " << fixed(projected10kMs) << "\n";
@@ -73,7 +82,8 @@ void writeRuntimeEvidence(
     out << "- CTest process terminates without external timeout.\n";
     out << "- Every executed controller cycle remains nominal.\n";
     out << "- Runtime state-event publication is observed for every executed controller cycle.\n";
-    out << "- The evidence file records whether the lane used bounded fast-readiness mode or full 10k controller mode.\n\n";
+    out << "- The evidence file records whether the lane used bounded fast-readiness mode or full 10k controller mode.\n";
+    out << "- Bounded projection evidence is not equivalent to full 10k execution evidence.\n\n";
     out << "## Limitations\n";
     out << "This is software readiness evidence. It does not replace physical HIL bench timing, target-hardware latency measurement, "
         << "or named independent sign-off.\n";
@@ -128,7 +138,7 @@ int main() {
     const auto finished = std::chrono::steady_clock::now();
     const double elapsedMs = std::chrono::duration<double, std::milli>(finished - started).count();
     writeRuntimeEvidence(
-        generatedDirectory() / "Runtime10kEvidence.md",
+        generatedDirectory() / (fullControllerMode ? "Runtime10kFullEvidence.md" : "Runtime10kBoundedEvidence.md"),
         kTargetCycles,
         controllerCycles,
         stateEvents,

@@ -7,9 +7,11 @@ This generated report merges normal CTest expectations, clinical-readiness lane 
 - IntegratedSimulationPassed
 - HILScaffoldPassed
 - HILScenarioEvidenceGenerated
-- HILRiskCoveragePartial
+- HILRiskCoverageComplete
 - HILPhysicalBenchEvidenceMissing
 - NamedIndependentSignOffMissing
+- Runtime10kBoundedEvidencePassed
+- Runtime10kFullEvidenceMissing
 - ReadinessLanePassed
 - PreclinicalEvidenceIncomplete
 - RegulatoryPackageDraftReady
@@ -30,7 +32,10 @@ cmake --build build_readiness -j2
 ```bash
 ctest --test-dir build_readiness --output-on-failure
 ```
-- Runtime 10k evidence artifact: `qms/generated/Runtime10kEvidence.md` (present)
+- Runtime 10k bounded evidence artifact: `qms/generated/Runtime10kBoundedEvidence.md` (present)
+- Runtime 10k full evidence artifact: `qms/generated/Runtime10kFullEvidence.md` (missing)
+- Readiness lane transcript: `qms/generated/ReadinessLaneTranscript.md` (present)
+- Runtime evidence rule: bounded projection evidence supports routine CI readiness only; full execution evidence is required before clinical-test readiness can be unblocked.
 
 ## Disabled-test impact
 - dnxr_runtime_controller_pipeline_10k_cycles_test: Blocking unless executed in the clinical-readiness validation lane or justified in the clinical gap report.
@@ -46,12 +51,12 @@ ctest --test-dir build_readiness --output-on-failure
 - Traceability rows assessed: 190
 
 ## HIL reports
-- Session report: `qms/hil/session_reports/HIL-SESSION-0.4.1.md` (present)
-- Risk coverage matrix: `qms/hil/risk_coverage/HIL-RISK-COVERAGE-0.4.1.csv` (present)
-- Latency report: `qms/hil/latency_reports/HIL-LATENCY-0.4.1.md` (present)
+- Session report: `qms/hil/session_reports/HIL-SESSION-0.4.3.md` (present)
+- Risk coverage matrix: `qms/hil/risk_coverage/HIL-RISK-COVERAGE-0.4.3.csv` (present)
+- Latency report: `qms/hil/latency_reports/HIL-LATENCY-0.4.3.md` (present)
 - Scenario evidence report: `qms/generated/HILScenarioEvidenceReport.md` (present)
-- Covered HIL hazards: 6/18 (H-001, H-003, H-004, H-006, H-008, H-010)
-- Missing HIL hazard coverage or justification: H-002, H-005, H-007, H-009, H-011, H-012, H-013, H-014, H-015, H-016, H-017, H-018
+- Covered HIL hazards: 18/18 (H-001, H-002, H-003, H-004, H-005, H-006, H-007, H-008, H-009, H-010, H-011, H-012, H-013, H-014, H-015, H-016, H-017, H-018)
+- Missing HIL hazard coverage or justification: none
 - Physical bench evidence remains required before clinical-test claims.
 - Named independent sign-off remains required when reviewer state is role-reviewed or pending.
 
@@ -70,4 +75,4 @@ ctest --test-dir build_readiness --output-on-failure
 - Status remains blocked until those items are completed and reviewed by qualified regulatory/clinical owners.
 
 ## Overall conclusion
-ClinicalTestBlocked: preclinical physical HIL evidence, full HIL hazard coverage or justification, signed risk acceptance, cybersecurity evidence, and country-specific submission materials remain incomplete; readiness-lane execution status is reported separately above.
+ClinicalTestBlocked: preclinical physical HIL evidence, signed risk acceptance, cybersecurity evidence, country-specific submission materials, and full 10k execution evidence remain incomplete; bounded Runtime10k evidence is reported separately and is not treated as equivalent to full execution evidence.
