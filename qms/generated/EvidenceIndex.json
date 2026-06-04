@@ -1,0 +1,56 @@
+{
+  "software_version": "0.4.5",
+  "evidence_index_version": "1",
+  "selection_rule": "Generator inputs are selected from this explicit index, not by file modification time.",
+  "reused_evidence": [
+    {
+      "artifact": "qms/hil/session_reports/HIL-SESSION-0.4.3.md",
+      "reason": "Reused for 0.4.5 because the deterministic software HIL implementation is unchanged from the reviewed 0.4.3 evidence set."
+    },
+    {
+      "artifact": "qms/hil/risk_coverage/HIL-RISK-COVERAGE-0.4.3.csv",
+      "reason": "Reused for 0.4.5 because HIL risk-coverage mapping is unchanged from the reviewed 0.4.3 evidence set."
+    },
+    {
+      "artifact": "qms/hil/latency_reports/HIL-LATENCY-0.4.3.md",
+      "reason": "Reused for 0.4.5 because the software HIL latency scenario set is unchanged from the reviewed 0.4.3 evidence set."
+    }
+  ],
+  "artifacts": {
+    "hil_session_report": "qms/hil/session_reports/HIL-SESSION-0.4.3.md",
+    "hil_risk_coverage": "qms/hil/risk_coverage/HIL-RISK-COVERAGE-0.4.3.csv",
+    "hil_latency_report": "qms/hil/latency_reports/HIL-LATENCY-0.4.3.md",
+    "hil_scenario_evidence": "qms/generated/HILScenarioEvidenceReport.md",
+    "runtime_10k_bounded": "qms/generated/Runtime10kBoundedEvidence.md",
+    "runtime_10k_full": "qms/generated/Runtime10kFullEvidence.md",
+    "readiness_lane_transcript_legacy": "qms/generated/ReadinessLaneTranscript.md",
+    "readiness_lane_transcript_bounded": "qms/generated/ReadinessLaneTranscript-Bounded.md",
+    "readiness_lane_transcript_full10k": "qms/generated/ReadinessLaneTranscript-Full10k.md",
+    "readiness_lane_summary": "qms/generated/ReadinessLaneSummary.json",
+    "clinical_software_freeze_report": "qms/generated/ClinicalSoftwareFreezeReport.md",
+    "cybersecurity_sbom": "qms/security/sbom_generated_0.4.4.md",
+    "cybersecurity_threat_model": "qms/security/threat_model_review_0.4.4.md",
+    "cybersecurity_vulnerability_scan": "qms/security/vulnerability_scan_0.4.4.md",
+    "cybersecurity_key_revocation": "qms/security/key_revocation_scenario_0.4.4.md",
+    "cybersecurity_secure_update_adversarial": "qms/security/secure_update_adversarial_test_0.4.4.md",
+    "cybersecurity_vulnerability_disposition": "qms/security/vulnerability_disposition_0.4.4.md"
+  },
+  "signoff_packets": [
+    "qms/signoff/SO-RISK-0.4.5.md",
+    "qms/signoff/SO-HIL-0.4.5.md",
+    "qms/signoff/SO-CYBER-0.4.5.md",
+    "qms/signoff/SO-SOFTWARE-0.4.5.md",
+    "qms/signoff/SO-PHYSICIAN-0.4.5.md",
+    "qms/signoff/SO-REGULATORY-CA-0.4.5.md",
+    "qms/signoff/SO-REGULATORY-US-0.4.5.md"
+  ],
+  "external_blockers": [
+    "qualified physical HIL bench evidence",
+    "phantom qualification",
+    "named independent sign-off",
+    "clinical protocol approval",
+    "Canada ITA review/authorization path",
+    "US IDE review/authorization path",
+    "REB/IRB approval"
+  ]
+}

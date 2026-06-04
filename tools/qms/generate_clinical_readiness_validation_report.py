@@ -8,6 +8,7 @@ from qms_lib import (
     ROOT,
     disabled_test_impact,
     evidence_artifact_gaps,
+    evidence_artifact_path,
     high_severity_open_hazards,
     missing_required_docs,
     test_file_gaps,
@@ -18,11 +19,6 @@ from qms_lib import (
 
 def status_line(name, blocked):
     return f"- {name}: {'blocked' if blocked else 'passed'}"
-
-
-def latest_file(pattern):
-    matches = sorted(ROOT.glob(pattern), key=lambda path: path.stat().st_mtime if path.exists() else 0, reverse=True)
-    return matches[0] if matches else None
 
 
 def rel(path):
@@ -77,13 +73,15 @@ doc_gaps = missing_required_docs()
 high_hazards = high_severity_open_hazards()
 disabled_impacts = disabled_test_impact()
 
-hil_session_report = latest_file("qms/hil/session_reports/HIL-SESSION-*.md")
-hil_risk_coverage = latest_file("qms/hil/risk_coverage/HIL-RISK-COVERAGE-*.csv")
-hil_latency_report = latest_file("qms/hil/latency_reports/HIL-LATENCY-*.md")
-hil_scenario_evidence = GENERATED / "HILScenarioEvidenceReport.md"
-runtime_10k_bounded_evidence = GENERATED / "Runtime10kBoundedEvidence.md"
-runtime_10k_full_evidence = GENERATED / "Runtime10kFullEvidence.md"
-readiness_lane_transcript = GENERATED / "ReadinessLaneTranscript.md"
+hil_session_report = evidence_artifact_path("hil_session_report")
+hil_risk_coverage = evidence_artifact_path("hil_risk_coverage")
+hil_latency_report = evidence_artifact_path("hil_latency_report")
+hil_scenario_evidence = evidence_artifact_path("hil_scenario_evidence") or GENERATED / "HILScenarioEvidenceReport.md"
+runtime_10k_bounded_evidence = evidence_artifact_path("runtime_10k_bounded") or GENERATED / "Runtime10kBoundedEvidence.md"
+runtime_10k_full_evidence = evidence_artifact_path("runtime_10k_full") or GENERATED / "Runtime10kFullEvidence.md"
+readiness_lane_transcript = evidence_artifact_path("readiness_lane_transcript_legacy") or GENERATED / "ReadinessLaneTranscript.md"
+readiness_lane_transcript_bounded = evidence_artifact_path("readiness_lane_transcript_bounded") or GENERATED / "ReadinessLaneTranscript-Bounded.md"
+readiness_lane_transcript_full10k = evidence_artifact_path("readiness_lane_transcript_full10k") or GENERATED / "ReadinessLaneTranscript-Full10k.md"
 
 hil_text = "\n".join(read_text(path) for path in [hil_session_report, hil_latency_report, hil_scenario_evidence])
 risk_summary = risk_coverage_summary(hil_risk_coverage)
@@ -136,7 +134,9 @@ out.write_text(
     + "\n".join(f"```bash\n{cmd}\n```" for cmd in READINESS_LANE_COMMANDS)
     + f"\n- Runtime 10k bounded evidence artifact: `{rel(runtime_10k_bounded_evidence)}` ({'present' if runtime_10k_bounded_evidence.exists() else 'missing'})\n"
     + f"- Runtime 10k full evidence artifact: `{rel(runtime_10k_full_evidence)}` ({'present' if runtime_10k_full_evidence.exists() else 'missing'})\n"
-    + f"- Readiness lane transcript: `{rel(readiness_lane_transcript)}` ({'present' if readiness_lane_transcript.exists() else 'missing'})\n"
+    + f"- Legacy readiness lane transcript: `{rel(readiness_lane_transcript)}` ({'present' if readiness_lane_transcript.exists() else 'missing'})\n"
+    + f"- Bounded lane transcript: `{rel(readiness_lane_transcript_bounded)}` ({'present' if readiness_lane_transcript_bounded.exists() else 'missing'})\n"
+    + f"- Full 10k lane transcript: `{rel(readiness_lane_transcript_full10k)}` ({'present' if readiness_lane_transcript_full10k.exists() else 'missing'})\n"
     + "- Runtime evidence rule: bounded projection evidence supports routine CI readiness only; full execution evidence is required before clinical-test readiness can be unblocked.\n"
     + "\n## Disabled-test impact\n"
     + "\n".join(f"- {item['test']}: {item['readiness_impact']}" for item in disabled_impacts)
@@ -169,7 +169,7 @@ out.write_text(
     "- USReadinessProfile tracks IDE pathway memo, SR/NSR assumption, IRB readiness, informed consent, monitoring plan, and 21 CFR Part 812 mapping.\n"
     "- Status remains blocked until those items are completed and reviewed by qualified regulatory/clinical owners.\n\n"
     "## Overall conclusion\n"
-    "ClinicalTestBlocked: preclinical physical HIL evidence, signed risk acceptance, cybersecurity evidence, country-specific submission materials, and full 10k execution evidence remain incomplete; bounded Runtime10k evidence is reported separately and is not treated as equivalent to full execution evidence.\n",
+    "ClinicalTestAcceptanceReviewReady is the software/QMS review target when manifest-selected artifacts are coherent; ClinicalTestReady remains blocked until physical HIL, named sign-off, regulatory/ethics authorization, and clinical protocol records are complete. Bounded Runtime10k evidence is reported separately and is not treated as equivalent to full execution evidence.\n",
     encoding="utf-8",
 )
 print(out)

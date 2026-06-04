@@ -9,6 +9,7 @@ enum class ClinicalReadinessLevel {
     PreclinicalEvidenceComplete,
     RegulatoryPackageDraftReady,
     ClinicalSubmissionReady,
+    ClinicalTestAcceptanceReviewReady,
     ClinicalTestReady
 };
 

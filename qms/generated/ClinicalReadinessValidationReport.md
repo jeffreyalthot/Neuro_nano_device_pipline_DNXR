@@ -11,7 +11,7 @@ This generated report merges normal CTest expectations, clinical-readiness lane 
 - HILPhysicalBenchEvidenceMissing
 - NamedIndependentSignOffMissing
 - Runtime10kBoundedEvidencePassed
-- Runtime10kFullEvidenceMissing
+- Runtime10kFullEvidencePassed
 - ReadinessLanePassed
 - PreclinicalEvidenceIncomplete
 - RegulatoryPackageDraftReady
@@ -33,8 +33,10 @@ cmake --build build_readiness -j2
 ctest --test-dir build_readiness --output-on-failure
 ```
 - Runtime 10k bounded evidence artifact: `qms/generated/Runtime10kBoundedEvidence.md` (present)
-- Runtime 10k full evidence artifact: `qms/generated/Runtime10kFullEvidence.md` (missing)
-- Readiness lane transcript: `qms/generated/ReadinessLaneTranscript.md` (present)
+- Runtime 10k full evidence artifact: `qms/generated/Runtime10kFullEvidence.md` (present)
+- Legacy readiness lane transcript: `qms/generated/ReadinessLaneTranscript.md` (present)
+- Bounded lane transcript: `qms/generated/ReadinessLaneTranscript-Bounded.md` (present)
+- Full 10k lane transcript: `qms/generated/ReadinessLaneTranscript-Full10k.md` (present)
 - Runtime evidence rule: bounded projection evidence supports routine CI readiness only; full execution evidence is required before clinical-test readiness can be unblocked.
 
 ## Disabled-test impact
@@ -75,4 +77,4 @@ ctest --test-dir build_readiness --output-on-failure
 - Status remains blocked until those items are completed and reviewed by qualified regulatory/clinical owners.
 
 ## Overall conclusion
-ClinicalTestBlocked: preclinical physical HIL evidence, signed risk acceptance, cybersecurity evidence, country-specific submission materials, and full 10k execution evidence remain incomplete; bounded Runtime10k evidence is reported separately and is not treated as equivalent to full execution evidence.
+ClinicalTestAcceptanceReviewReady is the software/QMS review target when manifest-selected artifacts are coherent; ClinicalTestReady remains blocked until physical HIL, named sign-off, regulatory/ethics authorization, and clinical protocol records are complete. Bounded Runtime10k evidence is reported separately and is not treated as equivalent to full execution evidence.

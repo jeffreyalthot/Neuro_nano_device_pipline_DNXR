@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import csv
+import json
 import pathlib
 import re
 
@@ -57,6 +58,28 @@ READINESS_LANE_COMMANDS = [
     "ctest --test-dir build_readiness --output-on-failure",
 ]
 
+
+
+
+def evidence_index_path():
+    return GENERATED / "EvidenceIndex.json"
+
+
+def load_evidence_index():
+    path = evidence_index_path()
+    if not path.exists():
+        return {"artifacts": {}}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def evidence_artifact_path(key, default=None):
+    rel = load_evidence_index().get("artifacts", {}).get(key, default)
+    return ROOT / rel if rel else None
+
+
+def evidence_artifact_rel(key, default="missing"):
+    path = evidence_artifact_path(key)
+    return str(path.relative_to(ROOT)) if path else default
 
 def traceability_rows():
     with TRACE.open(newline="") as handle:
