@@ -187,6 +187,7 @@ if(DNXR_BUILD_TESTS)
         dnxr_readiness_requires_traceability_test
         dnxr_readiness_evidence_repository_test
         dnxr_clinical_readiness_blocks_unsigned_evidence_test
+        dnxr_regulatory_claim_guard_test
         dnxr_clinical_test_acceptance_review_gate_test
         dnxr_preclinical_readiness_requires_hil_reports_test
         dnxr_country_readiness_requires_signed_artifacts_test
@@ -306,6 +307,7 @@ if(DNXR_BUILD_TESTS)
             dnxr_readiness_requires_traceability_test
             dnxr_readiness_evidence_repository_test
             dnxr_clinical_readiness_blocks_unsigned_evidence_test
+            dnxr_regulatory_claim_guard_test
             dnxr_clinical_test_acceptance_review_gate_test
             dnxr_preclinical_readiness_requires_hil_reports_test
             dnxr_country_readiness_requires_signed_artifacts_test
