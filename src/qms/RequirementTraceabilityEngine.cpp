@@ -1,0 +1,2 @@
+#include "RequirementTraceabilityEngine.h"
+namespace dnxr { TraceabilityDecision RequirementTraceabilityEngine::evaluate(const std::vector<TraceabilityLink>& links) const { TraceabilityDecision d; if(links.empty()) d.gaps.push_back("no_traceability_links"); for(const auto& l:links){ if(l.requirementId.empty()||l.riskId.empty()||l.controlId.empty()||l.codeFile.empty()||l.testId.empty()||l.evidenceId.empty()||l.signoffId.empty()) d.gaps.push_back("incomplete_link:"+l.requirementId); } d.complete=d.gaps.empty(); return d; } }

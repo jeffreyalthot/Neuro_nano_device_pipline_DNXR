@@ -1,0 +1,2 @@
+#include "ClinicalReleaseLock.h"
+namespace dnxr { ClinicalReleaseDecision ClinicalReleaseLock::evaluate(const ClinicalReleaseInputs& i) const { ClinicalReleaseDecision d; if(!i.testsPassed)d.blockers.push_back("tests_missing_or_failed"); if(!i.risksAccepted)d.blockers.push_back("risk_acceptance_missing"); if(!i.signedEvidenceComplete)d.blockers.push_back("signed_evidence_incomplete"); if(!i.requiredDocsComplete)d.blockers.push_back("required_docs_incomplete"); if(!i.sbomSigned)d.blockers.push_back("signed_sbom_missing"); d.releaseAllowed=d.blockers.empty(); return d; } }

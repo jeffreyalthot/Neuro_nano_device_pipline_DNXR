@@ -1,0 +1,9 @@
+{
+  "profiles": [
+    {"name": "ResearchSimulation", "human_use_allowed": false, "simulation_only": true},
+    {"name": "BenchHIL", "human_use_allowed": false, "requires_phantom": true},
+    {"name": "PreclinicalLocked", "human_use_allowed": false, "requires_signed_preclinical_evidence": true},
+    {"name": "ClinicalSubmissionPackage", "human_use_allowed": false, "documentation_bundle_only": true},
+    {"name": "ClinicalRuntimeLocked", "human_use_allowed": false, "requires_signed_human_use_gate": true}
+  ]
+}

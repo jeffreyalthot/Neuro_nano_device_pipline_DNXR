@@ -1,0 +1,2 @@
+#include "ClinicalRealtimeLoop.h"
+namespace dnxr { ClinicalRealtimeLoop::ClinicalRealtimeLoop(ClinicalRealtimeBudgets b):budgets_(b){} ClinicalRealtimeDecision ClinicalRealtimeLoop::runSafetyCycle(const std::vector<DeadlineObservation>& observations) const { (void)budgets_; ClinicalRealtimeDecision d; DeadlineViolationPolicy p; for(const auto& o: observations){ auto r=p.evaluate(o); if(r.safeStateRequired){ d.emergencyLatched=true; d.events.push_back(r.reason); } } if(d.events.empty()) d.events.push_back("hard_safety_loop_nominal"); return d; } }

@@ -18,5 +18,17 @@
   "xr_auth_token_env": "DNXR_XR_AUTH_TOKEN",
   "xr_target_framerate": 90,
   "xr_async_telemetry": true,
-  "simulated_signal": [0.2, 0.4, 0.6, 0.3, 0.1]
+  "simulated_signal": [
+    0.2,
+    0.4,
+    0.6,
+    0.3,
+    0.1
+  ],
+  "human_mode_config_unlock_allowed": false,
+  "clinical_mode_requires_signed_evidence_gate": true,
+  "human_use_allowed": false,
+  "stimulus_dispatch_allowed": false,
+  "clinical_domain_separated_from_experience_domain": true,
+  "locked_claim": "Plateforme logicielle de simulation et de pr\u00e9paration pr\u00e9clinique pour revue m\u00e9dicale; non autoris\u00e9e pour test humain."
 }

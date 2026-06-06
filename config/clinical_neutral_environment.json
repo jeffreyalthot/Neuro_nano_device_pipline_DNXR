@@ -1,0 +1,12 @@
+{
+  "environment": "clinical_neutral",
+  "combat_enabled": false,
+  "reward_loops_enabled": false,
+  "emotional_manipulation_enabled": false,
+  "memory_manipulation_enabled": false,
+  "visual_intensity_max": 0.15,
+  "audio_intensity_max": 0.15,
+  "haptic_intensity_max": 0.0,
+  "reality_anchor_interval_seconds": 30,
+  "decompression_required": true
+}

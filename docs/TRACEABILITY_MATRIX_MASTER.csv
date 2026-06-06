@@ -1,0 +1,3 @@
+RequirementID,RiskID,ControlID,CodeFile,TestID,EvidenceID,SignoffID
+REQ-HUMAN-GATE,RISK-UNAUTHORIZED-HUMAN-USE,CTRL-CLINICAL-MODE-GATE,src/clinical/ClinicalModeGate.cpp,dnxr_human_use_blocked_without_authorization_test,EVID-SIGNED-HUMAN-GATE,SIGNOFF-MEDICAL
+REQ-STIM-CUTOFF,RISK-EXCESSIVE-STIMULUS,CTRL-INDEPENDENT-CUTOFF,src/safety/IndependentStimulusCutoff.cpp,dnxr_stimulus_zeroed_on_missing_monitoring_test,EVID-CUTOFF-TEST,SIGNOFF-SAFETY

@@ -1,0 +1,4 @@
+#include "../src/safety/IndependentStimulusCutoff.h"
+#include "../src/safety/PhysiologicalGuard.h"
+#include <cassert>
+int main(){ dnxr::PhysiologicalGuard guard; dnxr::PhysiologicalTelemetryFrame t; t.heartRateBpm=80; t.oxygenSaturationPercent=98; t.respiratoryRateBpm=14; t.systolicBloodPressureMmHg=120; t.diastolicBloodPressureMmHg=75; t.temperatureCelsius=37; t.eegSeizureRisk=0.01f; t.sedationLevel=0.0f; t.patientCommunicationAvailable=false; t.panicSignal=false; t.convulsiveSignal=false; t.consciousnessMonitored=true; assert(!guard.enforce(t)); dnxr::SafeNeuralStimulusCommand cmd; cmd.boundedChannels={0.5f}; cmd.modalityIntensities={0.4f,0.2f}; cmd.allowStimulusDispatch=true; auto cut=dnxr::IndependentStimulusCutoff().zeroAllOutputs(cmd,"missing_monitoring"); assert(cut.emergencyLatched); assert(!cut.command.allowStimulusDispatch); assert(cut.command.boundedChannels[0]==0.0f); assert(cut.command.modalityIntensities[0]==0.0f); return 0; }

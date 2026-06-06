@@ -24,9 +24,9 @@ int main() {
     assert(humanFullDive.blockers.size() >= 3);
 
     dnxr::EvidenceRepository repo;
-    for (const std::string type : {"physical_hil_session", "hil_latency_report", "risk_control_verification", "runtime_10k_full",
-                                  "clinical_protocol_package", "canada_regulatory_package", "us_regulatory_package",
-                                  "independent_signoff"}) {
+    for (const std::string type : {"physical_hil_session", "preclinical_safety_report", "risk_control_verification", "runtime_10k_full",
+                                  "clinical_protocol_package", "REB_IRB_approval", "Health_Canada_ITA_or_IDE_authorization",
+                                  "independent_medical_signoff", "external_human_use_authorization"}) {
         repo.add(signedArtifact(type));
     }
 
