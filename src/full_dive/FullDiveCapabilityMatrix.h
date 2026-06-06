@@ -8,12 +8,24 @@ namespace dnxr {
 
 enum class FullDiveEvidenceLevel {
     NotImplemented,
-    SimulatedOnly,
-    UnitTested,
-    IntegratedSimulation,
-    HILValidated,
-    PreclinicalEvidenceAvailable,
-    ClinicalEvidenceAvailable
+    MathematicalModelOnly,
+    SoftwareSimulationOnly,
+    ReplayTested,
+    ClosedLoopSimulationTested,
+    HardwarePhantomTested,
+    HILLatencyValidated,
+    HILFaultInjectionValidated,
+    PreclinicalBenchValidated,
+    IndependentReviewPassed,
+    ClinicalProtocolApproved,
+    HumanUseAuthorized,
+    HumanSafetyEvidenceCollected,
+    SimulatedOnly = SoftwareSimulationOnly,
+    UnitTested = ReplayTested,
+    IntegratedSimulation = ClosedLoopSimulationTested,
+    HILValidated = HILLatencyValidated,
+    PreclinicalEvidenceAvailable = PreclinicalBenchValidated,
+    ClinicalEvidenceAvailable = HumanSafetyEvidenceCollected
 };
 
 const char* toString(FullDiveEvidenceLevel level);

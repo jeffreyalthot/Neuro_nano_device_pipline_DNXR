@@ -1,0 +1,2 @@
+#include "RuntimeFiveSenseCoherenceStage.h"
+namespace dnxr { const char* RuntimeFiveSenseCoherenceStage::name(){return "five_sense_coherence";} RuntimePipelineFrame RuntimeFiveSenseCoherenceStage::execute(RuntimePipelineFrame frame,const FiveSenseCoherenceEngine& engine){ frame.fiveSenseCoherenceReport=engine.evaluate(frame.fullDiveNeuralFrame); if(frame.fiveSenseCoherenceReport.intervention==CoherenceIntervention::EmergencyStop){ frame.continueCycle=false; frame.emergencyActive=true; frame.stopReason="critical_five_sense_conflict"; } return frame; } }

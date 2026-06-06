@@ -1,0 +1,2 @@
+#include "FlashPatternBlocker.h"
+namespace dnxr { FlashPatternBlockerResult FlashPatternBlocker::evaluate(const FlashPatternSignals& i) const { const bool ok = (!(i.strobe||i.rapidContrast||i.highFrequencyFlicker||i.redBlueAlternation||i.highLuminanceBursts||i.patternRepetition)); return ok ? FlashPatternBlockerResult{true,"Allow","ok"} : FlashPatternBlockerResult{false,"EmergencyStop","flash_pattern_blocked"}; } }

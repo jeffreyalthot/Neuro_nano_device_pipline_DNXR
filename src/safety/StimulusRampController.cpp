@@ -1,0 +1,3 @@
+#include "StimulusRampController.h"
+#include <algorithm>
+namespace dnxr { SafeNeuralStimulusCommand StimulusRampController::apply(const SafeNeuralStimulusCommand& prev,const SafeNeuralStimulusCommand& next,float maxDelta,bool emergency) const { SafeNeuralStimulusCommand out=next; if(emergency){ for(float& v:out.boundedChannels)v=0; out.allowStimulusDispatch=false; return out; } const auto n=std::min(prev.boundedChannels.size(),out.boundedChannels.size()); for(size_t i=0;i<n;++i) out.boundedChannels[i]=std::clamp(out.boundedChannels[i], prev.boundedChannels[i]-maxDelta, prev.boundedChannels[i]+maxDelta); return out; } }

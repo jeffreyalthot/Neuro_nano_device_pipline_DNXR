@@ -1,0 +1,2 @@
+#include "NeuralDeviceHandshake.h"
+namespace dnxr { NeuralDeviceHandshakeResult NeuralDeviceHandshake::validate(const NeuralDeviceHandshakeEvidence& e) const { if(e.deviceCertificate.empty()) return {false,"missing_device_certificate"}; if(e.firmwareHash.empty()) return {false,"missing_firmware_hash"}; if(e.signedSessionNonce.empty()) return {false,"missing_signed_session_nonce"}; if(!e.emergencyCutoffCapability) return {false,"missing_hardware_cutoff"}; if(e.maxChannelCount<=0) return {false,"invalid_channel_count"}; return {true,"handshake_evidence_complete"}; } }

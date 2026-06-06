@@ -1,0 +1,3 @@
+#include "RealNeuralChipProtocol.h"
+#include "RealNeuralChipPacket.h"
+namespace dnxr { RealNeuralChipPacket RealNeuralChipProtocol::buildPacket(const SafeNeuralStimulusCommand& c,const std::string& sid,const std::string& prev) const { RealNeuralChipPacket p; p.packetId=c.sequenceId; p.sessionId=sid; p.payload=c.boundedChannels; p.previousCommandHash=prev; p.commandHash=computePacketHash(p); p.emergencyCutoff=!c.allowStimulusDispatch; return p; } bool RealNeuralChipProtocol::validateLockedClinicalPrerequisites(bool gate,bool att,bool evidence,bool stop) const { return gate&&att&&evidence&&stop; } }

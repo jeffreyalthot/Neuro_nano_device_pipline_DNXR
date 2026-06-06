@@ -1,0 +1,2 @@
+#include "RuntimePerceptionCorrectionStage.h"
+namespace dnxr { const char* RuntimePerceptionCorrectionStage::name(){return "perception_correction";} RuntimePipelineFrame RuntimePerceptionCorrectionStage::execute(RuntimePipelineFrame frame,const PerceptionErrorCorrector& c){ frame.fullDiveNeuralFrame=c.correct(frame.fullDiveNeuralFrame, frame.closedLoopFeedback.adjustment, frame.deltaTimeSeconds); return frame; } }

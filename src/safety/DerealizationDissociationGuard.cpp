@@ -1,0 +1,2 @@
+#include "DerealizationDissociationGuard.h"
+namespace dnxr { DerealizationDissociationGuardResult DerealizationDissociationGuard::evaluate(const DissociationSignals& i) const { const bool ok = (!(i.identityConfusion||i.realityConfusion||i.timeConfusion||i.panicSpike||i.refusalToExit||i.compulsiveImmersion||i.memoryDiscontinuity)); return ok ? DerealizationDissociationGuardResult{true,"Allow","ok"} : DerealizationDissociationGuardResult{false,"EmergencyStop","dissociation_risk_detected"}; } }

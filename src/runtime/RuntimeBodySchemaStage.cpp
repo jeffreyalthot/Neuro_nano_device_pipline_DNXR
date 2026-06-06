@@ -1,0 +1,2 @@
+#include "RuntimeBodySchemaStage.h"
+namespace dnxr { const char* RuntimeBodySchemaStage::name(){return "body_schema";} RuntimePipelineFrame RuntimeBodySchemaStage::execute(RuntimePipelineFrame frame,const BodyPoseState& p,const BodyPoseState& a,const BodySchemaEngine& e){ frame.bodySchemaReport=e.evaluate(p,a); if(!frame.bodySchemaReport.safe){ frame.fusedSafetyDecision.requiresEmergencyStop=true; frame.fusedSafetyDecision.action=SafetyAction::RealityAnchor; frame.realityAnchorPlan.mode=RealityAnchorMode::RealityAnchor; } return frame; } }

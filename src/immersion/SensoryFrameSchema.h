@@ -11,10 +11,12 @@ enum class SensoryModality : std::size_t {
     Visual = 0,
     Auditory = 1,
     HapticTouch = 2,
-    ChemicalTasteSmell = 3,
-    Proprioceptive = 4,
-    Vestibular = 5,
-    Count = 6
+    Olfactory = 3,
+    Gustatory = 4,
+    Proprioceptive = 5,
+    Vestibular = 6,
+    ChemicalTasteSmell = Olfactory,
+    Count = 7
 };
 
 struct SensoryChannelDescriptor {

@@ -1,0 +1,3 @@
+#include "ClinicalClaimLinter.h"
+#include <algorithm>
+namespace dnxr { ClinicalClaimLintResult ClinicalClaimLinter::lint(const std::string& text) const { const std::vector<std::string> terms={"consciousness transfer","quantum consciousness","memory reconstruction","human ready","safe for human","guaranteed full dive","clinically proven"}; const bool exception=text.find("simulation-only")!=std::string::npos||text.find("non-clinical")!=std::string::npos||text.find("theoretical")!=std::string::npos; ClinicalClaimLintResult r; if(exception) return r; for(const auto& t:terms) if(text.find(t)!=std::string::npos) r.blockedTerms.push_back(t); r.allowed=r.blockedTerms.empty(); return r; } }
