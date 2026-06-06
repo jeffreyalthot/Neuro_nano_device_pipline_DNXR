@@ -1,0 +1,2 @@
+#include "CalibrationDriftReactionPolicy.h"
+namespace dnxr { CalibrationDriftReaction CalibrationDriftReactionPolicy::react(float d) const { if(d>=0.9f) return {CalibrationDriftAction::EmergencyStop,"critical_drift"}; if(d>=0.65f) return {CalibrationDriftAction::RealityAnchorRecalibration,"high_drift"}; if(d>=0.35f) return {CalibrationDriftAction::SuppressModality,"medium_drift"}; return {CalibrationDriftAction::ReduceAdaptiveGain,"low_drift"}; } }

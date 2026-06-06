@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "../immersion/SensoryFrameSchema.h"
+#include "NeuralChipAck.h"
 
 namespace dnxr {
 
@@ -66,9 +67,14 @@ public:
     virtual bool writeSafeStimulus(const SafeNeuralStimulusCommand& command) = 0;
     virtual void emergencyStop(const std::string& reason) = 0;
     virtual NeuralChipStatus status() const = 0;
+    virtual NeuralChipAck lastAck() const { return {}; }
+    virtual bool requiresClosedLoopFeedback() const { return false; }
 };
 
-class RealNeuralChipHAL final : public NeuralChipHAL {
+using INeuralChipHAL = NeuralChipHAL;
+
+
+class RealNeuralChipHAL : public INeuralChipHAL {
 public:
     RealNeuralChipHAL();
 
@@ -78,15 +84,18 @@ public:
     bool writeSafeStimulus(const SafeNeuralStimulusCommand& command) override;
     void emergencyStop(const std::string& reason) override;
     NeuralChipStatus status() const override;
+    NeuralChipAck lastAck() const override;
+    bool requiresClosedLoopFeedback() const override;
 
 private:
     bool connected_;
     bool emergencyLatched_;
     NeuralChipStatus status_;
+    NeuralChipAck lastAck_;
 };
 
 
-class SimulatedNeuralChipHAL final : public NeuralChipHAL {
+class SimulatedNeuralChipHAL : public INeuralChipHAL {
 public:
     explicit SimulatedNeuralChipHAL(
         std::size_t channelCount = 64,
@@ -98,6 +107,8 @@ public:
     bool writeSafeStimulus(const SafeNeuralStimulusCommand& command) override;
     void emergencyStop(const std::string& reason) override;
     NeuralChipStatus status() const override;
+    NeuralChipAck lastAck() const override;
+    bool requiresClosedLoopFeedback() const override;
 
     const SafeNeuralStimulusCommand& lastAcceptedStimulus() const;
 
@@ -113,6 +124,14 @@ private:
     float phase_;
     NeuralChipStatus status_;
     SafeNeuralStimulusCommand lastAcceptedStimulus_;
+    NeuralChipAck lastAck_;
 };
+
+class HILNeuralChipHAL final : public SimulatedNeuralChipHAL {
+public:
+    explicit HILNeuralChipHAL(std::size_t channelCount = 64) : SimulatedNeuralChipHAL(channelCount, NeuralChipRuntimeMode::HardwareInLoop) {}
+};
+
+class ClinicalLockedNeuralChipHAL final : public RealNeuralChipHAL {};
 
 } // namespace dnxr

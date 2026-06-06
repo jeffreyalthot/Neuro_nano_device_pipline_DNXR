@@ -1,0 +1,3 @@
+#pragma once
+#include "FullDiveSynchronizationEngine.h"
+namespace dnxr { struct FullDiveClinicalPolicy { bool clinicalModeDisablesEmotionForcing=true,clinicalModeDisablesMemoryManipulation=true,clinicalModeDisablesSubjectiveTimeDilation=true,clinicalModeDisablesSubconsciousInfluence=true; }; struct ClinicalTelemetryState { float multimodalCoherence=1,memoryContinuity=1,temporalOrientation=1,affectiveSafety=1; bool subconsciousInfluenceBlocked=true; }; class FullDiveClinicalOrchestrator { public: ClinicalTelemetryState update(const FullDiveSynchronizationEngine* sync, const FullDiveClinicalPolicy& policy = {}) const; }; }

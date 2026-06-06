@@ -2,6 +2,7 @@
 
 #include "FullDiveSynchronizationEngine.h"
 #include "../network/SimulationCryptoTransport.h"
+#include "../hardware/NeuralChipHAL.h"
 #include "../safety/NeuralIdentityVault.h"
 #include "../security/RuntimeSecret.h"
 
@@ -27,7 +28,6 @@ class SafetyGovernor;
 class SafetyStateMachine;
 class IndependentWatchdog;
 class NeuralStimulusSafetyEnvelope;
-class SimulatedNeuralChipHAL;
 class DeepImmersionPlatform;
 class FullDiveSafetyBridge;
 class SessionSafetyJournal;
@@ -53,7 +53,7 @@ struct RuntimeStageServices {
     SafetyStateMachine& safetyStateMachine;
     IndependentWatchdog& watchdog;
     NeuralStimulusSafetyEnvelope& stimulusEnvelope;
-    SimulatedNeuralChipHAL& neuralChipHal;
+    INeuralChipHAL& neuralChipHal;
     DeepImmersionPlatform& deepImmersion;
     FullDiveSynchronizationEngine& fullDiveSynchronization;
     FullDiveSafetyBridge& fullDiveBridge;
