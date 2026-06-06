@@ -1,0 +1,3 @@
+#include "FullDiveClinicalOrchestrator.h"
+#include <algorithm>
+namespace dnxr { ClinicalTelemetryState FullDiveClinicalOrchestrator::update(const FullDiveSynchronizationEngine* sync,const FullDiveClinicalPolicy& p) const { ClinicalTelemetryState s; if(sync){ const auto& x=sync->getState(); s.multimodalCoherence=std::min({x.fullDiveStability,x.vestibularStability,x.motorPredictionAccuracy}); s.temporalOrientation=x.emergencyExitTriggered?0.0f:1.0f; } s.subconsciousInfluenceBlocked=p.clinicalModeDisablesSubconsciousInfluence; if(!p.clinicalModeDisablesEmotionForcing||!p.clinicalModeDisablesMemoryManipulation||!p.clinicalModeDisablesSubjectiveTimeDilation) s.affectiveSafety=0.0f; return s; } }

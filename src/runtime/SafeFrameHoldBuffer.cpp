@@ -1,0 +1,2 @@
+#include "SafeFrameHoldBuffer.h"
+namespace dnxr { void SafeFrameHoldBuffer::rememberIfSafe(const FullDiveNeuralFrame& f){ if(f.safety.aggregateRisk<0.5f&&f.safety.painSimulationBlocked){last_=f;has_=true;} } FullDiveNeuralFrame SafeFrameHoldBuffer::holdWithoutRiskyModalities() const { FullDiveNeuralFrame f=last_; f.vestibular.channels.clear(); for(auto& c:f.somatosensory.channels)c.intensity*=0.5f; f.realityAnchor.anchorRequired=true; return f; } bool SafeFrameHoldBuffer::hasSafeFrame() const{return has_;} }

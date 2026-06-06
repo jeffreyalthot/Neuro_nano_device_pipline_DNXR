@@ -1,0 +1,2 @@
+#include "CalibrationDependencyGraph.h"
+namespace dnxr { void CalibrationDependencyGraph::addDependency(const std::string& m,const std::string& d){dependencies_[m].insert(d);} bool CalibrationDependencyGraph::dependenciesSatisfied(const std::string& m,const std::set<std::string>& c) const { auto it=dependencies_.find(m); if(it==dependencies_.end()) return true; for(const auto& dep:it->second) if(!c.count(dep)) return false; return true; } }

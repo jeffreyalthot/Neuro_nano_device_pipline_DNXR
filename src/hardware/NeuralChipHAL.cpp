@@ -158,11 +158,25 @@ bool SimulatedNeuralChipHAL::validateCommand(
 bool SimulatedNeuralChipHAL::writeSafeStimulus(
     const SafeNeuralStimulusCommand& command) {
 
+    lastAck_ = {};
+    lastAck_.packetId = command.sequenceId;
+    lastAck_.latencyMeasuredMs = 0.4f;
+    lastAck_.deviceTemperature = 37.0f;
+    lastAck_.signalQuality = status_.signalQuality > 0.0f ? status_.signalQuality : 0.99f;
+    lastAck_.signedAck = true;
     if (!validateCommand(command)) {
+        lastAck_.packetRejected = true;
+        lastAck_.notApplied = true;
+        lastAck_.hardwareCutoffActive = emergencyLatched_;
+        lastAck_.rejectReason = "command_failed_hal_validation";
         return false;
     }
 
     lastAcceptedStimulus_ = command;
+    lastAck_.packetAccepted = true;
+    lastAck_.applied = true;
+    lastAck_.notApplied = false;
+    lastAck_.feedbackAvailable = (mode_ != NeuralChipRuntimeMode::ClinicalLocked);
     status_.statusMessage = "stimulus_accepted:" + command.safetyMode;
     return true;
 }
@@ -185,6 +199,18 @@ NeuralChipStatus SimulatedNeuralChipHAL::status() const {
 
 const SafeNeuralStimulusCommand& SimulatedNeuralChipHAL::lastAcceptedStimulus() const {
     return lastAcceptedStimulus_;
+}
+
+} // namespace dnxr
+
+namespace dnxr {
+
+NeuralChipAck SimulatedNeuralChipHAL::lastAck() const {
+    return lastAck_;
+}
+
+bool SimulatedNeuralChipHAL::requiresClosedLoopFeedback() const {
+    return mode_ != NeuralChipRuntimeMode::Simulation;
 }
 
 } // namespace dnxr

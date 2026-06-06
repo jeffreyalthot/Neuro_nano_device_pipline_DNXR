@@ -126,15 +126,29 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
         return pipeline;
     }
 
-    pipeline = RuntimeSafetyStage::execute(std::move(pipeline), input.services, input.context);
+    if (input.sinks.recordReplayFrame) input.sinks.recordReplayFrame(pipeline.cleanSignals, input.context.timestamp);
+
+    pipeline = RuntimeFullDiveStage::execute(std::move(pipeline), input.services, input.context, input.runtimeMetricsSnapshot);
     if (!pipeline.continueCycle) {
         finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;
     }
 
-    if (input.sinks.recordReplayFrame) input.sinks.recordReplayFrame(pipeline.cleanSignals, input.context.timestamp);
+    pipeline = RuntimeFiveSenseCoherenceStage::execute(std::move(pipeline));
+    if (!pipeline.continueCycle) {
+        finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
+        return pipeline;
+    }
 
-    pipeline = RuntimeFullDiveStage::execute(std::move(pipeline), input.services, input.context, input.runtimeMetricsSnapshot);
+    BodyPoseState perceivedPose;
+    BodyPoseState avatarPose;
+    pipeline = RuntimeBodySchemaStage::execute(std::move(pipeline), perceivedPose, avatarPose);
+    if (!pipeline.continueCycle) {
+        finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
+        return pipeline;
+    }
+
+    pipeline = RuntimeSafetyStage::execute(std::move(pipeline), input.services, input.context);
     if (!pipeline.continueCycle) {
         finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;
@@ -166,6 +180,20 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
         if (pipeline.stopReason == "unsafe_stimulus_rejected") {
             if (input.sinks.auditRejectedStimulus) input.sinks.auditRejectedStimulus(pipeline.stimulusCommand);
         }
+        finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
+        return pipeline;
+    }
+
+    pipeline.chipFrame = input.services.neuralChipHal.readFrame();
+    pipeline = RuntimeClosedLoopFeedbackStage::execute(std::move(pipeline));
+    const bool feedbackMissing = !pipeline.closedLoopFeedback.safetyVerified;
+    if (input.services.neuralChipHal.requiresClosedLoopFeedback() && feedbackMissing) {
+        finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, true, "mandatory_closed_loop_feedback_absent");
+        return pipeline;
+    }
+
+    pipeline = RuntimePerceptionCorrectionStage::execute(std::move(pipeline));
+    if (!pipeline.continueCycle) {
         finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;
     }

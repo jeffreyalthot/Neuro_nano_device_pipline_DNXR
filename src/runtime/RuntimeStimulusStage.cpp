@@ -4,6 +4,11 @@
 #include "../devices/HostComputerBridge.h"
 #include "../devices/NanoNodeInterface.h"
 #include "../hardware/NeuralChipHAL.h"
+#include "../hardware/DeviceCapabilityLimiter.h"
+#include "../full_dive/NeuralStimulusTranslator.h"
+#include "../safety/FullDiveSafetySupervisor.h"
+#include "../safety/IndependentStimulusCutoff.h"
+#include "../safety/NoPainGuarantee.h"
 #include "../safety/IndependentWatchdog.h"
 #include "../safety/NeuralStimulusSafetyEnvelope.h"
 
@@ -67,15 +72,62 @@ RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, R
         return frame;
     }
 
-    frame.stimulusCommand = services.stimulusEnvelope.buildCommand(
-        frame.cycleId,
-        frame.sensoryFrame,
-        frame.fusedSafetyDecision,
-        std::max(0.0, frame.deltaTimeSeconds));
+    FullDiveSafetySupervisor safetySupervisor;
+    const auto safetyDecision = safetySupervisor.evaluate(frame.fullDiveNeuralFrame);
+    if (!safetyDecision.allowed && safetyDecision.requiresEmergencyStop) {
+        services.neuralChipHal.emergencyStop(safetyDecision.reason);
+        frame.continueCycle = false;
+        frame.emergencyActive = true;
+        frame.stopReason = safetyDecision.reason;
+        frame.stimulusStatus = RuntimeStageStatus::emergency(frame.stopReason);
+        return frame;
+    }
+
+    DeviceCapabilityLimiter capabilityLimiter;
+    ChipCapabilities clinicalCapabilities;
+    clinicalCapabilities.canVisual = true;
+    clinicalCapabilities.canAuditory = true;
+    clinicalCapabilities.canHaptic = true;
+    clinicalCapabilities.canVestibular = true;
+    clinicalCapabilities.canProprioceptive = true;
+    clinicalCapabilities.canOlfactory = true;
+    clinicalCapabilities.canGustatory = true;
+    clinicalCapabilities.maxSafeRateHz = 120.0f;
+    clinicalCapabilities.supportsHardwareCutoff = frame.fullDiveNeuralFrame.safety.emergencyCutoffAvailable;
+    clinicalCapabilities.supportsClosedLoopFeedback = true;
+    const float runtimeRateHz = frame.deltaTimeSeconds > 0.0 ? static_cast<float>(1.0 / frame.deltaTimeSeconds) : 90.0f;
+    auto limited = capabilityLimiter.apply(frame.fullDiveNeuralFrame, clinicalCapabilities, runtimeRateHz);
+    if (!limited.allowed) {
+        services.neuralChipHal.emergencyStop(limited.reason);
+        frame.continueCycle = false;
+        frame.emergencyActive = true;
+        frame.stopReason = limited.reason;
+        frame.stimulusStatus = RuntimeStageStatus::emergency(frame.stopReason);
+        return frame;
+    }
+    frame.fullDiveNeuralFrame = limited.frame;
+
+    NeuralStimulusTranslator translator;
+    auto translation = translator.translate(frame.fullDiveNeuralFrame);
+    frame.stimulusCommand = translation.command;
     services.watchdog.heartbeat("stimulus");
 
-    if (!frame.stimulusCommand.allowStimulusDispatch) {
-        frame.stimulusStatus = RuntimeStageStatus::degraded("stimulus_dispatch_suppressed");
+    NoPainGuarantee noPain;
+    const auto painDecision = noPain.evaluate(PainSafetyInput{});
+    if (!painDecision.safe) {
+        IndependentStimulusCutoff cutoff;
+        const auto cut = cutoff.zeroAllOutputs(frame.stimulusCommand, painDecision.reason);
+        frame.stimulusCommand = cut.command;
+        services.neuralChipHal.emergencyStop(painDecision.reason);
+        frame.continueCycle = false;
+        frame.emergencyActive = true;
+        frame.stopReason = painDecision.reason;
+        frame.stimulusStatus = RuntimeStageStatus::emergency(frame.stopReason);
+        return frame;
+    }
+
+    if (!translation.valid || !frame.stimulusCommand.allowStimulusDispatch) {
+        frame.stimulusStatus = RuntimeStageStatus::degraded(translation.reason);
         return frame;
     }
 
@@ -88,10 +140,20 @@ RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, R
         return frame;
     }
 
+    const auto ack = services.neuralChipHal.lastAck();
+    if (!ack.packetAccepted || !ack.applied || !ack.signedAck || ack.packetId != frame.stimulusCommand.sequenceId ||
+        ack.hardwareCutoffActive || ack.deviceTemperature > 41.0f || ack.latencyMeasuredMs > 20.0f) {
+        services.neuralChipHal.emergencyStop("mandatory_neural_chip_ack_invalid");
+        frame.continueCycle = false;
+        frame.emergencyActive = true;
+        frame.stopReason = "mandatory_neural_chip_ack_invalid";
+        frame.stimulusStatus = RuntimeStageStatus::emergency(frame.stopReason);
+        return frame;
+    }
+
     const auto down = services.bridge.downlink(frame.sensoryFrame);
     services.nodes.writeNeuralStimulus(down);
     frame.stimulusStatus = validate(true, "stimulus_stage_unhealthy");
     return frame;
 }
-
 } // namespace dnxr

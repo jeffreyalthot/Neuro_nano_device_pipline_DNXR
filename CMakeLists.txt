@@ -236,6 +236,16 @@ if(DNXR_BUILD_TESTS)
         dnxr_deadline_violation_triggers_emergency_test
         dnxr_patient_stop_signal_latches_shutdown_test
         dnxr_unsigned_evidence_cannot_unlock_clinical_mode_test
+        dnxr_runtime_five_sense_coherence_stage_test
+        dnxr_runtime_body_schema_stage_test
+        dnxr_runtime_closed_loop_feedback_stage_test
+        dnxr_runtime_perception_correction_stage_test
+        dnxr_neural_stimulus_translator_path_test
+        dnxr_full_dive_neural_frame_no_allocation_test
+        dnxr_modality_phase_lock_engine_test
+        dnxr_perception_divergence_detector_test
+        dnxr_device_capability_limiter_test
+        dnxr_neural_chip_ack_required_test
     )
 
     foreach(test_name IN LISTS DNXR_TEST_TARGETS)

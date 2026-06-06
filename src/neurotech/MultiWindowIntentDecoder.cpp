@@ -1,0 +1,4 @@
+#include "MultiWindowIntentDecoder.h"
+#include <algorithm>
+#include <cmath>
+namespace dnxr { MultiWindowIntentResult MultiWindowIntentDecoder::decode(const std::vector<float>& x,const std::vector<float>& b,float fatigue,float art,bool stop) const { MultiWindowIntentResult r; float e=0,base=0; for(float v:x)e+=std::fabs(v); for(float v:b)base+=std::fabs(v); r.intentStrength=std::clamp((e-base)*0.1f,0.0f,1.0f); r.artifactProbability=art; r.voluntaryControlConfidence=std::clamp(r.intentStrength*(1.0f-fatigue)*(1.0f-art),0.0f,1.0f); r.ambiguityScore=1.0f-r.voluntaryControlConfidence; r.intentDirection=x.empty()?0.0f:x.front(); r.intentClass=r.intentStrength>0.2f?"voluntary_motion":"none"; r.safeToAct=!stop&&art<0.3f&&r.voluntaryControlConfidence>0.7f&&r.ambiguityScore<0.3f; if(stop){r.intentClass="patient_stop_conflict"; r.safeToAct=false;} return r; } }

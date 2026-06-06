@@ -2,8 +2,10 @@
 #include <algorithm>
 #include <cmath>
 namespace dnxr {
-static float avg(const std::vector<NeuroChannelCommand>& c){ if(c.empty()) return 0.0f; float s=0.0f; for(const auto& x:c) s+=x.intensity; return s/static_cast<float>(c.size()); }
-static float lat(const std::vector<NeuroChannelCommand>& c){ if(c.empty()) return 0.0f; float s=0.0f; for(const auto& x:c) s+=x.latencyBudgetMs; return s/static_cast<float>(c.size()); }
+template <typename Channels>
+static float avg(const Channels& c){ if(c.empty()) return 0.0f; float s=0.0f; for(const auto& x:c) s+=x.intensity; return s/static_cast<float>(c.size()); }
+template <typename Channels>
+static float lat(const Channels& c){ if(c.empty()) return 0.0f; float s=0.0f; for(const auto& x:c) s+=x.latencyBudgetMs; return s/static_cast<float>(c.size()); }
 FiveSenseCoherenceReport FiveSenseCoherenceEngine::evaluate(const FullDiveNeuralFrame& frame) const {
     FiveSenseCoherenceReport r;
     const float visual=avg(frame.visual.channels), vestibular=avg(frame.vestibular.channels), haptic=avg(frame.somatosensory.channels), prop=avg(frame.proprioception.channels);
@@ -14,10 +16,8 @@ FiveSenseCoherenceReport FiveSenseCoherenceEngine::evaluate(const FullDiveNeural
     r.bodySchemaMismatch = r.hapticProprioceptiveMismatch;
     const float conflict = std::max({r.visualVestibularConflict, r.audioVisualLatencySkew, r.hapticProprioceptiveMismatch, r.smellTasteContextMismatch, r.bodySchemaMismatch});
     r.globalPerceptualCoherence = std::clamp(1.0f - conflict, 0.0f, 1.0f);
-    if (r.globalPerceptualCoherence < 0.35f) { r.intervention = CoherenceIntervention::EmergencyStop; r.reason = "critical_five_sense_conflict"; }
-    else if (r.globalPerceptualCoherence < 0.55f) { r.intervention = CoherenceIntervention::Decompression; r.reason = "decompression_required"; }
-    else if (r.globalPerceptualCoherence < 0.75f) { r.intervention = CoherenceIntervention::RealityAnchor; r.reason = "reality_anchor_required"; }
-    else if (r.globalPerceptualCoherence < 0.90f) { r.intervention = CoherenceIntervention::ReduceIntensity; r.reason = "reduce_intensity"; }
+    if(conflict>0.85f) r.intervention=CoherenceIntervention::EmergencyStop; else if(conflict>0.55f) r.intervention=CoherenceIntervention::RealityAnchor; else if(conflict>0.35f) r.intervention=CoherenceIntervention::ReduceIntensity; else r.intervention=CoherenceIntervention::None;
+    r.reason = conflict>0.35f ? "bounded_multisensory_conflict" : "five_sense_coherent";
     return r;
 }
-} // namespace dnxr
+}

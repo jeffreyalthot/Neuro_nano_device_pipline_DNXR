@@ -66,3 +66,15 @@ NeuralChipStatus RealNeuralChipHAL::status() const {
 }
 
 } // namespace dnxr
+
+namespace dnxr {
+
+NeuralChipAck RealNeuralChipHAL::lastAck() const {
+    return lastAck_;
+}
+
+bool RealNeuralChipHAL::requiresClosedLoopFeedback() const {
+    return true;
+}
+
+} // namespace dnxr
