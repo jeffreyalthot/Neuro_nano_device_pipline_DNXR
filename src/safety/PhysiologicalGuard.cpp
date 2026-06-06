@@ -27,6 +27,33 @@ bool isValidTelemetry(const std::vector<float>& t) {
     return std::isfinite(t[0]) && std::isfinite(t[1]);
 }
 
+bool isValidTelemetry(const PhysiologicalTelemetryFrame& t) {
+    return std::isfinite(t.heartRateBpm) &&
+           std::isfinite(t.oxygenSaturationPercent) &&
+           std::isfinite(t.respiratoryRateBpm) &&
+           std::isfinite(t.systolicBloodPressureMmHg) &&
+           std::isfinite(t.diastolicBloodPressureMmHg) &&
+           std::isfinite(t.temperatureCelsius) &&
+           std::isfinite(t.eegSeizureRisk) &&
+           std::isfinite(t.sedationLevel) &&
+           t.heartRateBpm >= 35.0f && t.heartRateBpm <= 150.0f &&
+           t.oxygenSaturationPercent >= 92.0f &&
+           t.respiratoryRateBpm >= 8.0f && t.respiratoryRateBpm <= 30.0f &&
+           t.systolicBloodPressureMmHg >= 80.0f && t.systolicBloodPressureMmHg <= 180.0f &&
+           t.diastolicBloodPressureMmHg >= 45.0f && t.diastolicBloodPressureMmHg <= 120.0f &&
+           t.temperatureCelsius >= 35.0f && t.temperatureCelsius <= 38.5f &&
+           t.eegSeizureRisk <= 0.20f &&
+           t.sedationLevel <= 0.50f &&
+           t.patientCommunicationAvailable &&
+           !t.panicSignal &&
+           !t.convulsiveSignal &&
+           t.consciousnessMonitored;
+}
+
+std::vector<float> legacyCardioRespiratoryVector(const PhysiologicalTelemetryFrame& t) {
+    return {t.heartRateBpm / 100.0f, t.oxygenSaturationPercent / 100.0f};
+}
+
 } // namespace
 
 PhysiologicalGuard::PhysiologicalGuard()
@@ -77,6 +104,41 @@ bool PhysiologicalGuard::enforce(const std::vector<float>& telemetry) const {
     emergencyState_ = EmergencyState::Nominal;
     lastEmergencyReason_ = "none";
 
+    return true;
+}
+
+
+bool PhysiologicalGuard::enforce(const PhysiologicalTelemetryFrame& telemetry) const {
+
+    std::lock_guard<std::mutex> lock(g_guardMutex);
+
+    ++g_enforcementCount;
+
+    if (!isValidTelemetry(telemetry)) {
+        Logger::warn("PhysiologicalGuard: structured monitoring prerequisite violation.");
+        ++g_violationCount;
+        emergencyState_ = EmergencyState::EmergencyLatched;
+        lastDecision_ = false;
+        lastEmergencyReason_ = "structured_monitoring_violation";
+        triggerEmergency("structured_monitoring_violation");
+        return false;
+    }
+
+    const bool safe = monitor_.checkCardioRespiratoryWindow(legacyCardioRespiratoryVector(telemetry));
+    if (!safe) {
+        Logger::warn("PhysiologicalGuard: structured cardio-respiratory threshold violation.");
+        ++g_violationCount;
+        emergencyState_ = EmergencyState::EmergencyLatched;
+        lastDecision_ = false;
+        lastEmergencyReason_ = "structured_threshold_violation";
+        triggerEmergency("structured_threshold_violation");
+        return false;
+    }
+
+    lastDecision_ = true;
+    emergencyMode_ = false;
+    emergencyState_ = EmergencyState::Nominal;
+    lastEmergencyReason_ = "none";
     return true;
 }
 

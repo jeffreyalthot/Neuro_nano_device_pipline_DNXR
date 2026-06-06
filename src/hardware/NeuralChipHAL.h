@@ -68,9 +68,23 @@ public:
     virtual NeuralChipStatus status() const = 0;
 };
 
-#if !DNXR_SIMULATION_ONLY
-class RealNeuralChipHAL;
-#endif
+class RealNeuralChipHAL final : public NeuralChipHAL {
+public:
+    RealNeuralChipHAL();
+
+    void connect(const std::string& deviceIdentifier) override;
+    void disconnect() override;
+    NeuralChipFrame readFrame() override;
+    bool writeSafeStimulus(const SafeNeuralStimulusCommand& command) override;
+    void emergencyStop(const std::string& reason) override;
+    NeuralChipStatus status() const override;
+
+private:
+    bool connected_;
+    bool emergencyLatched_;
+    NeuralChipStatus status_;
+};
+
 
 class SimulatedNeuralChipHAL final : public NeuralChipHAL {
 public:

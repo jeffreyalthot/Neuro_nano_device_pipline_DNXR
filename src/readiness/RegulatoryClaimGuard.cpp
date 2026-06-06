@@ -42,11 +42,11 @@ bool hasSignedEvidenceBundle(const EvidenceRepository& evidence, const std::vect
 }
 
 std::vector<const char*> preclinicalEvidenceTypes() {
-    return {"physical_hil_session", "hil_latency_report", "risk_control_verification", "runtime_10k_full"};
+    return {"physical_hil_session", "preclinical_safety_report", "risk_control_verification", "runtime_10k_full"};
 }
 
 std::vector<const char*> clinicalAuthorizationEvidenceTypes() {
-    return {"clinical_protocol_package", "canada_regulatory_package", "us_regulatory_package", "independent_signoff"};
+    return {"clinical_protocol_package", "REB_IRB_approval", "Health_Canada_ITA_or_IDE_authorization", "independent_medical_signoff", "external_human_use_authorization"};
 }
 
 } // namespace
@@ -70,6 +70,8 @@ RegulatoryClaimDecision RegulatoryClaimGuard::evaluate(RegulatoryClaim claim, co
         require(context.physicalHilQualified, "qualified physical HIL evidence is missing", decision.blockers);
         require(context.preclinicalEvidenceComplete, "preclinical evidence is incomplete", decision.blockers);
         require(context.clinicalEvidenceAvailable, "human clinical evidence is unavailable", decision.blockers);
+        require(context.authorizedInvestigationalUse, "external human-use authorization is missing", decision.blockers);
+        require(context.medicalApprovalGranted, "independent medical/approval signoff is missing", decision.blockers);
         require(atLeast(context.fullDiveEvidence, FullDiveEvidenceLevel::ClinicalEvidenceAvailable),
                 "full-dive capability matrix is below ClinicalEvidenceAvailable", decision.blockers);
         break;

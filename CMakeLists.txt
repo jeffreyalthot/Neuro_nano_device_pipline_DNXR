@@ -7,6 +7,7 @@ option(DNXR_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 option(DNXR_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 option(DNXR_ENABLE_TSAN "Enable ThreadSanitizer" OFF)
 option(DNXR_SIMULATION_ONLY "Force simulation-only runtime guardrails" ON)
+option(DNXR_HUMAN_USE_BUILD "Build clinical human-use runtime; requires a local signed evidence gate file" OFF)
 option(DNXR_ENABLE_LONG_SIMULATED_TESTS "Enable long simulated tests" ON)
 option(DNXR_ENABLE_LONG_REAL_TESTS "Enable long real soak tests" OFF)
 option(DNXR_ENABLE_CONTROLLER_10K_TEST "Enable 10k deterministic controller pipeline test" OFF)
@@ -22,6 +23,10 @@ if(DNXR_ENABLE_CLINICAL_READINESS_VALIDATION)
     set(DNXR_ENABLE_CONTROLLER_100K_TEST ON CACHE BOOL "Enable 100k deterministic controller readiness test" FORCE)
     set(DNXR_ENABLE_EXTENDED_VV_TESTS ON CACHE BOOL "Enable extended clinical-readiness verification tests" FORCE)
     set(DNXR_ENABLE_NO_ALLOCATION_GUARD ON CACHE BOOL "Enable no-allocation guard readiness tests" FORCE)
+endif()
+
+if(DNXR_HUMAN_USE_BUILD AND NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/clinical_evidence/HUMAN_USE_BUILD_GATE.signed.json")
+    message(FATAL_ERROR "DNXR_HUMAN_USE_BUILD requires clinical_evidence/HUMAN_USE_BUILD_GATE.signed.json and cannot be enabled by CMake flag alone")
 endif()
 
 if(DNXR_ENABLE_TSAN AND DNXR_ENABLE_ASAN)
@@ -71,6 +76,11 @@ endfunction()
 
 add_library(dnxr_core STATIC ${DNXR_CORE_SRC})
 target_include_directories(dnxr_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+if(DNXR_HUMAN_USE_BUILD)
+    target_compile_definitions(dnxr_core PUBLIC DNXR_HUMAN_USE_BUILD=1)
+else()
+    target_compile_definitions(dnxr_core PUBLIC DNXR_HUMAN_USE_BUILD=0)
+endif()
 
 if(DNXR_SIMULATION_ONLY)
     target_compile_definitions(dnxr_core PUBLIC DNXR_SIMULATION_ONLY=1)
@@ -221,6 +231,11 @@ if(DNXR_BUILD_TESTS)
         dnxr_runtime_latency_profiler_test
         dnxr_runtime_jitter_analyzer_test
         dnxr_runtime_wcet_recorder_test
+        dnxr_human_use_blocked_without_authorization_test
+        dnxr_stimulus_zeroed_on_missing_monitoring_test
+        dnxr_deadline_violation_triggers_emergency_test
+        dnxr_patient_stop_signal_latches_shutdown_test
+        dnxr_unsigned_evidence_cannot_unlock_clinical_mode_test
     )
 
     foreach(test_name IN LISTS DNXR_TEST_TARGETS)

@@ -1,0 +1,2 @@
+#include "CalibrationRollbackGuard.h"
+namespace dnxr { CalibrationRollbackDecision CalibrationRollbackGuard::evaluate(double drift, bool valid, const std::string& safe) const { CalibrationRollbackDecision d; if(!valid || drift>0.30){ d.rollbackRequired=!safe.empty(); d.emergencyStopRequired=safe.empty(); d.targetProfileId=safe; d.reason=!valid?"invalid_calibration":"calibration_drift"; } else d.reason="calibration_nominal"; return d; } }
