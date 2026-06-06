@@ -1,0 +1,2 @@
+#pragma once
+namespace dnxr { struct ChipCapabilities { bool canVisual=false,canAuditory=false,canHaptic=false,canVestibular=false,canProprioceptive=false,canOlfactory=false,canGustatory=false; float maxSafeRateHz=0; int maxPacketSize=0; bool supportsHardwareCutoff=false,supportsClosedLoopFeedback=false; }; class ChipCapabilityNegotiation { public: ChipCapabilities clampForClinical(const ChipCapabilities& advertised) const; bool supportsFiveSenseClosedLoop(const ChipCapabilities& c) const; }; }

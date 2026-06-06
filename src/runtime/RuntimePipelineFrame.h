@@ -5,6 +5,10 @@
 #include "RuntimePipelineImmersionTypes.h"
 #include "RuntimePipelineNeuralTypes.h"
 #include "RuntimePipelineSafetyTypes.h"
+#include "../full_dive/FullDiveNeuralFrame.h"
+#include "../full_dive/FiveSenseCoherenceEngine.h"
+#include "../full_dive/BodySchemaEngine.h"
+#include "../hardware/ClosedLoopNeuralFeedbackReader.h"
 
 #include <cstdint>
 #include <string>
@@ -40,6 +44,10 @@ struct RuntimePipelineFrame {
     RealityAnchorPlan realityAnchorPlan;
     FullDiveRuntimeSnapshot fullDiveSnapshot;
     SafeNeuralStimulusCommand stimulusCommand;
+    FullDiveNeuralFrame fullDiveNeuralFrame;
+    FiveSenseCoherenceReport fiveSenseCoherenceReport;
+    BodySchemaReport bodySchemaReport;
+    ClosedLoopFeedback closedLoopFeedback;
 
     RuntimeStageStatus acquisitionStatus = RuntimeStageStatus::ok("acquisition");
     RuntimeStageStatus signalStatus = RuntimeStageStatus::ok("signal");

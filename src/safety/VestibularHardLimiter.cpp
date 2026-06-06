@@ -1,0 +1,3 @@
+#include "VestibularHardLimiter.h"
+#include <cmath>
+namespace dnxr { VestibularHardLimitResult VestibularHardLimiter::evaluate(const VestibularMotionRequest& r) const { if(std::fabs(r.fallIllusion)>maxFallIllusion) return {false,true,"fall_illusion_blocked"}; if(std::fabs(r.angularVelocity)>maxAngularVelocity) return {false,true,"angular_velocity_limit"}; if(std::fabs(r.linearAcceleration)>maxLinearAcceleration) return {false,true,"linear_acceleration_limit"}; if(std::fabs(r.jerk)>maxJerk) return {false,true,"jerk_limit"}; if(std::fabs(r.tiltIllusion)>maxTiltIllusion) return {false,true,"tilt_illusion_limit"}; return {}; } }

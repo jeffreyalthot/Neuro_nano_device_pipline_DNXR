@@ -1,0 +1,4 @@
+#include "BodySchemaEngine.h"
+#include <algorithm>
+#include <cmath>
+namespace dnxr { BodySchemaReport BodySchemaEngine::evaluate(const BodyPoseState& p, const BodyPoseState& a) const { BodySchemaReport r; const float limb=std::max({std::fabs(p.armPosition-a.armPosition),std::fabs(p.handState-a.handState),std::fabs(p.legState-a.legState)}); const float pose=std::max(std::fabs(p.headPose-a.headPose),std::fabs(p.spinePose-a.spinePose)); const float scale=std::fabs(p.virtualBodyScale-a.virtualBodyScale); r.limbMismatchRisk=std::clamp(limb,0.0f,1.0f); r.avatarDissociationRisk=std::clamp(std::max({pose,scale,1.0f-a.virtualLimbOwnership}),0.0f,1.0f); r.bodyOwnershipScore=std::clamp(a.virtualLimbOwnership-r.limbMismatchRisk*0.5f,0.0f,1.0f); r.embodimentCoherenceScore=std::clamp(1.0f-std::max(r.limbMismatchRisk,r.avatarDissociationRisk),0.0f,1.0f); r.safe=r.embodimentCoherenceScore>=0.65f; if(!r.safe) r.reason="embodiment_drift_requires_anchor"; return r; } }

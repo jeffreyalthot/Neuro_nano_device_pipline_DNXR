@@ -1,0 +1,2 @@
+#include "RealityAnchorOverlay.h"
+namespace dnxr { std::string RealityAnchorOverlay::renderText(const RealityAnchorOverlayState& s) const { return s.patientName+" | "+s.dateReal+" | session="+std::to_string(s.sessionTimeSeconds)+" | stop="+(s.stopButtonVisible?"available":"missing")+" | exit="+(s.exitAvailable?"possible":"blocked")+" | intensity="+std::to_string(s.intensityLevel)+" | "+s.operatorVoiceMessage; } }

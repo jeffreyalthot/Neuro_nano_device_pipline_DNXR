@@ -1,0 +1,2 @@
+#include "SubconsciousInfluenceBlocker.h"
+namespace dnxr { SubconsciousInfluenceBlockerResult SubconsciousInfluenceBlocker::evaluate(const InfluenceSignals& i) const { const bool ok = (!(i.memoryManipulation||i.emotionForcing||i.fearInduction||i.rewardAddictionLoops||i.identityOverwrite||i.suggestionLoops||i.unapprovedNarrativePressure)); return ok ? SubconsciousInfluenceBlockerResult{true,"Allow","ok"} : SubconsciousInfluenceBlockerResult{false,"EmergencyStop","subconscious_influence_blocked"}; } }

@@ -1,0 +1,2 @@
+#include "LockedInStatePreventer.h"
+namespace dnxr { LockedInStatePreventerResult LockedInStatePreventer::evaluate(const ExitChannelState& i) const { const bool ok = (i.patientStop&&i.operatorStop&&i.physicianStop&&i.hardwareCutoff&&i.realityAnchor&&i.communication); return ok ? LockedInStatePreventerResult{true,"Allow","ok"} : LockedInStatePreventerResult{false,"EmergencyStop","locked_in_prevention_channel_lost"}; } }
