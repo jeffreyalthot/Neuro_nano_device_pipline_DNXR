@@ -23,6 +23,8 @@ struct FullDiveSafetyDecision {
     bool requiresRealityAnchor = true;
     bool requiresDecompression = false;
     bool requiresEmergencyStop = false;
+    bool requiresPhysicianCheck = false;
+    bool requiresRecalibration = false;
     std::string auditCode = "FDSS_UNEVALUATED";
 };
 

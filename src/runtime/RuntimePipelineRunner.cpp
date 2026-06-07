@@ -1,4 +1,7 @@
 #include "RuntimePipelineRunner.h"
+#include "RuntimeBodyPoseExtractionStage.h"
+#include "RuntimeModalityPhaseLockStage.h"
+#include "RuntimePostCorrectionSafetyStage.h"
 
 #include <algorithm>
 #include <chrono>
@@ -140,9 +143,13 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
         return pipeline;
     }
 
-    BodyPoseState perceivedPose;
-    BodyPoseState avatarPose;
-    pipeline = RuntimeBodySchemaStage::execute(std::move(pipeline), perceivedPose, avatarPose);
+    pipeline = RuntimeBodyPoseExtractionStage::execute(std::move(pipeline));
+    if (!pipeline.continueCycle) {
+        finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
+        return pipeline;
+    }
+
+    pipeline = RuntimeBodySchemaStage::execute(std::move(pipeline), pipeline.perceivedBodyPose, pipeline.avatarBodyPose);
     if (!pipeline.continueCycle) {
         finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;
@@ -164,6 +171,12 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
         if (input.sinks.recordDroppedFrame) input.sinks.recordDroppedFrame();
         if (input.sinks.logWarn) input.sinks.logWarn("⚠️ Render budget exceeded — jitter risk. task=render");
     }
+    if (!pipeline.continueCycle) {
+        finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
+        return pipeline;
+    }
+
+    pipeline = RuntimeModalityPhaseLockStage::execute(std::move(pipeline));
     if (!pipeline.continueCycle) {
         finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;
@@ -193,6 +206,12 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
     }
 
     pipeline = RuntimePerceptionCorrectionStage::execute(std::move(pipeline));
+    if (!pipeline.continueCycle) {
+        finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
+        return pipeline;
+    }
+
+    pipeline = RuntimePostCorrectionSafetyStage::execute(std::move(pipeline));
     if (!pipeline.continueCycle) {
         finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;

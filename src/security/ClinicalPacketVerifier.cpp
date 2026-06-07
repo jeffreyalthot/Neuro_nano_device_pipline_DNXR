@@ -1,0 +1,2 @@
+#include "ClinicalPacketVerifier.h"
+namespace dnxr { bool ClinicalPacketVerifier::verify(const RealNeuralChipPacket& p,const ClinicalPacketSigner& signer,bool simulationAllowed) const { if(p.signature.empty()||p.signatureAlgorithm.empty()||p.packetHash.empty()) return false; if(!simulationAllowed && p.signature.find("simulation")!=std::string::npos) return false; return p.signatureAlgorithm==signer.algorithm() && p.signature==signer.sign(p); } }
