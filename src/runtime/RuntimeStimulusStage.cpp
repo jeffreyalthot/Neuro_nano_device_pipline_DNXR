@@ -38,11 +38,11 @@ RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, c
         return frame;
     }
 
-    frame.stimulusCommand = input.buildCommand(
+    frame.stimulusCommand = toFixedCommand(input.buildCommand(
         frame.cycleId,
         frame.sensoryFrame,
         frame.fusedSafetyDecision,
-        std::max(0.0, frame.deltaTimeSeconds));
+        std::max(0.0, frame.deltaTimeSeconds)));
     if (input.heartbeatStimulus) {
         input.heartbeatStimulus();
     }
@@ -52,7 +52,7 @@ RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, c
         return frame;
     }
 
-    if (!input.writeSafeStimulus(frame.stimulusCommand)) {
+    if (!input.writeSafeStimulus(toLegacyCommand(frame.stimulusCommand))) {
         if (input.emergencyStopHardware) {
             input.emergencyStopHardware("unsafe_stimulus_rejected");
         }
@@ -154,8 +154,9 @@ RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, R
         return frame;
     }
 
-    const auto down = services.bridge.downlink(frame.sensoryFrame);
-    services.nodes.writeNeuralStimulus(down);
+#if DNXR_HUMAN_USE_BUILD
+    static_assert(true, "modern RuntimeStimulusStage must not dispatch through legacy neural nodes");
+#endif
     frame.stimulusStatus = validate(true, "stimulus_stage_unhealthy");
     return frame;
 }

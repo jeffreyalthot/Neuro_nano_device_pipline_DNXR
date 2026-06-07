@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <initializer_list>
 
 namespace dnxr {
 
@@ -15,10 +16,15 @@ public:
     using iterator = typename std::array<T, Capacity>::iterator;
     using const_iterator = typename std::array<T, Capacity>::const_iterator;
 
+    FixedVector() = default;
+    FixedVector(std::initializer_list<T> values) { for (const auto& value : values) push_back(value); }
+    FixedVector& operator=(std::initializer_list<T> values) { clear(); for (const auto& value : values) push_back(value); return *this; }
+
     constexpr std::size_t capacity() const noexcept { return Capacity; }
     std::size_t size() const noexcept { return size_; }
     bool empty() const noexcept { return size_ == 0; }
     bool full() const noexcept { return size_ == Capacity; }
+    void reserve(std::size_t requested) { if (requested > Capacity) throw std::length_error("FixedVector reserve capacity exceeded"); }
 
     T& operator[](std::size_t index) noexcept { return storage_[index]; }
     const T& operator[](std::size_t index) const noexcept { return storage_[index]; }
@@ -138,7 +144,9 @@ struct FullDiveNeuralFrame {
     RealityAnchorLayer realityAnchor;
     SafetyMetadata safety;
 
+#if DNXR_ENABLE_RESEARCH_SPECULATION
     std::vector<NeuroChannelCommand> allChannels() const;
+#endif
     template <typename Visitor>
     void forEachChannel(Visitor&& visitor) const {
         for (const auto& c : visual.channels) visitor(c);

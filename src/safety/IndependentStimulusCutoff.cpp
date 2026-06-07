@@ -5,7 +5,7 @@
 namespace dnxr {
 
 StimulusCutoffDecision IndependentStimulusCutoff::zeroAllOutputs(
-    const SafeNeuralStimulusCommand& requested,
+    const SafeNeuralStimulusCommandFixed& requested,
     const std::string& reason) const {
     StimulusCutoffDecision decision;
     decision.reason = reason.empty() ? "clinical_lockdown" : reason;
@@ -19,6 +19,18 @@ StimulusCutoffDecision IndependentStimulusCutoff::zeroAllOutputs(
     decision.command.allowStimulusDispatch = false;
     decision.outputZeroed = true;
     return decision;
+}
+
+LegacyStimulusCutoffDecision IndependentStimulusCutoff::zeroAllOutputs(
+    const SafeNeuralStimulusCommand& requested,
+    const std::string& reason) const {
+    const auto fixed = zeroAllOutputs(toFixedCommand(requested), reason);
+    LegacyStimulusCutoffDecision legacy;
+    legacy.outputZeroed = fixed.outputZeroed;
+    legacy.emergencyLatched = fixed.emergencyLatched;
+    legacy.reason = fixed.reason;
+    legacy.command = toLegacyCommand(fixed.command);
+    return legacy;
 }
 
 } // namespace dnxr

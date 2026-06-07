@@ -76,14 +76,17 @@ SensoryModality SensoryFrameSchema::legacyModalityForChannel(std::size_t index) 
     if (index <= 6U) {
         return SensoryModality::HapticTouch;
     }
-    if (index == 7U) {
+    if (index == 7U || index == 8U) {
         return SensoryModality::Olfactory;
     }
-    if (index == 8U) {
+    if (index == 9U) {
+        return SensoryModality::Proprioceptive;
+    }
+    if (index == 10U) {
         return SensoryModality::Gustatory;
     }
-    if (index <= 10U) {
-        return SensoryModality::Proprioceptive;
+    if (index == 11U) {
+        return SensoryModality::Vestibular;
     }
     return SensoryModality::Vestibular;
 }

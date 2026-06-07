@@ -5,7 +5,7 @@
 #include "../hardware/NeuralChipHAL.h"
 #include "../safety/NeuralStimulusSafetyEnvelope.h"
 namespace dnxr {
-struct NeuralStimulusTranslationResult { SafeNeuralStimulusCommand command; bool valid = false; std::string reason = "not_translated"; };
+struct NeuralStimulusTranslationResult { SafeNeuralStimulusCommandFixed command; bool valid = false; std::string reason = "not_translated"; };
 class NeuralStimulusTranslator {
 public:
     NeuralStimulusTranslator();

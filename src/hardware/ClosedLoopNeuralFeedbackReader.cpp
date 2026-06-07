@@ -10,7 +10,7 @@ float channelAt(const NeuralChipFrame& r, std::size_t index, float fallback) {
 }
 }
 
-ClosedLoopFeedback ClosedLoopNeuralFeedbackReader::read(const NeuralChipFrame& r, const SafeNeuralStimulusCommand& s) const {
+ClosedLoopFeedback ClosedLoopNeuralFeedbackReader::read(const NeuralChipFrame& r, const SafeNeuralStimulusCommandFixed& s) const {
     ClosedLoopFeedback f;
     f.available = !r.channels.empty();
     const float baseConfidence = std::clamp(r.signalQuality * (1.0f - s.riskScore), 0.0f, 1.0f);

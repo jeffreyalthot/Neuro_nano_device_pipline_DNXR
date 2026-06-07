@@ -1,5 +1,9 @@
 #pragma once
 
+#if DNXR_HUMAN_USE_BUILD
+#error "FullDiveOrchestrator.h is research-only; include ClinicalFullDiveOrchestrator for clinical builds"
+#endif
+
 #include <memory>
 
 #include "../network/DistributedConsciousnessNetwork.h"
@@ -118,4 +122,3 @@ private:
 
 } // namespace dnxr
 
-namespace dnxr { using FullDiveOrchestrator = ResearchFullDiveOrchestrator; }

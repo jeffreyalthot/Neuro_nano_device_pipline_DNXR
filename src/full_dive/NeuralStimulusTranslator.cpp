@@ -38,7 +38,8 @@ NeuralStimulusTranslationResult NeuralStimulusTranslator::translate(const FullDi
                                         SensoryModality::Gustatory,
                                         SensoryModality::Proprioceptive,
                                         SensoryModality::Vestibular};
-    result.command.modalityIntensities.assign(NeuralStimulusSafetyEnvelope::modalityCount(), 0.0f);
+    result.command.requiredModalityCount = static_cast<std::size_t>(SensoryModality::Count);
+    result.command.modalityIntensities.fill(0.0f);
 
     if (!frame.hasRequiredClinicalAnchors()) {
         result.reason = "missing_clinical_anchor_or_pain_block";
@@ -58,7 +59,7 @@ NeuralStimulusTranslationResult NeuralStimulusTranslator::translate(const FullDi
             rejectReason = "target_map_rejected_" + bounded.targetRegion;
             return;
         }
-        result.command.boundedChannels.push_back(bounded.intensity);
+        if (!result.command.boundedChannels.try_push_back(bounded.intensity)) { rejected = true; rejectReason = "stimulus_channel_capacity_exceeded"; return; }
         const auto index = modalityIndex(bounded.modality);
         if (index < result.command.modalityIntensities.size()) {
             result.command.modalityIntensities[index] = std::max(result.command.modalityIntensities[index], bounded.intensity);

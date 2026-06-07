@@ -33,3 +33,9 @@ Clinical encoding forbids pain, burn, electric-shock, suffocation, crushing, for
 Five-sense encoding now treats visual, auditory, haptic, thermal, vestibular, proprioceptive, olfactory, gustatory, and reality-anchor channels as phase-locked modalities. Runtime phase lock precedes stimulus dispatch and suppresses vestibular/haptic channels when critical skew relationships exceed policy.
 
 Expected perception prediction supports a fixed-capacity `ExpectedPerceptionSet` to avoid runtime allocation in the critical path. Slow chemical modalities remain budgeted and must not be increased automatically by perception correction. Safe degradation is mandatory when any required modality, calibration, hardware cutoff, closed-loop feedback, or body-schema input is unavailable.
+
+## 0.5.3 deterministic five-sense safety behavior
+
+The five-sense encoder uses seven command modalities while tracking separate exposure doses for visual, audio, haptic, thermal, vestibular, proprioceptive, olfactory, gustatory, cognitive, and reality-anchor channels. Safe-frame hold suppresses vestibular, olfactory, gustatory, and repeated chemosensory output, reduces haptics, and keeps the reality anchor active.
+
+Thermal, olfactory, and gustatory outputs are treated as time-dependent safety channels: thermal gradients cannot be positively corrected automatically, olfactory persistence must decay or neutralize, and gustatory stimulation remains discrete with mandatory neutralization. Mode degradation prevents a session from claiming full five-sense closed loop when a required modality is unsupported, uncalibrated, or lacks feedback.

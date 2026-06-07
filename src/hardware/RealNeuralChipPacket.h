@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <array>
+#include "NeuralChipHAL.h"
 
 namespace dnxr {
 
@@ -19,7 +21,8 @@ struct RealNeuralChipPacketHeader {
 
 struct RealNeuralChipPayload {
     std::string commandType = "stimulus";
-    std::vector<float> channels;
+    FixedVector<float, DNXR_MAX_STIMULUS_CHANNELS> channels;
+    std::array<float, DNXR_STIMULUS_MODALITY_COUNT> modalityIntensities{};
     std::uint32_t modalityMask = 0;
     std::uint32_t channelCount = 0;
     std::uint32_t payloadLength = 0;
@@ -68,7 +71,13 @@ struct RealNeuralChipPacket {
     std::uint32_t modalityMask = 0;
     std::uint32_t channelCount = 0;
     std::uint32_t payloadLength = 0;
-    std::vector<float> payload;
+    FixedVector<float, DNXR_MAX_STIMULUS_CHANNELS> payload;
+    std::array<float, DNXR_STIMULUS_MODALITY_COUNT> modalityIntensities{};
+    std::string channelMapHash;
+    std::string encodingModelSetHash;
+    std::string targetMapHash;
+    std::string calibrationDependencyHash;
+    std::string safetyDecisionHash;
     std::string commandHash;
     std::string previousCommandHash;
     bool emergencyCutoff = false;

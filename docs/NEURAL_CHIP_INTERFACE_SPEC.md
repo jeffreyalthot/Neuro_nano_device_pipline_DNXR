@@ -36,3 +36,11 @@ Packets are represented as `RealNeuralChipPacketHeader`, `RealNeuralChipPayload`
 ACKs distinguish transport acceptance, firmware validation, hardware application, and feedback confirmation. ACK fields include protocol/session/device/firmware identity, packet hash chain fields, signature algorithm/signature, monotonic timestamp, device clock drift, applied/rejected channel counts, hardware cutoff reason, thermal and power state, electrode integrity, and feedback frame id. A transport-accepted ACK is not sufficient for clinical success.
 
 Closed-loop feedback is per modality and must report visual, auditory, haptic, thermal, proprioceptive, vestibular, olfactory, gustatory, reality-anchor, and patient-stop confidence values before correction or continued stimulation.
+
+## 0.5.3 fixed seven-modality command and packet evidence
+
+`SafeNeuralStimulusCommandFixed` is the deterministic runtime command type. It carries a fixed channel buffer and exactly seven modality intensities: Visual, Auditory, Haptic, Olfactory, Gustatory, Proprioceptive, and Vestibular. HAL validation rejects commands with missing calibration, unsafe risk/load bounds, failed exposure budget, empty channels, or incomplete required modality coverage.
+
+`RealNeuralChipPacket` now records fixed payload evidence, modality mask, channel map hash, encoding model set hash, target map hash, calibration dependency hash, safety decision hash, packet hash, previous packet hash, nonce, and signature fields. Packet hashing for simulation is deterministic and no longer uses `std::hash` for clinical packet, payload, or command hash material.
+
+The runtime separates acquisition frames from feedback frames. ACK and feedback sequence validation must bind packet id, previous hash, monotonic timestamp, device identity, firmware hash, packet hash, ack hash, and feedbackFrameId before closed-loop feedback can be treated as safety-verified.

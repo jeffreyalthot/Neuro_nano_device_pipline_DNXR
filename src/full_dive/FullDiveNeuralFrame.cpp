@@ -4,11 +4,13 @@
 
 namespace dnxr {
 
+#if DNXR_ENABLE_RESEARCH_SPECULATION
 std::vector<NeuroChannelCommand> FullDiveNeuralFrame::allChannels() const {
     std::vector<NeuroChannelCommand> out;
     forEachChannel([&out](const NeuroChannelCommand& channel) { out.push_back(channel); });
     return out;
 }
+#endif
 
 float FullDiveNeuralFrame::maxIntensity() const {
     float maxValue = 0.0f;

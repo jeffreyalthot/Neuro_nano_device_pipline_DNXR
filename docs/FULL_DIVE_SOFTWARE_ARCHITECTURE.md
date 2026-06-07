@@ -79,3 +79,18 @@ The clinical runtime path is now required to preserve this measured order withou
 22. Audit, frame finalization, and decompression if instability persists.
 
 The former research-oriented FullDiveOrchestrator is excluded from clinical builds unless `DNXR_ENABLE_RESEARCH_SPECULATION=ON`; the clinical path is owned by FullDiveClinicalOrchestrator and the runtime stages above.
+
+## 0.5.3 Deterministic closed-loop runtime update
+
+The deterministic runtime path is now documented as a non-bypassable closed-loop sequence:
+
+1. Acquisition chip frame is read before body-pose extraction and kept separate from post-stimulus feedback.
+2. Signal quality gate and neural artifact classifier classify dropout, clipping, drift, motion/muscle artifacts, electrode pop, flatline, line noise, and phase discontinuity before intent or stimulation.
+3. Intent decoding must remain unambiguous before downstream Full Dive actions are allowed.
+4. Body pose extraction uses the acquisition chip frame and injected runtime pose providers.
+5. Signed scene contracts and virtual-body safety contracts gate clinical assets before stimulus generation.
+6. `FullDiveNeuralFrame` is translated into a fixed `SafeNeuralStimulusCommandFixed` with seven modality intensities.
+7. Modality phase lock uses runtime timestamps instead of simulated arrival maps.
+8. Modern stimulus dispatch is HAL-only: translator, safety supervisor, capability limiter, `NeuralChipHAL::writeSafeStimulus`, ACK verification, and feedback.
+9. Feedback is read from the feedback chip frame, compared with expected neural response, and revalidated after correction.
+10. Exposure ledger, degradation manager, safe-frame hold, audit, and decompression controls prevent claiming complete Full Dive when any modality lacks support, calibration, or feedback.

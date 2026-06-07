@@ -17,7 +17,7 @@ struct ClosedLoopFeedback {
 
 class ClosedLoopNeuralFeedbackReader {
 public:
-    ClosedLoopFeedback read(const NeuralChipFrame& response, const SafeNeuralStimulusCommand& stimulus) const;
+    ClosedLoopFeedback read(const NeuralChipFrame& response, const SafeNeuralStimulusCommandFixed& stimulus) const;
 };
 
 } // namespace dnxr

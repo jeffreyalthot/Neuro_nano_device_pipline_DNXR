@@ -46,13 +46,11 @@ endif()
 
 file(GLOB_RECURSE DNXR_CORE_SRC CONFIGURE_DEPENDS src/*.cpp)
 list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/main\\.cpp$")
-if(DNXR_HUMAN_USE_BUILD AND NOT DNXR_ENABLE_RESEARCH_SPECULATION)
-    list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/runtime/FullDiveOrchestrator\\.cpp$")
-    list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/network/DistributedConsciousnessNetwork\\.cpp$")
-    list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/physics/NeuralQuantumEntanglementEngine\\.cpp$")
-    list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/reality/SubjectiveTimeDilationEngine\\.cpp$")
-    list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/memory/RecursiveMemoryReconstructionEngine\\.cpp$")
-    list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/subconscious/SubconsciousSimulationEngine\\.cpp$")
+set(DNXR_RESEARCH_SPECULATION_REGEX "/(runtime/FullDiveOrchestrator|network/DistributedConsciousnessNetwork|physics/NeuralQuantumEntanglementEngine|reality/SubjectiveTimeDilationEngine|memory/RecursiveMemoryReconstructionEngine|subconscious/SubconsciousSimulationEngine|emotion/AffectiveResonanceMatrix)\.cpp$")
+set(DNXR_RESEARCH_SPECULATION_SRC ${DNXR_CORE_SRC})
+list(FILTER DNXR_RESEARCH_SPECULATION_SRC INCLUDE REGEX "${DNXR_RESEARCH_SPECULATION_REGEX}")
+if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)
+    list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "${DNXR_RESEARCH_SPECULATION_REGEX}")
 endif()
 
 function(dnxr_apply_sanitizers target)
@@ -82,6 +80,11 @@ function(dnxr_apply_sanitizers target)
         endif()
     endif()
 endfunction()
+
+if(DNXR_ENABLE_RESEARCH_SPECULATION AND DNXR_RESEARCH_SPECULATION_SRC)
+    add_library(dnxr_research_speculation STATIC ${DNXR_RESEARCH_SPECULATION_SRC})
+    target_include_directories(dnxr_research_speculation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+endif()
 
 add_library(dnxr_core STATIC ${DNXR_CORE_SRC})
 target_include_directories(dnxr_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -122,7 +125,24 @@ if(DNXR_BUILD_TESTS)
     enable_testing()
 
     function(dnxr_add_test test_name)
-        add_executable(${test_name} tests/${test_name}.cpp)
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/${test_name}.cpp")
+            set(test_source "tests/${test_name}.cpp")
+        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/hardware/${test_name}.cpp")
+            set(test_source "tests/hardware/${test_name}.cpp")
+        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/runtime/${test_name}.cpp")
+            set(test_source "tests/runtime/${test_name}.cpp")
+        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/performance/${test_name}.cpp")
+            set(test_source "tests/performance/${test_name}.cpp")
+        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/qms/${test_name}.cpp")
+            set(test_source "tests/qms/${test_name}.cpp")
+        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/assets/${test_name}.cpp")
+            set(test_source "tests/assets/${test_name}.cpp")
+        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/safety/${test_name}.cpp")
+            set(test_source "tests/safety/${test_name}.cpp")
+        else()
+            message(FATAL_ERROR "Missing test source for ${test_name}")
+        endif()
+        add_executable(${test_name} ${test_source})
         target_link_libraries(${test_name} PRIVATE dnxr_core)
         dnxr_apply_sanitizers(${test_name})
         add_test(NAME ${test_name} COMMAND ${test_name})
@@ -261,7 +281,20 @@ if(DNXR_BUILD_TESTS)
         dnxr_perception_divergence_detector_test
         dnxr_device_capability_limiter_test
         dnxr_neural_chip_ack_required_test
+        dnxr_hal_accepts_seven_modality_full_dive_command_test
+        dnxr_modern_stimulus_stage_does_not_call_legacy_nodes_test
+        dnxr_body_pose_uses_acquisition_chip_frame_before_stimulus_test
+        dnxr_signal_quality_gate_blocks_stimulus_test
+        dnxr_neural_stimulus_translator_fixed_command_no_allocation_test
+        dnxr_clinical_boundary_rejects_research_orchestrator_test
+        dnxr_clinical_asset_gate_blocks_mmorpg_combat_test
+        dnxr_five_sense_exposure_ledger_session_limit_test
+        dnxr_safe_frame_hold_suppresses_vestibular_and_chemical_channels_test
     )
+
+    if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)
+        list(REMOVE_ITEM DNXR_TEST_TARGETS dnxr_full_dive_orchestrator_integration_test)
+    endif()
 
     foreach(test_name IN LISTS DNXR_TEST_TARGETS)
         dnxr_add_test(${test_name})
