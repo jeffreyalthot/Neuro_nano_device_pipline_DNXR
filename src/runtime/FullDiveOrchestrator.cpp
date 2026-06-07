@@ -23,13 +23,13 @@ float inverseRisk(float value) {
 
 } // namespace
 
-FullDiveOrchestrator::
-FullDiveOrchestrator() {
+ResearchFullDiveOrchestrator::
+ResearchFullDiveOrchestrator() {
 
     initialize();
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 initialize() {
 
     synchronizationEngine_ = nullptr;
@@ -52,56 +52,56 @@ initialize() {
     state_.fullDiveCoherence = 1.0f;
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 attachSynchronizationEngine(
     FullDiveSynchronizationEngine* engine) {
 
     synchronizationEngine_ = engine;
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 attachConsciousnessNetwork(
     DistributedConsciousnessNetwork* network) {
 
     consciousnessNetwork_ = network;
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 attachMemoryEngine(
     RecursiveMemoryReconstructionEngine* engine) {
 
     memoryEngine_ = engine;
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 attachTimeEngine(
     SubjectiveTimeDilationEngine* engine) {
 
     timeEngine_ = engine;
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 attachQuantumEngine(
     NeuralQuantumEntanglementEngine* engine) {
 
     quantumEngine_ = engine;
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 attachEmotionEngine(
     AffectiveResonanceMatrix* engine) {
 
     emotionEngine_ = engine;
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 attachSubconsciousEngine(
     SubconsciousSimulationEngine* engine) {
 
     subconsciousEngine_ = engine;
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 computeImmersionLevel() {
 
     float baseImmersion =
@@ -129,7 +129,7 @@ computeImmersionLevel() {
         clamp01(baseImmersion);
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 computeConsciousnessIntegrity() {
 
     float integrity =
@@ -163,7 +163,7 @@ computeConsciousnessIntegrity() {
         clamp01(integrity);
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 computeRealityConsistency() {
 
     float consistency =
@@ -185,7 +185,7 @@ computeRealityConsistency() {
         clamp01(consistency);
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 computeMemoryIntegrity() {
 
     if(memoryEngine_ == nullptr)
@@ -205,7 +205,7 @@ computeMemoryIntegrity() {
             inverseRisk(memoryState.recursiveDrift));
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 computeEmotionalSynchronization() {
 
     if(emotionEngine_ == nullptr)
@@ -224,7 +224,7 @@ computeEmotionalSynchronization() {
             (affectiveState.emotionalDrift * 0.25f));
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 computeSubconsciousSynchronization() {
 
     if(subconsciousEngine_ == nullptr)
@@ -240,7 +240,7 @@ computeSubconsciousSynchronization() {
             inverseRisk(subconsciousState.identityFragmentation));
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 computeTemporalSynchronization() {
 
     if(timeEngine_ == nullptr)
@@ -260,7 +260,7 @@ computeTemporalSynchronization() {
             inverseRisk(temporalState.temporalLoopRisk));
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 computeNetworkSynchronization() {
 
     if(consciousnessNetwork_ == nullptr)
@@ -280,7 +280,7 @@ computeNetworkSynchronization() {
             inverseRisk(networkState.networkLatency));
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 computeQuantumSynchronization() {
 
     if(quantumEngine_ == nullptr)
@@ -299,7 +299,7 @@ computeQuantumSynchronization() {
             inverseRisk(quantumFrame.decoherenceRisk));
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 computeFullDiveCoherence() {
 
     state_.fullDiveCoherence =
@@ -309,7 +309,7 @@ computeFullDiveCoherence() {
             state_.realityConsistency);
 }
 
-void FullDiveOrchestrator::
+void ResearchFullDiveOrchestrator::
 update(
     float deltaTime) {
 
@@ -356,7 +356,7 @@ update(
 }
 
 const FullDiveState&
-FullDiveOrchestrator::
+ResearchFullDiveOrchestrator::
 getState() const {
 
     return state_;

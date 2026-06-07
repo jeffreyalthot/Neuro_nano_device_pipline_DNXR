@@ -78,3 +78,26 @@ bool RealNeuralChipHAL::requiresClosedLoopFeedback() const {
 }
 
 } // namespace dnxr
+
+namespace dnxr {
+
+ChipCapabilities RealNeuralChipHAL::capabilities() const {
+    ChipCapabilities c;
+    c.maxSafeRateHz = 0.0f;
+    c.supportsHardwareCutoff = false;
+    c.supportsClosedLoopFeedback = false;
+    return c;
+}
+
+DeviceIdentity RealNeuralChipHAL::deviceIdentity() const {
+    DeviceIdentity id;
+    id.deviceIdHash = "real_hal_locked_no_identity";
+    id.firmwareHash = "unattested";
+    id.signedIdentity = false;
+    return id;
+}
+
+bool RealNeuralChipHAL::hardwareCutoffAvailable() const { return false; }
+bool RealNeuralChipHAL::closedLoopFeedbackAvailable() const { return false; }
+
+} // namespace dnxr

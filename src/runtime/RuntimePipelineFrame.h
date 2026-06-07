@@ -9,6 +9,8 @@
 #include "../full_dive/FiveSenseCoherenceEngine.h"
 #include "../full_dive/BodySchemaEngine.h"
 #include "../hardware/ClosedLoopNeuralFeedbackReader.h"
+#include "../full_dive/ModalityPhaseLockEngine.h"
+#include "../full_dive/PerceptionDivergenceDetector.h"
 
 #include <cstdint>
 #include <string>
@@ -47,7 +49,12 @@ struct RuntimePipelineFrame {
     FullDiveNeuralFrame fullDiveNeuralFrame;
     FiveSenseCoherenceReport fiveSenseCoherenceReport;
     BodySchemaReport bodySchemaReport;
+    BodyPoseState perceivedBodyPose;
+    BodyPoseState avatarBodyPose;
+    bool bodyPoseExtractionComplete = false;
     ClosedLoopFeedback closedLoopFeedback;
+    PhaseLockReport phaseLockReport;
+    PerceptionDivergenceReport perceptionDivergenceReport;
 
     RuntimeStageStatus acquisitionStatus = RuntimeStageStatus::ok("acquisition");
     RuntimeStageStatus signalStatus = RuntimeStageStatus::ok("signal");

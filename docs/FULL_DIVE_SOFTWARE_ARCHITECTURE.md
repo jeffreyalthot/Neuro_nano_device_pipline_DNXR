@@ -50,3 +50,32 @@ The clinical runtime path is now a single mandatory chain rather than disconnect
 20. Decompression/reality-anchor path when required
 
 The modern `RuntimePipelineRunner` orders Full Dive coherence and body-schema validation before safety dispatch, then requires HAL ACK and closed-loop feedback before perception correction. The speculative/research orchestrator remains separate from `FullDiveClinicalOrchestrator`, whose policy disables emotion forcing, memory manipulation, subjective time dilation, and subconscious influence for clinical mode.
+
+## 0.5.2 hard-realtime closed-loop clinical runtime chain
+
+The clinical runtime path is now required to preserve this measured order without bypasses:
+
+1. Neural acquisition.
+2. Signal quality gate and artifact-aware signal processing.
+3. Multi-window intent decoding / inference.
+4. Patient baseline and telemetry normalization.
+5. Runtime body pose extraction from neural, headset/body-sensor, and proprioceptive sources.
+6. Virtual body pose provision from the XR body model.
+7. Scene and virtual-body contract validation.
+8. Typed five-sense neural frame construction.
+9. Five-sense fusion and coherence validation.
+10. Modality phase lock before any neural stimulation.
+11. Body schema validation using non-default perceived/avatar poses.
+12. FullDiveSafetySupervisor re-check.
+13. Device capability negotiation from INeuralChipHAL.
+14. NeuralStimulusTranslator bounded command generation.
+15. NeuralChipSafetySupervisor validation.
+16. HAL dispatch.
+17. Signed ACK verification.
+18. Closed-loop per-modality feedback reading.
+19. Expected perception comparison and perception divergence detection.
+20. Bounded perception correction.
+21. RuntimePostCorrectionSafetyStage re-validation.
+22. Audit, frame finalization, and decompression if instability persists.
+
+The former research-oriented FullDiveOrchestrator is excluded from clinical builds unless `DNXR_ENABLE_RESEARCH_SPECULATION=ON`; the clinical path is owned by FullDiveClinicalOrchestrator and the runtime stages above.

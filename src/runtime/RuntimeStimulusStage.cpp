@@ -5,6 +5,7 @@
 #include "../devices/NanoNodeInterface.h"
 #include "../hardware/NeuralChipHAL.h"
 #include "../hardware/DeviceCapabilityLimiter.h"
+#include "../hardware/NeuralChipSafetySupervisor.h"
 #include "../full_dive/NeuralStimulusTranslator.h"
 #include "../safety/FullDiveSafetySupervisor.h"
 #include "../safety/IndependentStimulusCutoff.h"
@@ -84,17 +85,16 @@ RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, R
     }
 
     DeviceCapabilityLimiter capabilityLimiter;
-    ChipCapabilities clinicalCapabilities;
-    clinicalCapabilities.canVisual = true;
-    clinicalCapabilities.canAuditory = true;
-    clinicalCapabilities.canHaptic = true;
-    clinicalCapabilities.canVestibular = true;
-    clinicalCapabilities.canProprioceptive = true;
-    clinicalCapabilities.canOlfactory = true;
-    clinicalCapabilities.canGustatory = true;
-    clinicalCapabilities.maxSafeRateHz = 120.0f;
-    clinicalCapabilities.supportsHardwareCutoff = frame.fullDiveNeuralFrame.safety.emergencyCutoffAvailable;
-    clinicalCapabilities.supportsClosedLoopFeedback = true;
+    ChipCapabilityNegotiation negotiation;
+    const ChipCapabilities clinicalCapabilities = negotiation.clampForClinical(services.neuralChipHal.capabilities());
+    if (!services.neuralChipHal.hardwareCutoffAvailable() || !services.neuralChipHal.closedLoopFeedbackAvailable()) {
+        services.neuralChipHal.emergencyStop("neural_chip_required_safety_capability_missing");
+        frame.continueCycle = false;
+        frame.emergencyActive = true;
+        frame.stopReason = "neural_chip_required_safety_capability_missing";
+        frame.stimulusStatus = RuntimeStageStatus::emergency(frame.stopReason);
+        return frame;
+    }
     const float runtimeRateHz = frame.deltaTimeSeconds > 0.0 ? static_cast<float>(1.0 / frame.deltaTimeSeconds) : 90.0f;
     auto limited = capabilityLimiter.apply(frame.fullDiveNeuralFrame, clinicalCapabilities, runtimeRateHz);
     if (!limited.allowed) {
@@ -141,12 +141,15 @@ RuntimePipelineFrame RuntimeStimulusStage::execute(RuntimePipelineFrame frame, R
     }
 
     const auto ack = services.neuralChipHal.lastAck();
-    if (!ack.packetAccepted || !ack.applied || !ack.signedAck || ack.packetId != frame.stimulusCommand.sequenceId ||
-        ack.hardwareCutoffActive || ack.deviceTemperature > 41.0f || ack.latencyMeasuredMs > 20.0f) {
-        services.neuralChipHal.emergencyStop("mandatory_neural_chip_ack_invalid");
+    NeuralChipSafetySupervisor chipSupervisor;
+    const auto chipDecision = chipSupervisor.evaluate(ack, services.neuralChipHal.capabilities(), services.neuralChipHal.deviceIdentity(), frame.stimulusCommand.sequenceId, &clinicalCapabilities);
+    if (!chipDecision.allowed) {
+        if (chipDecision.requiresEmergencyStop) {
+            services.neuralChipHal.emergencyStop(chipDecision.reason);
+        }
         frame.continueCycle = false;
-        frame.emergencyActive = true;
-        frame.stopReason = "mandatory_neural_chip_ack_invalid";
+        frame.emergencyActive = chipDecision.requiresEmergencyStop;
+        frame.stopReason = chipDecision.reason;
         frame.stimulusStatus = RuntimeStageStatus::emergency(frame.stopReason);
         return frame;
     }

@@ -27,3 +27,9 @@ The frame schema separates and bounds the following clinical submodalities:
 - Interoceptive safety: respiration, heart rate, stress, nausea, vertigo, panic, disorientation, stop request, communication loss.
 
 Clinical encoding forbids pain, burn, electric-shock, suffocation, crushing, forced immobilization, fall panic, drowning, claustrophobic lock, fear induction, and unanchored body distortion. Unsafe requests escalate to reality-anchor, decompression, or emergency stop according to severity.
+
+## 0.5.2 bounded five-sense runtime constraints
+
+Five-sense encoding now treats visual, auditory, haptic, thermal, vestibular, proprioceptive, olfactory, gustatory, and reality-anchor channels as phase-locked modalities. Runtime phase lock precedes stimulus dispatch and suppresses vestibular/haptic channels when critical skew relationships exceed policy.
+
+Expected perception prediction supports a fixed-capacity `ExpectedPerceptionSet` to avoid runtime allocation in the critical path. Slow chemical modalities remain budgeted and must not be increased automatically by perception correction. Safe degradation is mandatory when any required modality, calibration, hardware cutoff, closed-loop feedback, or body-schema input is unavailable.

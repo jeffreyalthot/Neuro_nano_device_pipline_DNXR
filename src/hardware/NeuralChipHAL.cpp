@@ -164,8 +164,14 @@ bool SimulatedNeuralChipHAL::writeSafeStimulus(
     lastAck_.deviceTemperature = 37.0f;
     lastAck_.signalQuality = status_.signalQuality > 0.0f ? status_.signalQuality : 0.99f;
     lastAck_.signedAck = true;
+    lastAck_.signatureAlgorithm = "SIM-HMAC-SHA256";
+    lastAck_.signature = "simulated_signed_ack";
+    lastAck_.transportState = NeuralChipAckTransportState::TransportAccepted;
     if (!validateCommand(command)) {
         lastAck_.packetRejected = true;
+        lastAck_.transportState = NeuralChipAckTransportState::TransportRejected;
+        lastAck_.firmwareState = NeuralChipAckFirmwareState::FirmwareRejected;
+        lastAck_.hardwareState = NeuralChipAckHardwareState::HardwareRejected;
         lastAck_.notApplied = true;
         lastAck_.hardwareCutoffActive = emergencyLatched_;
         lastAck_.rejectReason = "command_failed_hal_validation";
@@ -174,9 +180,15 @@ bool SimulatedNeuralChipHAL::writeSafeStimulus(
 
     lastAcceptedStimulus_ = command;
     lastAck_.packetAccepted = true;
+    lastAck_.firmwareValidated = true;
+    lastAck_.firmwareState = NeuralChipAckFirmwareState::FirmwareValidated;
     lastAck_.applied = true;
+    lastAck_.hardwareState = NeuralChipAckHardwareState::HardwareApplied;
     lastAck_.notApplied = false;
     lastAck_.feedbackAvailable = (mode_ != NeuralChipRuntimeMode::ClinicalLocked);
+    lastAck_.feedbackConfirmed = lastAck_.feedbackAvailable;
+    lastAck_.feedbackState = lastAck_.feedbackAvailable ? NeuralChipAckFeedbackState::FeedbackConfirmed : NeuralChipAckFeedbackState::NotConfirmed;
+    lastAck_.appliedChannelCount = static_cast<std::uint32_t>(command.boundedChannels.size());
     status_.statusMessage = "stimulus_accepted:" + command.safetyMode;
     return true;
 }
@@ -212,5 +224,38 @@ NeuralChipAck SimulatedNeuralChipHAL::lastAck() const {
 bool SimulatedNeuralChipHAL::requiresClosedLoopFeedback() const {
     return mode_ != NeuralChipRuntimeMode::Simulation;
 }
+
+} // namespace dnxr
+
+namespace dnxr {
+
+ChipCapabilities SimulatedNeuralChipHAL::capabilities() const {
+    ChipCapabilities c;
+    c.canVisual = true;
+    c.canAuditory = true;
+    c.canHaptic = true;
+    c.canVestibular = true;
+    c.canProprioceptive = true;
+    c.canOlfactory = true;
+    c.canGustatory = true;
+    c.maxSafeRateHz = 120.0f;
+    c.maxPacketSize = static_cast<int>(channelCount_ * sizeof(float));
+    c.supportsHardwareCutoff = !emergencyLatched_;
+    c.supportsClosedLoopFeedback = true;
+    return c;
+}
+
+DeviceIdentity SimulatedNeuralChipHAL::deviceIdentity() const {
+    DeviceIdentity id;
+    id.deviceIdHash = "simulated_device_identity_hash";
+    id.firmwareHash = "simulated_firmware_hash";
+    id.certificateHash = "simulated_certificate_hash";
+    id.clinicalSessionBinding = mode_ == NeuralChipRuntimeMode::Simulation ? "simulation" : "hil";
+    id.signedIdentity = true;
+    return id;
+}
+
+bool SimulatedNeuralChipHAL::hardwareCutoffAvailable() const { return capabilities().supportsHardwareCutoff; }
+bool SimulatedNeuralChipHAL::closedLoopFeedbackAvailable() const { return capabilities().supportsClosedLoopFeedback; }
 
 } // namespace dnxr

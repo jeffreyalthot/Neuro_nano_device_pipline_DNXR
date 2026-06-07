@@ -36,10 +36,10 @@ struct FullDiveState {
     float fullDiveCoherence;
 };
 
-class FullDiveOrchestrator {
+class ResearchFullDiveOrchestrator {
 public:
 
-    FullDiveOrchestrator();
+    ResearchFullDiveOrchestrator();
 
     void initialize();
 
@@ -117,3 +117,5 @@ private:
 };
 
 } // namespace dnxr
+
+namespace dnxr { using FullDiveOrchestrator = ResearchFullDiveOrchestrator; }

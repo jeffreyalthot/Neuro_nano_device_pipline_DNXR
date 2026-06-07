@@ -6,6 +6,7 @@
 
 #include "../immersion/SensoryFrameSchema.h"
 #include "NeuralChipAck.h"
+#include "ChipCapabilityNegotiation.h"
 
 namespace dnxr {
 
@@ -13,6 +14,14 @@ enum class NeuralChipRuntimeMode {
     Simulation,
     HardwareInLoop,
     ClinicalLocked
+};
+
+struct DeviceIdentity {
+    std::string deviceIdHash;
+    std::string firmwareHash;
+    std::string certificateHash;
+    std::string clinicalSessionBinding;
+    bool signedIdentity = false;
 };
 
 struct NeuralChipStatus {
@@ -68,6 +77,10 @@ public:
     virtual void emergencyStop(const std::string& reason) = 0;
     virtual NeuralChipStatus status() const = 0;
     virtual NeuralChipAck lastAck() const { return {}; }
+    virtual ChipCapabilities capabilities() const { return {}; }
+    virtual DeviceIdentity deviceIdentity() const { return {}; }
+    virtual bool hardwareCutoffAvailable() const { return capabilities().supportsHardwareCutoff; }
+    virtual bool closedLoopFeedbackAvailable() const { return capabilities().supportsClosedLoopFeedback; }
     virtual bool requiresClosedLoopFeedback() const { return false; }
 };
 
@@ -86,6 +99,10 @@ public:
     NeuralChipStatus status() const override;
     NeuralChipAck lastAck() const override;
     bool requiresClosedLoopFeedback() const override;
+    ChipCapabilities capabilities() const override;
+    DeviceIdentity deviceIdentity() const override;
+    bool hardwareCutoffAvailable() const override;
+    bool closedLoopFeedbackAvailable() const override;
 
 private:
     bool connected_;
@@ -109,6 +126,10 @@ public:
     NeuralChipStatus status() const override;
     NeuralChipAck lastAck() const override;
     bool requiresClosedLoopFeedback() const override;
+    ChipCapabilities capabilities() const override;
+    DeviceIdentity deviceIdentity() const override;
+    bool hardwareCutoffAvailable() const override;
+    bool closedLoopFeedbackAvailable() const override;
 
     const SafeNeuralStimulusCommand& lastAcceptedStimulus() const;
 
