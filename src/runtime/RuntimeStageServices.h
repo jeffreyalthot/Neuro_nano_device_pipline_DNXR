@@ -31,6 +31,8 @@ class NeuralStimulusSafetyEnvelope;
 class DeepImmersionPlatform;
 class FullDiveSafetyBridge;
 class SessionSafetyJournal;
+class PerceivedBodyPoseEstimator;
+class VirtualBodyPoseProvider;
 
 struct RuntimeStageServices {
     NanoNodeInterface& nodes;
@@ -61,6 +63,8 @@ struct RuntimeStageServices {
     SimulationCryptoTransport& crypto;
     RuntimeSecret& neuralTransportSecret;
     NeuralIdentityVault& identityVault;
+    PerceivedBodyPoseEstimator* perceivedBodyPoseEstimator = nullptr;
+    VirtualBodyPoseProvider* virtualBodyPoseProvider = nullptr;
 };
 
 } // namespace dnxr

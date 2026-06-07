@@ -10,6 +10,8 @@
 #include "../full_dive/BodySchemaEngine.h"
 #include "../hardware/ClosedLoopNeuralFeedbackReader.h"
 #include "../full_dive/ModalityPhaseLockEngine.h"
+#include "../neurotech/NeuralArtifactClassifier.h"
+#include "../neurotech/NeuralSignalQualityGate.h"
 #include "../full_dive/PerceptionDivergenceDetector.h"
 
 #include <cstdint>
@@ -30,7 +32,9 @@ struct RuntimePipelineFrame {
     std::vector<float> sensoryFrame;
     std::vector<float> telemetry;
     std::vector<float> normalizedTelemetryRisk;
-    NeuralChipFrame chipFrame;
+    NeuralChipFrame chipFrame; // legacy alias; prefer acquisitionChipFrame/feedbackChipFrame in modern runtime
+    NeuralChipFrame acquisitionChipFrame;
+    NeuralChipFrame feedbackChipFrame;
 
     std::string symbolicState;
     BiometricFrame biometric;
@@ -45,7 +49,7 @@ struct RuntimePipelineFrame {
     SafetyDecision fusedSafetyDecision;
     RealityAnchorPlan realityAnchorPlan;
     FullDiveRuntimeSnapshot fullDiveSnapshot;
-    SafeNeuralStimulusCommand stimulusCommand;
+    SafeNeuralStimulusCommandFixed stimulusCommand;
     FullDiveNeuralFrame fullDiveNeuralFrame;
     FiveSenseCoherenceReport fiveSenseCoherenceReport;
     BodySchemaReport bodySchemaReport;
@@ -55,6 +59,9 @@ struct RuntimePipelineFrame {
     ClosedLoopFeedback closedLoopFeedback;
     PhaseLockReport phaseLockReport;
     PerceptionDivergenceReport perceptionDivergenceReport;
+    NeuralArtifactReport artifactReport;
+    NeuralSignalGateDecision signalGateDecision;
+    int repeatedArtifactCount = 0;
 
     RuntimeStageStatus acquisitionStatus = RuntimeStageStatus::ok("acquisition");
     RuntimeStageStatus signalStatus = RuntimeStageStatus::ok("signal");

@@ -1,0 +1,3 @@
+#include "../../src/runtime/SafeFrameHoldBuffer.h"
+#include <cassert>
+int main(){ dnxr::SafeFrameHoldBuffer b; dnxr::FullDiveNeuralFrame f; f.safety.aggregateRisk=0.1f; f.safety.painSimulationBlocked=true; f.safety.emergencyCutoffAvailable=true; dnxr::NeuroChannelCommand c; c.intensity=0.8f; f.vestibular.channels.push_back(c); f.smellTaste.olfactory.channels.push_back(c); f.smellTaste.gustatory.channels.push_back(c); b.rememberIfSafe(f); assert(b.hasSafeFrame()); auto h=b.holdWithoutRiskyModalities(); assert(h.vestibular.channels.empty()); assert(h.smellTaste.olfactory.channels.empty()); assert(h.smellTaste.gustatory.channels.empty()); return 0; }

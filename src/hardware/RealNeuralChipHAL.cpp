@@ -41,7 +41,7 @@ NeuralChipFrame RealNeuralChipHAL::readFrame() {
     return frame;
 }
 
-bool RealNeuralChipHAL::writeSafeStimulus(const SafeNeuralStimulusCommand& command) {
+bool RealNeuralChipHAL::writeSafeStimulus(const SafeNeuralStimulusCommandFixed& command) {
     (void)command;
     status_.statusMessage = "stimulus_rejected_by_real_hal_clinical_lock";
     emergencyLatched_ = true;

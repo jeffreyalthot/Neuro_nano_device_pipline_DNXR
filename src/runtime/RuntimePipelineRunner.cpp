@@ -131,6 +131,9 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
 
     if (input.sinks.recordReplayFrame) input.sinks.recordReplayFrame(pipeline.cleanSignals, input.context.timestamp);
 
+    pipeline.acquisitionChipFrame = input.services.neuralChipHal.readFrame();
+    pipeline.chipFrame = pipeline.acquisitionChipFrame;
+
     pipeline = RuntimeFullDiveStage::execute(std::move(pipeline), input.services, input.context, input.runtimeMetricsSnapshot);
     if (!pipeline.continueCycle) {
         finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
@@ -143,7 +146,7 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
         return pipeline;
     }
 
-    pipeline = RuntimeBodyPoseExtractionStage::execute(std::move(pipeline));
+    pipeline = RuntimeBodyPoseExtractionStage::execute(std::move(pipeline), input.services);
     if (!pipeline.continueCycle) {
         finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;
@@ -191,13 +194,14 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
     pipeline = RuntimeStimulusStage::execute(std::move(pipeline), input.services);
     if (!pipeline.continueCycle) {
         if (pipeline.stopReason == "unsafe_stimulus_rejected") {
-            if (input.sinks.auditRejectedStimulus) input.sinks.auditRejectedStimulus(pipeline.stimulusCommand);
+            if (input.sinks.auditRejectedStimulus) input.sinks.auditRejectedStimulus(toLegacyCommand(pipeline.stimulusCommand));
         }
         finishModernCycle(pipeline, input.tickReport, input.services, input.sinks, input.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;
     }
 
-    pipeline.chipFrame = input.services.neuralChipHal.readFrame();
+    pipeline.feedbackChipFrame = input.services.neuralChipHal.readFrame();
+    pipeline.chipFrame = pipeline.feedbackChipFrame;
     pipeline = RuntimeClosedLoopFeedbackStage::execute(std::move(pipeline));
     const bool feedbackMissing = !pipeline.closedLoopFeedback.safetyVerified;
     if (input.services.neuralChipHal.requiresClosedLoopFeedback() && feedbackMissing) {
@@ -315,7 +319,7 @@ RuntimePipelineFrame RuntimePipelineRunner::runLegacy(const LegacyRunInput& inpu
     pipeline = RuntimeStimulusStage::execute(std::move(pipeline), input.stages.stimulus);
     if (!pipeline.continueCycle) {
         if (pipeline.stopReason == "unsafe_stimulus_rejected") {
-            if (input.sinks.auditRejectedStimulus) input.sinks.auditRejectedStimulus(pipeline.stimulusCommand);
+            if (input.sinks.auditRejectedStimulus) input.sinks.auditRejectedStimulus(toLegacyCommand(pipeline.stimulusCommand));
         }
         finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
         return pipeline;

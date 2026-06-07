@@ -15,6 +15,51 @@ float clamp01(float value) {
 
 } // namespace
 
+SafeNeuralStimulusCommandFixed toFixedCommand(const SafeNeuralStimulusCommand& command) {
+    SafeNeuralStimulusCommandFixed fixed;
+    fixed.sequenceId = command.sequenceId;
+    fixed.monotonicTimestampMs = command.monotonicTimestampMs;
+    for (float channel : command.boundedChannels) {
+        if (!fixed.boundedChannels.try_push_back(channel)) break;
+    }
+    fixed.modalityIntensities.fill(0.0f);
+    const auto modalityCount = std::min(command.modalityIntensities.size(), fixed.modalityIntensities.size());
+    for (std::size_t i = 0; i < modalityCount; ++i) fixed.modalityIntensities[i] = command.modalityIntensities[i];
+    fixed.aggregateSensoryLoad = command.aggregateSensoryLoad;
+    fixed.intensityScale = command.intensityScale;
+    fixed.riskScore = command.riskScore;
+    fixed.safetyMode = command.safetyMode;
+    fixed.calibrationProfileId = command.calibrationProfileId;
+    fixed.fiveSenseCoverage = command.fiveSenseCoverage;
+    fixed.coveragePolicy = command.coveragePolicy;
+    fixed.requiredModalityCount = std::min(command.requiredModalities.size(), fixed.requiredModalities.size());
+    for (std::size_t i = 0; i < fixed.requiredModalityCount; ++i) fixed.requiredModalities[i] = command.requiredModalities[i];
+    fixed.coverageReason = command.coverageReason;
+    fixed.exposureBudgetOk = command.exposureBudgetOk;
+    fixed.allowStimulusDispatch = command.allowStimulusDispatch;
+    return fixed;
+}
+
+SafeNeuralStimulusCommand toLegacyCommand(const SafeNeuralStimulusCommandFixed& command) {
+    SafeNeuralStimulusCommand legacy;
+    legacy.sequenceId = command.sequenceId;
+    legacy.monotonicTimestampMs = command.monotonicTimestampMs;
+    legacy.boundedChannels.assign(command.boundedChannels.begin(), command.boundedChannels.end());
+    legacy.modalityIntensities.assign(command.modalityIntensities.begin(), command.modalityIntensities.end());
+    legacy.aggregateSensoryLoad = command.aggregateSensoryLoad;
+    legacy.intensityScale = command.intensityScale;
+    legacy.riskScore = command.riskScore;
+    legacy.safetyMode = command.safetyMode;
+    legacy.calibrationProfileId = command.calibrationProfileId;
+    legacy.fiveSenseCoverage = command.fiveSenseCoverage;
+    legacy.coveragePolicy = command.coveragePolicy;
+    legacy.requiredModalities.assign(command.requiredModalities.begin(), command.requiredModalities.begin() + static_cast<std::ptrdiff_t>(command.requiredModalityCount));
+    legacy.coverageReason = command.coverageReason;
+    legacy.exposureBudgetOk = command.exposureBudgetOk;
+    legacy.allowStimulusDispatch = command.allowStimulusDispatch;
+    return legacy;
+}
+
 SimulatedNeuralChipHAL::SimulatedNeuralChipHAL(
     std::size_t channelCount,
     NeuralChipRuntimeMode mode)
@@ -96,7 +141,7 @@ NeuralChipFrame SimulatedNeuralChipHAL::readFrame() {
 }
 
 bool SimulatedNeuralChipHAL::validateCommand(
-    const SafeNeuralStimulusCommand& command) const {
+    const SafeNeuralStimulusCommandFixed& command) const {
 
     if (!connected_ || emergencyLatched_) {
         return false;
@@ -122,7 +167,7 @@ bool SimulatedNeuralChipHAL::validateCommand(
         return false;
     }
 
-    if (command.modalityIntensities.size() != 6U || !command.exposureBudgetOk) {
+    if (command.modalityIntensities.size() != DNXR_STIMULUS_MODALITY_COUNT || !command.exposureBudgetOk) {
         return false;
     }
 
@@ -132,8 +177,8 @@ bool SimulatedNeuralChipHAL::validateCommand(
     }
 
     if (command.coveragePolicy == StimulusCoveragePolicy::RequiredModalities) {
-        for (const auto modality : command.requiredModalities) {
-            const auto index = static_cast<std::size_t>(modality);
+        for (std::size_t m = 0; m < command.requiredModalityCount; ++m) {
+            const auto index = static_cast<std::size_t>(command.requiredModalities[m]);
             if (index >= command.modalityIntensities.size() || command.modalityIntensities[index] <= 0.0f) {
                 return false;
             }
@@ -156,7 +201,7 @@ bool SimulatedNeuralChipHAL::validateCommand(
 }
 
 bool SimulatedNeuralChipHAL::writeSafeStimulus(
-    const SafeNeuralStimulusCommand& command) {
+    const SafeNeuralStimulusCommandFixed& command) {
 
     lastAck_ = {};
     lastAck_.packetId = command.sequenceId;
@@ -209,7 +254,7 @@ NeuralChipStatus SimulatedNeuralChipHAL::status() const {
     return status;
 }
 
-const SafeNeuralStimulusCommand& SimulatedNeuralChipHAL::lastAcceptedStimulus() const {
+const SafeNeuralStimulusCommandFixed& SimulatedNeuralChipHAL::lastAcceptedStimulus() const {
     return lastAcceptedStimulus_;
 }
 
