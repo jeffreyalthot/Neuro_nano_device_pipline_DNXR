@@ -10,6 +10,7 @@ namespace dnxr {
 struct PipelineSafetyCaseReport {
     std::uint64_t totalFrames = 0;
     std::uint64_t normalCommits = 0;
+    std::uint64_t ackWaits = 0;
     std::uint64_t ackHolds = 0;
     std::uint64_t worldRejects = 0;
     std::uint64_t encoderRejects = 0;

@@ -13,7 +13,9 @@ const std::vector<const char*>& DecisionTraceCoverageValidator::requiredStages(P
     static const std::vector<const char*> normal = {"PatientModalityPolicyGate","ExperimentalChemicalChannelGate","ClosedLoopPerceptionErrorController","MultisensoryPhaseLockOrchestrator","ModalityExposureLedger","NeuralChipSessionSupervisor","ChipCapabilityContract","PerModalitySafetyEnvelope","RealityAnchorDegradationModel","ChipRealityAnchorHardChannel","NeuralVectorSlewRateLimiter","NeuralChipFrameCommitter"};
     static const std::vector<const char*> worldReject = {"WorldFrameSanitizer", "NeuralChipFrameCommitter"};
     static const std::vector<const char*> earlyReject = {"SensorEncoderOutputContract", "NeuralChipFrameCommitter"};
+    static const std::vector<const char*> ackWait = {"NeuralChipPipelineStateGate", "NeuralChipAckHandshake"};
     static const std::vector<const char*> ackHold = {"NeuralChipAckHandshake", "NeuralChipFrameCommitter"};
+    static const std::vector<const char*> shutdownNoOp = {"NeuralChipPipelineStateGate"};
     static const std::vector<const char*> emergency = {"NeuralChipEmergencyLatch", "NeuralChipFrameCommitter"};
     static const std::vector<const char*> capability = {"ChipCapabilityContract", "NeuralChipFrameCommitter"};
     static const std::vector<const char*> anchor = {"RealityAnchorDegradationModel", "ChipRealityAnchorHardChannel", "NeuralChipFrameCommitter"};
@@ -22,6 +24,7 @@ const std::vector<const char*>& DecisionTraceCoverageValidator::requiredStages(P
     static const std::vector<const char*> resume = {"PipelineResumeController", "NeuralChipFrameCommitter"};
     static const std::vector<const char*> supervisor = {"NeuralChipSessionSupervisor", "NeuralChipFrameCommitter"};
     switch (path) {
+        case PipelinePathKind::AwaitingAckWait: return ackWait;
         case PipelinePathKind::WorldFrameReject: return worldReject;
         case PipelinePathKind::EarlyEncoderReject: return earlyReject;
         case PipelinePathKind::AckMissingHold: return ackHold;
@@ -32,6 +35,7 @@ const std::vector<const char*>& DecisionTraceCoverageValidator::requiredStages(P
         case PipelinePathKind::ValidatorReject: return validator;
         case PipelinePathKind::ResumeHold: return resume;
         case PipelinePathKind::SessionSupervisorHold: return supervisor;
+        case PipelinePathKind::ShutdownNoOp: return shutdownNoOp;
         case PipelinePathKind::NormalCommit: return normal;
     }
     return normal;

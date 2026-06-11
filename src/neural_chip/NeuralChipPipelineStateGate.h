@@ -12,6 +12,7 @@ struct PipelineStateDecision {
     bool allowWorldProcessing = true;
     bool allowNormalCommit = true;
     bool requireHold = false;
+    bool waitOnly = false;
     PipelineHoldKind holdKind = PipelineHoldKind::None;
     float ramp01 = 1.0f;
     const char* reason = "running";
