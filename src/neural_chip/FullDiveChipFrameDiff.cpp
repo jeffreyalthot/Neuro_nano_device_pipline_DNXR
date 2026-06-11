@@ -1,12 +1,30 @@
 #include "neural_chip/FullDiveChipFrameDiff.h"
 
 #include <cmath>
+#include <cstring>
 
 namespace dnxr {
 namespace {
+const char* modalityFromPath(const char* path) {
+    if (!path) return "";
+#define DNXR_PREFIX(name) if (std::strncmp(path, name ".", sizeof(name)) == 0) return name
+    DNXR_PREFIX("visual");
+    DNXR_PREFIX("auditory");
+    DNXR_PREFIX("touch");
+    DNXR_PREFIX("proprioception");
+    DNXR_PREFIX("vestibular");
+    DNXR_PREFIX("motorIntent");
+    DNXR_PREFIX("olfactory");
+    DNXR_PREFIX("gustatory");
+    DNXR_PREFIX("realityAnchor");
+    DNXR_PREFIX("safety");
+#undef DNXR_PREFIX
+    return "";
+}
+
 void add(std::vector<FrameFieldDelta>& deltas, const char* path, float before, float after, float eps) {
     const float delta = after - before;
-    if (std::fabs(delta) > eps) deltas.push_back({path, before, after, delta});
+    if (std::fabs(delta) > eps) deltas.push_back({modalityFromPath(path), path, before, after, delta});
 }
 } // namespace
 

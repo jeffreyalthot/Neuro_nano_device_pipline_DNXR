@@ -12,6 +12,7 @@ public:
     bool submitSafetyHold(const NeuralSafetyFrame& safety);
     ChipHealthStatus getHealthStatus() const;
     const FullDiveChipFrame& lastAcceptedFrame() const;
+    const NeuralSafetyFrame& lastSafetyHold() const;
 
 private:
     static bool isSafeForChip(const FullDiveChipFrame& frame);
@@ -19,6 +20,7 @@ private:
     ChipHealthStatus health_{};
     ChipReadFrame readFrame_{};
     FullDiveChipFrame lastFrame_{};
+    NeuralSafetyFrame lastSafetyHold_{};
 };
 
 } // namespace dnxr

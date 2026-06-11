@@ -332,6 +332,20 @@ if(DNXR_BUILD_TESTS)
         dnxr_avatar_safety_pose_controller_test
         dnxr_neural_chip_pipeline_config_validator_test
         dnxr_neural_chip_pipeline_fuzz_session_test
+        dnxr_neural_chip_ack_external_injection_test
+        dnxr_hold_frame_sequencer_test
+        dnxr_neural_chip_hold_lifecycle_test
+        dnxr_neural_chip_safety_hold_does_not_mutate_motor_read_test
+        dnxr_pipeline_resume_controller_test
+        dnxr_emergency_reset_audit_trail_test
+        dnxr_neural_chip_replay_recorder_jsonl_test
+        dnxr_neural_chip_replay_player_test
+        dnxr_decision_trace_modality_fieldpath_test
+        dnxr_decision_trace_coverage_validator_test
+        dnxr_disabled_modality_neutrality_validator_test
+        dnxr_reality_anchor_degradation_model_test
+        dnxr_world_frame_sanitizer_test
+        dnxr_sensor_encoder_output_contract_test
     )
 
     if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)

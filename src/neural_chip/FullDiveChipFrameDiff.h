@@ -7,6 +7,7 @@
 namespace dnxr {
 
 struct FrameFieldDelta {
+    const char* modality = "";
     const char* fieldPath = "";
     float before01 = 0.0f;
     float after01 = 0.0f;

@@ -31,6 +31,7 @@ public:
     void record(const NeuralChipReplayRecord& record);
     const std::vector<NeuralChipReplayRecord>& records() const;
     void clear();
+    bool exportJsonl(const std::string& path) const;
 
 private:
     std::vector<NeuralChipReplayRecord> records_{};

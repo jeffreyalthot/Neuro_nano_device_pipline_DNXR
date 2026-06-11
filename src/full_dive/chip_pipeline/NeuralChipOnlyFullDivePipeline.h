@@ -26,6 +26,7 @@
 #include "neural_chip/NeuralChipEmergencyLatch.h"
 #include "neural_chip/NeuralChipFrameCommitter.h"
 #include "neural_chip/NeuralChipPipelineDecisionTrace.h"
+#include "neural_chip/PipelineResumeController.h"
 #include "neural_chip/NeuralChipSessionState.h"
 #include "neural_chip/NeuralChipSessionSupervisor.h"
 #include "neural_chip/NeuralChipReplayRecorder.h"
@@ -89,6 +90,7 @@ public:
     const NeuralChipPipelineDecisionTrace& decisionTrace() const;
     const NeuralChipReplayRecorder& replayRecorder() const;
     NeuralChipEmergencyLatch& emergencyLatch();
+    void injectSimulatedAck(std::uint64_t frameId, float quality01);
 
 private:
     void recordDiff(const char* stage, const FullDiveChipFrame& before, const FullDiveChipFrame& after);
@@ -128,6 +130,8 @@ private:
     NeuralChipFrameCommitter committer_;
     NeuralChipPipelineDecisionTrace decisionTrace_{};
     NeuralChipReplayRecorder replayRecorder_{};
+    PipelineResumeController resumeController_{};
+    bool observedEmergencyLatch_ = false;
     NeuralChipSessionState sessionState_{};
     NeuralChipEmergencyLatch emergencyLatch_{};
     NeuralChipOnlyPipelineConfig config_{};
