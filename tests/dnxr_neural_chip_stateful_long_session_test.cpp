@@ -1,0 +1,4 @@
+#include "full_dive/chip_pipeline/NeuralChipOnlyFullDivePipeline.h"
+#include "neural_chip/ReplayConsistencyVerifier.h"
+#include <cassert>
+int main(){ dnxr::NeuralChipBus bus; dnxr::NeuralChipOnlyFullDivePipeline p(bus); dnxr::NeuralChipOnlyWorldFrame w; for(int i=1;i<=2000;i++){ w.frameId=i; w.timestampMs=i; if(i%17==0) w.timestampMs+=100; bool ok=p.step(w); if(ok) p.injectSimulatedAck(i,1.0f); if(i==500){ p.emergencyLatch().trigger("long emergency"); } if(i==501){ dnxr::EmergencyLatchResetRequest req{1,"op","reset",true,true}; p.resetEmergencyLatchWithAudit(req); } const auto& f=bus.lastAcceptedFrame(); assert(f.safety.activeCeiling01<=dnxr::DNXR_NEURAL_CHIP_ACTIVE_CEILING_01); } assert(!p.replayRecorder().records().empty()); assert(p.sessionDigest().frameCount>=p.replayRecorder().records().size()); }

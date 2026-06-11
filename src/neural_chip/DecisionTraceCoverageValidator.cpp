@@ -44,9 +44,9 @@ DecisionTraceCoverageReport DecisionTraceCoverageValidator::validate(const Neura
 DecisionTraceCoverageReport DecisionTraceCoverageValidator::validate(const NeuralChipPipelineDecisionTrace& trace, PipelinePathKind path) const {
     for (const char* stage : requiredStages(path)) {
         const bool found = std::any_of(trace.events().begin(), trace.events().end(), [&](const PipelineDecisionEvent& e){ return std::string(e.stage ? e.stage : "") == stage; });
-        if (!found) return {false, stage};
+        if (!found) return {false, false, stage};
     }
-    return {true, ""};
+    return {true, true, ""};
 }
 
 } // namespace dnxr

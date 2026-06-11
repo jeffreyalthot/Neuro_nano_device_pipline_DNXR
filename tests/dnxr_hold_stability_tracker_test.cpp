@@ -1,0 +1,3 @@
+#include "neural_chip/HoldStabilityTracker.h"
+#include <cassert>
+int main(){ dnxr::NeuralChipPipelineStateMachine sm; sm.start(); sm.onCommitAccepted(); sm.onAckMissingHold(); dnxr::HoldStabilityTracker t; t.observeHold(sm.state(),"f","unsafe",true); t.applyTransitions(sm,true,3); t.observeHold(sm.state(),"f","unsafe",true); t.applyTransitions(sm,true,3); assert(sm.state()==dnxr::NeuralChipPipelineState::HoldNeutral); sm.onPersistentHold(); assert(sm.state()==dnxr::NeuralChipPipelineState::HoldMinimal); for(int i=0;i<3;i++){t.observeHold(sm.state(),"f","stable",false); t.applyTransitions(sm,false,3);} assert(sm.state()==dnxr::NeuralChipPipelineState::ControlledResume); }

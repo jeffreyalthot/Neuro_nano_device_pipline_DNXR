@@ -1,4 +1,5 @@
 #include "neural_chip/NeuralChipReplayRecorder.h"
+#include "neural_chip/PipelinePathClassifier.h"
 
 #include <fstream>
 #include <string>
@@ -36,7 +37,8 @@ bool NeuralChipReplayRecorder::exportJsonl(const std::string& path) const {
     std::ofstream out(path);
     if (!out) return false;
     for (const auto& record : records_) {
-        out << "{\"frameId\":" << record.frameId
+        out << "{\"schemaVersion\":\"" << DNXR_REPLAY_SCHEMA_VERSION << "\""
+            << ",\"frameId\":" << record.frameId
             << ",\"timestampMs\":" << record.timestampMs
             << ",\"commitAccepted\":" << (record.commitResult.accepted ? "true" : "false")
             << ",\"safetyHold\":" << (record.commitResult.safetyHold ? "true" : "false")
@@ -48,6 +50,8 @@ bool NeuralChipReplayRecorder::exportJsonl(const std::string& path) const {
             << ",\"sessionDigestHash\":" << record.sessionDigestHash
             << ",\"sessionDigestFrameCount\":" << record.sessionDigestFrameCount
             << ",\"decisionTraceCount\":" << record.decisionTrace.size()
+            << ",\"pipelinePathKind\":\"" << toString(record.pipelinePathKind) << "\""
+            << ",\"pipelineState\":\"" << toString(record.pipelineState) << "\""
             << "}\n";
     }
     return static_cast<bool>(out);

@@ -1,0 +1,3 @@
+#include "neural_chip/PipelinePathClassifier.h"
+#include <cassert>
+int main(){ dnxr::PipelinePathClassifier c; assert(c.classifyRejectReason("neural chip ack missing")==dnxr::PipelinePathKind::AckMissingHold); assert(c.classifyRejectReason("world timestamp invalid")==dnxr::PipelinePathKind::WorldFrameReject); assert(c.classifyRejectReason("disabled visual modality active")==dnxr::PipelinePathKind::CapabilityHold); assert(c.classifyRejectReason("reality anchor hard channel failed")==dnxr::PipelinePathKind::RealityAnchorHold); assert(c.classifyRejectReason("outside [0,1] or non-finite")==dnxr::PipelinePathKind::ValidatorReject); }

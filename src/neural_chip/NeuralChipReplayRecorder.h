@@ -3,11 +3,15 @@
 #include "neural_chip/NeuralChipFrame.h"
 #include "neural_chip/NeuralChipFrameCommitter.h"
 #include "neural_chip/NeuralChipPipelineDecisionTrace.h"
+#include "neural_chip/NeuralChipPipelineStateMachine.h"
+#include "neural_chip/DecisionTraceCoverageValidator.h"
 
 #include <string>
 #include <vector>
 
 namespace dnxr {
+
+static constexpr const char* DNXR_REPLAY_SCHEMA_VERSION = "dnxr-neural-chip-replay-v1";
 
 struct NeuralChipReplayRecord {
     std::uint64_t frameId = 0;
@@ -26,6 +30,9 @@ struct NeuralChipReplayRecord {
     float sessionFatigue01 = 0.0f;
     std::uint64_t sessionDigestHash = 0;
     std::uint64_t sessionDigestFrameCount = 0;
+    PipelinePathKind pipelinePathKind = PipelinePathKind::NormalCommit;
+    NeuralChipPipelineState pipelineState = NeuralChipPipelineState::Running;
+    const char* schemaVersion = DNXR_REPLAY_SCHEMA_VERSION;
 };
 
 struct ReplayRecorderPolicy {

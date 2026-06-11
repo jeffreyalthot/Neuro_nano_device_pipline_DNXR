@@ -22,6 +22,7 @@ enum class PipelinePathKind {
 
 struct DecisionTraceCoverageReport {
     bool complete = false;
+    bool accepted = false;
     const char* missingStage = "";
 };
 

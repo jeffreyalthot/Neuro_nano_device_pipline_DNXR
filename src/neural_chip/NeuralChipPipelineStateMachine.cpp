@@ -76,7 +76,7 @@ bool NeuralChipPipelineStateMachine::onAuditedReset() {
 bool NeuralChipPipelineStateMachine::shutdown(const char* reason) { return transition(NeuralChipPipelineState::Shutdown, reason); }
 
 bool NeuralChipPipelineStateMachine::allowsNormalFrame() const {
-    return state_ == NeuralChipPipelineState::Running || state_ == NeuralChipPipelineState::ColdStart;
+    return state_ == NeuralChipPipelineState::Running || state_ == NeuralChipPipelineState::ControlledResume || state_ == NeuralChipPipelineState::ColdStart;
 }
 
 bool NeuralChipPipelineStateMachine::awaitingAck() const { return state_ == NeuralChipPipelineState::AwaitingAck; }
