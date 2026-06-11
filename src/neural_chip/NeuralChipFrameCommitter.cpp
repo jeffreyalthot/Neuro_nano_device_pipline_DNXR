@@ -23,32 +23,43 @@ FrameCommitResult NeuralChipFrameCommitter::commitCandidate(const FullDiveChipFr
     }
 
     holdBuffer_.rememberAccepted(frame);
+    holdSequencer_.observeCommitted(frame.frameId, frame.timestampMs);
     return {true, false, "accepted", "", frame};
 }
 
 FrameCommitResult NeuralChipFrameCommitter::commitRejectedWithHold(const FullDiveChipFrame& rejectedFrame, const char* reason, float decompressionRamp01) {
     const char* safeReason = reason ? reason : "safety hold";
-    struct Candidate { NeuralChipHoldFallback fallback; FullDiveChipFrame frame; };
+    struct Candidate { NeuralChipHoldFallback fallback; FullDiveChipFrame frame; const char* kind; };
     Candidate candidates[] = {
-        {NeuralChipHoldFallback::Decompression, holdPolicy_.makeDecompressionHoldFrame(rejectedFrame, holdBuffer_, decompressionRamp01)},
-        {NeuralChipHoldFallback::Neutral, holdPolicy_.makeNeutralHoldFrame(rejectedFrame, holdBuffer_)},
-        {NeuralChipHoldFallback::MinimalHard, holdPolicy_.makeMinimalHardHoldFrame(rejectedFrame.frameId, rejectedFrame.timestampMs)},
+        {NeuralChipHoldFallback::Decompression, holdPolicy_.makeDecompressionHoldFrame(rejectedFrame, holdBuffer_, decompressionRamp01), "decompression hold"},
+        {NeuralChipHoldFallback::Neutral, holdPolicy_.makeNeutralHoldFrame(rejectedFrame, holdBuffer_), "neutral hold"},
+        {NeuralChipHoldFallback::MinimalHard, holdPolicy_.makeMinimalHardHoldFrame(rejectedFrame.frameId, rejectedFrame.timestampMs), "minimal hard hold"},
     };
 
-    for (const auto& candidate : candidates) {
+    for (auto& candidate : candidates) {
+        const auto token = holdSequencer_.nextHold(rejectedFrame.timestampMs, candidate.kind);
+        candidate.frame.frameId = token.frameId;
+        candidate.frame.timestampMs = token.timestampMs;
+        const auto lifecycle = lifecycle_.validate(candidate.frame);
+        if (!lifecycle.accepted) {
+            continue;
+        }
         const auto validation = NeuralVectorValidator::validate(candidate.frame);
         if (!validation.accepted) {
             continue;
         }
         if (bus_.submitSensoryFrame(candidate.frame)) {
-            bus_.submitSafetyHold({rejectedFrame.frameId, true, safeReason});
+            holdBuffer_.rememberAccepted(candidate.frame);
+            holdSequencer_.observeCommitted(candidate.frame.frameId, candidate.frame.timestampMs);
+            bus_.submitSafetyHold({candidate.frame.frameId, true, safeReason});
             return {false, true, safeReason, holdPolicy_.fallbackName(candidate.fallback), candidate.frame};
         }
     }
 
-    bus_.submitSafetyHold({rejectedFrame.frameId, true, safeReason});
-    return {false, true, "hold frame rejected; bus safety hold active", holdPolicy_.fallbackName(NeuralChipHoldFallback::BusSafetyOnly),
-            holdPolicy_.makeMinimalHardHoldFrame(rejectedFrame.frameId, rejectedFrame.timestampMs)};
+    const auto token = holdSequencer_.nextHold(rejectedFrame.timestampMs, "bus safety hold only");
+    bus_.submitSafetyHold({token.frameId, true, safeReason});
+    FullDiveChipFrame minimal = holdPolicy_.makeMinimalHardHoldFrame(token.frameId, token.timestampMs);
+    return {false, true, "hold frame rejected; bus safety hold active", holdPolicy_.fallbackName(NeuralChipHoldFallback::BusSafetyOnly), minimal};
 }
 
 } // namespace dnxr

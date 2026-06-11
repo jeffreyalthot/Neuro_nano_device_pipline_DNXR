@@ -35,7 +35,7 @@ bool NeuralChipBus::submitSafetyHold(const NeuralSafetyFrame& safety) {
     health_.connected = true;
     health_.safeHoldActive = safety.holdActive;
     health_.lastFrameAccepted = false;
-    readFrame_.frameId = safety.frameId;
+    lastSafetyHold_ = safety;
     return true;
 }
 
@@ -45,6 +45,10 @@ ChipHealthStatus NeuralChipBus::getHealthStatus() const {
 
 const FullDiveChipFrame& NeuralChipBus::lastAcceptedFrame() const {
     return lastFrame_;
+}
+
+const NeuralSafetyFrame& NeuralChipBus::lastSafetyHold() const {
+    return lastSafetyHold_;
 }
 
 bool NeuralChipBus::isSafeForChip(const FullDiveChipFrame& frame) {

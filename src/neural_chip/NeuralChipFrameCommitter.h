@@ -2,6 +2,7 @@
 
 #include "neural_chip/FrameLifecycleGuard.h"
 #include "neural_chip/NeuralChipBus.h"
+#include "neural_chip/HoldFrameSequencer.h"
 #include "neural_chip/NeuralChipHoldCommitPolicy.h"
 #include "neural_chip/SafeChipFrameHoldBuffer.h"
 
@@ -27,6 +28,7 @@ private:
     FrameLifecycleGuard& lifecycle_;
     SafeChipFrameHoldBuffer& holdBuffer_;
     NeuralChipHoldCommitPolicy holdPolicy_{};
+    HoldFrameSequencer holdSequencer_{};
 };
 
 } // namespace dnxr

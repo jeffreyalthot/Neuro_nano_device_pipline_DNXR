@@ -9,6 +9,7 @@ struct PipelineDecisionEvent {
     std::uint64_t frameId = 0;
     const char* stage = "";
     const char* modality = "";
+    const char* fieldPath = "";
     const char* rule = "";
     float before01 = 0.0f;
     float after01 = 0.0f;
