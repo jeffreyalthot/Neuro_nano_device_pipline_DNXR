@@ -7,7 +7,7 @@ NeuralChipFrameCommitter::NeuralChipFrameCommitter(NeuralChipBus& bus, FrameLife
     : bus_(bus), lifecycle_(lifecycle), holdBuffer_(holdBuffer) {}
 
 FrameCommitResult NeuralChipFrameCommitter::commitCandidate(const FullDiveChipFrame& frame) {
-    const auto lifecycle = lifecycle_.validate(frame);
+    const auto lifecycle = lifecycle_.preview(frame);
     if (!lifecycle.accepted) {
         return commitRejectedWithHold(frame, lifecycle.reason, 0.0f);
     }
@@ -22,6 +22,7 @@ FrameCommitResult NeuralChipFrameCommitter::commitCandidate(const FullDiveChipFr
         return {false, true, "neural chip bus rejected candidate", "bus safety hold only", frame};
     }
 
+    lifecycle_.commitAccepted(frame);
     holdBuffer_.rememberAccepted(frame);
     holdSequencer_.observeCommitted(frame.frameId, frame.timestampMs);
     return {true, false, "accepted", "", frame};
@@ -40,7 +41,7 @@ FrameCommitResult NeuralChipFrameCommitter::commitRejectedWithHold(const FullDiv
         const auto token = holdSequencer_.nextHold(rejectedFrame.timestampMs, candidate.kind);
         candidate.frame.frameId = token.frameId;
         candidate.frame.timestampMs = token.timestampMs;
-        const auto lifecycle = lifecycle_.validate(candidate.frame);
+        const auto lifecycle = lifecycle_.preview(candidate.frame);
         if (!lifecycle.accepted) {
             continue;
         }
@@ -49,6 +50,7 @@ FrameCommitResult NeuralChipFrameCommitter::commitRejectedWithHold(const FullDiv
             continue;
         }
         if (bus_.submitSensoryFrame(candidate.frame)) {
+            lifecycle_.commitAccepted(candidate.frame);
             holdBuffer_.rememberAccepted(candidate.frame);
             holdSequencer_.observeCommitted(candidate.frame.frameId, candidate.frame.timestampMs);
             bus_.submitSafetyHold({candidate.frame.frameId, true, safeReason});

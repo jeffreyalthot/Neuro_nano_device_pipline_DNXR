@@ -17,6 +17,7 @@ public:
     void beginControlledResume();
     ResumeDecision decide();
     bool normal() const;
+    bool locked() const;
 
 private:
     ResumePhase phase_ = ResumePhase::Normal;

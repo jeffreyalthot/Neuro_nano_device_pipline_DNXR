@@ -2,6 +2,16 @@
 
 namespace dnxr {
 
+NeuralRealityAnchorVector NeuralChipHoldCommitPolicy::makeSafeHoldRealityAnchor() {
+    NeuralRealityAnchorVector anchor{};
+    anchor.orientation01 = 1.0f;
+    anchor.identityContinuity01 = 1.0f;
+    anchor.sessionBoundary01 = 1.0f;
+    anchor.externalWorldRecall01 = 1.0f;
+    anchor.required = true;
+    return anchor;
+}
+
 void NeuralChipHoldCommitPolicy::forceHoldSafety(FullDiveChipFrame& frame) {
     frame.motorIntent = NeuralMotorIntentVector{};
     frame.motorIntent.stopIntent01 = 1.0f;
@@ -17,7 +27,7 @@ void NeuralChipHoldCommitPolicy::forceHoldSafety(FullDiveChipFrame& frame) {
     frame.safety.patientStopSignalAlive = true;
     frame.safety.emergencyCutoffAvailable = true;
     frame.safety.activeCeiling01 = DNXR_NEURAL_CHIP_ACTIVE_CEILING_01;
-    frame.realityAnchor = NeuralRealityAnchorVector{};
+    frame.realityAnchor = makeSafeHoldRealityAnchor();
 }
 
 FullDiveChipFrame NeuralChipHoldCommitPolicy::makeDecompressionHoldFrame(const FullDiveChipFrame& rejectedFrame, const SafeChipFrameHoldBuffer& holdBuffer, float ramp01) const {

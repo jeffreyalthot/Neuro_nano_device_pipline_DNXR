@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <string>
+#include <algorithm>
 
 namespace dnxr {
 namespace {
@@ -17,7 +18,17 @@ std::string jsonEscape(const char* raw) {
 }
 } // namespace
 
-void NeuralChipReplayRecorder::record(const NeuralChipReplayRecord& record) { records_.push_back(record); }
+NeuralChipReplayRecorder::NeuralChipReplayRecorder(ReplayRecorderPolicy policy) : policy_(policy) {}
+void NeuralChipReplayRecorder::setPolicy(ReplayRecorderPolicy policy) { policy_ = policy; }
+const ReplayRecorderPolicy& NeuralChipReplayRecorder::policy() const { return policy_; }
+void NeuralChipReplayRecorder::record(const NeuralChipReplayRecord& record) {
+    if (policy_.maxInMemoryRecords == 0) return;
+    if (records_.size() >= policy_.maxInMemoryRecords) {
+        if (!policy_.dropOldest) return;
+        records_.erase(records_.begin());
+    }
+    records_.push_back(record);
+}
 const std::vector<NeuralChipReplayRecord>& NeuralChipReplayRecorder::records() const { return records_; }
 void NeuralChipReplayRecorder::clear() { records_.clear(); }
 

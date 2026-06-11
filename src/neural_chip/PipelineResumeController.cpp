@@ -5,6 +5,7 @@ namespace dnxr {
 void PipelineResumeController::lock() { phase_ = ResumePhase::Locked; reducedGainSteps_ = 0; }
 void PipelineResumeController::beginControlledResume() { phase_ = ResumePhase::MinimalHold; reducedGainSteps_ = 0; }
 bool PipelineResumeController::normal() const { return phase_ == ResumePhase::Normal; }
+bool PipelineResumeController::locked() const { return phase_ == ResumePhase::Locked; }
 
 ResumeDecision PipelineResumeController::decide() {
     switch (phase_) {

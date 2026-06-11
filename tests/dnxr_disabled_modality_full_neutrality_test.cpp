@@ -1,0 +1,3 @@
+#include "neural_chip/DisabledModalityNeutralityValidator.h"
+#include <cassert>
+int main(){ dnxr::DisabledModalityNeutralityValidator v; dnxr::ChipCapabilities c; dnxr::FullDiveChipFrame f; f.visual.edgeMap01=0.1f; assert(!v.validate(f,c).accepted); f.visual={}; f.auditory.dangerSoundPriority01=0.1f; assert(!v.validate(f,c).accepted); f.auditory={}; f.olfactory.trigeminalContaminationRisk01=0.1f; assert(!v.validate(f,c).accepted); f.olfactory={}; f.gustatory.metallic01=0.1f; assert(!v.validate(f,c).accepted); f.gustatory={}; f.vestibular.balanceError01=0.1f; assert(!v.validate(f,c).accepted); }

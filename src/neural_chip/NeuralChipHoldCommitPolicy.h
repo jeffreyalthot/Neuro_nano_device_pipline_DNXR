@@ -14,6 +14,7 @@ enum class NeuralChipHoldFallback {
 
 class NeuralChipHoldCommitPolicy {
 public:
+    static NeuralRealityAnchorVector makeSafeHoldRealityAnchor();
     FullDiveChipFrame makeDecompressionHoldFrame(const FullDiveChipFrame& rejectedFrame, const SafeChipFrameHoldBuffer& holdBuffer, float ramp01) const;
     FullDiveChipFrame makeNeutralHoldFrame(const FullDiveChipFrame& rejectedFrame, const SafeChipFrameHoldBuffer& holdBuffer) const;
     FullDiveChipFrame makeMinimalHardHoldFrame(std::uint64_t frameId, double timestampMs) const;

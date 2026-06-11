@@ -1,11 +1,54 @@
 #include "full_dive/chip_pipeline/SensorEncoderOutputContract.h"
+#include "neural_chip/NeuralVectorFieldRegistry.h"
+
 #include <cmath>
-namespace dnxr { namespace { bool ok(float v){return std::isfinite(v)&&v>=0.0f&&v<=1.0f;} SensorEncoderContractResult r(bool a,const char* e,const char* m){return {a,e,m};} }
-SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralVisualVector& v) const { return ok(v.globalLuminance01)&&ok(v.contrast01)&&ok(v.motionFlow01)&&ok(v.flickerRisk01)?r(true,"visual","accepted"):r(false,"visual","visual encoder output outside [0,1]"); }
-SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralAuditoryVector& v) const { return ok(v.loudness01)&&ok(v.lowBand01)&&ok(v.highBand01)&&ok(v.startleRisk01)?r(true,"auditory","accepted"):r(false,"auditory","auditory encoder output outside [0,1]"); }
-SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralTouchVector& v) const { return ok(v.contactPressure01)&&ok(v.contactArea01)&&ok(v.slip01)&&ok(v.painBlocked01)?r(true,"touch","accepted"):r(false,"touch","touch encoder output outside [0,1]"); }
-SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralProprioceptionVector& v) const { return ok(v.headPose01)&&ok(v.avatarOwnership01)&&ok(v.bodySchemaMismatch01)?r(true,"proprioception","accepted"):r(false,"proprioception","proprioception encoder output outside [0,1]"); }
-SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralVestibularVector& v) const { return ok(v.linearAcceleration01)&&ok(v.angularVelocity01)&&ok(v.gravityDirection01)&&ok(v.motionSicknessRisk01)?r(true,"vestibular","accepted"):r(false,"vestibular","vestibular encoder output outside [0,1]"); }
-SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralOlfactoryVector& v, bool enabled) const { if(!enabled && (v.odorPresence01||v.smokeWarning01||v.chemicalWarning01)) return r(false,"olfactory","disabled olfactory encoder output active"); return ok(v.odorPresence01)&&ok(v.nauseaRisk01)?r(true,"olfactory","accepted"):r(false,"olfactory","olfactory encoder output outside [0,1]"); }
-SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralGustatoryVector& v, bool enabled) const { if(!enabled && (v.sweet01||v.salty01||v.bitter01||v.umami01)) return r(false,"gustatory","disabled gustatory encoder output active"); return ok(v.sweet01)&&ok(v.swallowingConflictRisk01)?r(true,"gustatory","accepted"):r(false,"gustatory","gustatory encoder output outside [0,1]"); }
+
+namespace dnxr {
+namespace {
+bool ok(float v) { return std::isfinite(v) && v >= 0.0f && v <= 1.0f; }
+SensorEncoderContractResult r(bool a, const char* e, const char* m) { return {a, e, m}; }
+
+template <typename Fn>
+SensorEncoderContractResult validateFields(const char* encoder, Fn&& fields) {
+    const char* badField = nullptr;
+    fields([&](const char*, const char* field, float value, bool) {
+        if (!badField && !ok(value)) badField = field;
+    });
+    if (badField) return r(false, encoder, badField);
+    return r(true, encoder, "accepted");
+}
+
+template <typename Fn>
+bool disabledActive(Fn&& fields) {
+    bool active = false;
+    fields([&](const char*, const char*, float value, bool neutralWhenDisabled) {
+        if (neutralWhenDisabled && value != 0.0f) active = true;
+    });
+    return active;
+}
+}
+
+SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralVisualVector& v) const {
+    return validateFields("visual", [&](auto visitor) { NeuralVectorFieldRegistry::forEachVisual(v, visitor); });
+}
+SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralAuditoryVector& v) const {
+    return validateFields("auditory", [&](auto visitor) { NeuralVectorFieldRegistry::forEachAuditory(v, visitor); });
+}
+SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralTouchVector& v) const {
+    return validateFields("touch", [&](auto visitor) { NeuralVectorFieldRegistry::forEachTouch(v, visitor); });
+}
+SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralProprioceptionVector& v) const {
+    return validateFields("proprioception", [&](auto visitor) { NeuralVectorFieldRegistry::forEachProprioception(v, visitor); });
+}
+SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralVestibularVector& v) const {
+    return validateFields("vestibular", [&](auto visitor) { NeuralVectorFieldRegistry::forEachVestibular(v, visitor); });
+}
+SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralOlfactoryVector& v, bool enabled) const {
+    if (!enabled && disabledActive([&](auto visitor) { NeuralVectorFieldRegistry::forEachOlfactory(v, visitor); })) return r(false, "olfactory", "disabled olfactory encoder output active");
+    return validateFields("olfactory", [&](auto visitor) { NeuralVectorFieldRegistry::forEachOlfactory(v, visitor); });
+}
+SensorEncoderContractResult SensorEncoderOutputContract::validate(const NeuralGustatoryVector& v, bool enabled) const {
+    if (!enabled && disabledActive([&](auto visitor) { NeuralVectorFieldRegistry::forEachGustatory(v, visitor); })) return r(false, "gustatory", "disabled gustatory encoder output active");
+    return validateFields("gustatory", [&](auto visitor) { NeuralVectorFieldRegistry::forEachGustatory(v, visitor); });
+}
 }

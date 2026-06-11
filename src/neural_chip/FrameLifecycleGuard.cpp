@@ -6,9 +6,15 @@ namespace dnxr {
 
 FrameLifecycleGuard::FrameLifecycleGuard(FrameLifecyclePolicy policy) : policy_(policy) {}
 
-FrameLifecycleValidation FrameLifecycleGuard::validate(const FullDiveChipFrame& frame) {
+FrameLifecycleValidation FrameLifecycleGuard::preview(const FullDiveChipFrame& frame) const {
     if (!std::isfinite(frame.timestampMs)) {
         return {false, "timestamp is non-finite", true};
+    }
+    if (frame.frameId == 0) {
+        return {false, "frameId is invalid", true};
+    }
+    if (frame.timestampMs < 0.0) {
+        return {false, "timestamp is negative", true};
     }
     if (hasLast_ && frame.frameId <= lastFrameId_) {
         return {false, "frame replay or non-monotone frameId", true};
@@ -27,10 +33,21 @@ FrameLifecycleValidation FrameLifecycleGuard::validate(const FullDiveChipFrame& 
     if (hasLast_ && frame.timestampMs - lastTimestampMs_ > policy_.maxFrameGapMs) {
         return {false, "frame deadline gap exceeded", true};
     }
+    return {true, "accepted", false};
+}
+
+void FrameLifecycleGuard::commitAccepted(const FullDiveChipFrame& frame) {
     hasLast_ = true;
     lastFrameId_ = frame.frameId;
     lastTimestampMs_ = frame.timestampMs;
-    return {true, "accepted", false};
+}
+
+void FrameLifecycleGuard::rollbackPreview() {}
+
+FrameLifecycleValidation FrameLifecycleGuard::validate(const FullDiveChipFrame& frame) {
+    const auto result = preview(frame);
+    if (result.accepted) commitAccepted(frame);
+    return result;
 }
 
 void FrameLifecycleGuard::reset() {

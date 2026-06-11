@@ -22,6 +22,9 @@ struct FrameLifecyclePolicy {
 class FrameLifecycleGuard {
 public:
     explicit FrameLifecycleGuard(FrameLifecyclePolicy policy = {});
+    FrameLifecycleValidation preview(const FullDiveChipFrame& frame) const;
+    void commitAccepted(const FullDiveChipFrame& frame);
+    void rollbackPreview();
     FrameLifecycleValidation validate(const FullDiveChipFrame& frame);
     void reset();
     void setPolicy(FrameLifecyclePolicy policy);
