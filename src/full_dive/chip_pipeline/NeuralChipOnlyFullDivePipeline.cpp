@@ -37,6 +37,9 @@ NeuralChipOnlyFullDivePipeline::NeuralChipOnlyFullDivePipeline(NeuralChipBus& ch
     capabilities.canOlfactory = capabilities.canOlfactory && config_.enableExperimentalChemicalChannels;
     capabilities.canGustatory = capabilities.canGustatory && config_.enableExperimentalChemicalChannels;
     capabilities.supportsHardwareCutoff = true;
+    stateMachine_.setTransitionObserver([this](NeuralChipPipelineState from, NeuralChipPipelineState to, const std::string& reason) {
+        transitionAudit_.record(from, to, reason.c_str(), timebase_.nowMs(), currentPathKind_);
+    });
     capabilityContract_.setCapabilities(capabilities);
     chemicalGate_.setEnabled(config_.enableExperimentalChemicalChannels);
     sessionState_.chemicalChannelsEverEnabled = config_.enableExperimentalChemicalChannels;
@@ -72,11 +75,11 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::rejectWithHold(FullDiveChipFr
     ++sessionState_.rejectedFrames;
     ++sessionState_.holdFrames;
     const bool stillUnsafe = path == PipelinePathKind::AckMissingHold || path == PipelinePathKind::EmergencyLatchHold || path == PipelinePathKind::RealityAnchorHold || path == PipelinePathKind::ValidatorReject;
-    holdStabilityTracker_.observeHold(stateMachine_.state(), result.holdFallback, reason, stillUnsafe);
+    holdStabilityTracker_.observeHold(stateMachine_.state(), result.holdFallback.c_str(), reason, stillUnsafe);
     holdStabilityTracker_.applyTransitions(stateMachine_, stillUnsafe);
     recordReplay(read, frame, result, reason, PipelineStepOutcome::HoldCommitted, false);
     const PipelineStepOutcome outcome = stateMachine_.emergencyLatched() ? PipelineStepOutcome::EmergencyLatched : (result.safetyHold ? PipelineStepOutcome::HoldCommitted : PipelineStepOutcome::Rejected);
-    return {outcome, path, stateMachine_.state(), result.accepted, true, reason};
+    return {outcome, path, stateMachine_.state(), result.busSubmitted, true, reason ? reason : result.reason};
 }
 
 void NeuralChipOnlyFullDivePipeline::recordReplay(const ChipReadFrame& read, const FullDiveChipFrame& candidate, const FrameCommitResult& result, const char* holdReason, PipelineStepOutcome outcome, bool noOp) {
@@ -95,6 +98,14 @@ void NeuralChipOnlyFullDivePipeline::recordReplay(const ChipReadFrame& read, con
     }
     record.decisionTrace = decisionTrace_.events();
     record.commitResult = result;
+    record.busSubmitted = result.busSubmitted;
+    record.candidateAccepted = result.candidateAccepted;
+    record.normalFrameSubmitted = result.normalFrameSubmitted;
+    record.holdFrameSubmitted = result.holdFrameSubmitted;
+    record.safetyHold = result.safetyHold;
+    record.lifecycleCommitted = result.lifecycleCommitted;
+    record.hasCandidateFrame = !noOp;
+    record.hasSubmittedFrame = result.busSubmitted;
     record.noOp = noOp;
     record.stepOutcome = outcome;
     record.traceCoverageComplete = coverage.complete || !strictTraceCoverage_;
@@ -151,9 +162,12 @@ void NeuralChipOnlyFullDivePipeline::recordNoOpReplay(std::uint64_t frameId, dou
     frame.frameId = frameId;
     frame.timestampMs = timestampMs;
     FrameCommitResult result{};
-    result.accepted = false;
+    result.candidateAccepted = false;
+    result.busSubmitted = false;
+    result.normalFrameSubmitted = false;
+    result.holdFrameSubmitted = false;
     result.safetyHold = false;
-    result.reason = reason;
+    result.reason = reason ? reason : "no-op";
     result.submittedFrame = frame;
     decisionTrace_.record({frameId, "NeuralChipPipelineStateGate", "state", toString(stateMachine_.state()), reason, 1.0f, 0.0f, 0.0f});
     if (path == PipelinePathKind::AwaitingAckWait) decisionTrace_.record({frameId, "NeuralChipAckHandshake", "ack", "pending", reason, 1.0f, 0.0f, 0.0f});
@@ -161,7 +175,12 @@ void NeuralChipOnlyFullDivePipeline::recordNoOpReplay(std::uint64_t frameId, dou
 }
 
 PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(const NeuralChipOnlyWorldFrame& rawWorld) {
+    if (!reentrancyGuard_.enter()) {
+        return finishStep({PipelineStepOutcome::Rejected, PipelinePathKind::ReentrantStepReject, stateMachine_.state(), false, false, "pipeline step already active"});
+    }
+    struct LeaveGuard { PipelineReentrancyGuard& guard; ~LeaveGuard() { guard.leave(); } } leaveGuard{reentrancyGuard_};
     decisionTrace_.clear();
+    timebase_.beginRawStep(rawWorld.timestampMs);
     const auto worldSanitization = WorldFrameSanitizer{}.sanitize(rawWorld, config_);
     if (!worldSanitization.accepted) {
         decisionTrace_.record({rawWorld.frameId, "WorldFrameSanitizer", "world", "sanitize", worldSanitization.reason, 1.0f, 0.0f, 0.0f});
@@ -388,22 +407,33 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(const NeuralChip
 
     // FrameLifecycleGuardCommitBoundary -> NeuralVectorValidatorCommitBoundary -> NeuralChipBusCommitBoundary
     currentPathKind_ = PipelinePathKind::NormalCommit;
+    if (strictTraceCoverage_) {
+        auto preCommitCoverage = traceCoverageValidator_.validate(decisionTrace_, PipelinePathKind::NormalCommit);
+        if (!preCommitCoverage.complete) {
+            currentPathKind_ = PipelinePathKind::TraceCoverageReject;
+            decisionTrace_.record({frame.frameId, "DecisionTraceCoverageValidator", "trace", preCommitCoverage.missingStage, "MissingRequiredStage", 1.0f, 0.0f, 1.0f});
+            FrameCommitResult traceResult{};
+            traceResult.reason = "strict trace coverage incomplete";
+            traceResult.submittedFrame = frame;
+            recordReplay(read, frame, traceResult, traceResult.reason.c_str(), PipelineStepOutcome::TraceInvalid, false);
+            return finishStep({PipelineStepOutcome::TraceInvalid, PipelinePathKind::TraceCoverageReject, stateMachine_.state(), false, true, traceResult.reason});
+        }
+    }
     FrameCommitResult result = committer_.commitCandidate(frame);
-    decisionTrace_.record({frame.frameId, "NeuralChipFrameCommitter", "commit", result.holdFallback, result.reason, result.accepted ? 0.0f : 1.0f, result.accepted ? 1.0f : 0.0f, frame.safety.aggregateRisk01});
-    if (result.accepted && !result.safetyHold) {
+    decisionTrace_.record({frame.frameId, "NeuralChipFrameCommitter", "commit", result.holdFallback, result.reason, result.candidateAccepted ? 0.0f : 1.0f, result.candidateAccepted ? 1.0f : 0.0f, frame.safety.aggregateRisk01});
+    if (result.candidateAccepted && !result.safetyHold) {
         markAccepted(frame);
         ackHandshake_.expect(frame.frameId, timebase_.nowMs());
         const auto beforeCommitState = stateMachine_.state();
         stateMachine_.onCommitAccepted();
-        transitionAudit_.record(beforeCommitState, stateMachine_.state(), "commit accepted; awaiting ack", timebase_.nowMs(), PipelinePathKind::NormalCommit);
         recordReplay(read, frame, result, "", PipelineStepOutcome::NormalAccepted, false);
-        return finishStep({PipelineStepOutcome::NormalAccepted, PipelinePathKind::NormalCommit, stateMachine_.state(), true, true, "accepted"});
+        return finishStep({PipelineStepOutcome::NormalAccepted, PipelinePathKind::NormalCommit, stateMachine_.state(), result.busSubmitted, true, "accepted"});
     }
     ++sessionState_.rejectedFrames;
     if (result.safetyHold) ++sessionState_.holdFrames;
     currentPathKind_ = pathClassifier_.classifyCommitResult(result);
-    recordReplay(read, frame, result, result.reason, result.safetyHold ? PipelineStepOutcome::HoldCommitted : PipelineStepOutcome::Rejected, false);
-    return finishStep({result.safetyHold ? PipelineStepOutcome::HoldCommitted : PipelineStepOutcome::Rejected, currentPathKind_, stateMachine_.state(), result.accepted, true, result.reason});
+    recordReplay(read, frame, result, result.reason.c_str(), result.safetyHold ? PipelineStepOutcome::HoldCommitted : PipelineStepOutcome::Rejected, false);
+    return finishStep({result.safetyHold ? PipelineStepOutcome::HoldCommitted : PipelineStepOutcome::Rejected, currentPathKind_, stateMachine_.state(), result.busSubmitted, true, result.reason});
 }
 
 const AvatarRigCommandFrame& NeuralChipOnlyFullDivePipeline::lastRigCommand() const { return lastRigCommand_; }
@@ -418,17 +448,16 @@ void NeuralChipOnlyFullDivePipeline::setStrictTraceCoverage(bool enabled) { stri
 void NeuralChipOnlyFullDivePipeline::shutdown(const char* reason) {
     const auto before = stateMachine_.state();
     stateMachine_.shutdown(reason ? reason : "pipeline shutdown");
-    transitionAudit_.record(before, stateMachine_.state(), reason ? reason : "pipeline shutdown", timebase_.nowMs(), PipelinePathKind::ShutdownNoOp);
 }
 NeuralChipTimebase& NeuralChipOnlyFullDivePipeline::timebase() { return timebase_; }
-NeuralChipEmergencyLatch& NeuralChipOnlyFullDivePipeline::emergencyLatch() { return emergencyLatch_; }
+const NeuralChipEmergencyLatch& NeuralChipOnlyFullDivePipeline::emergencyLatchStatus() const { return emergencyLatch_; }
+void NeuralChipOnlyFullDivePipeline::injectSimulatedEmergencyLatchForTest(const char* reason) { emergencyLatch_.trigger(reason ? reason : "simulated emergency latch for test"); }
 bool NeuralChipOnlyFullDivePipeline::resetEmergencyLatchWithAudit(const EmergencyLatchResetRequest& request) {
     const bool accepted = emergencyLatchController_.resetWithAudit(request, timebase_.nowMs());
     if (accepted) {
         observedEmergencyLatch_ = false;
         const auto beforeResetState = stateMachine_.state();
-        stateMachine_.onAuditedReset();
-        transitionAudit_.record(beforeResetState, stateMachine_.state(), "audited reset accepted", timebase_.nowMs(), PipelinePathKind::ResumeHold);
+        stateMachine_.onAuditedReset(request.simulationOperatorConfirmed && request.safetyChecklistConfirmed);
         sessionState_.emergencyStopLatched = false;
     } else if (emergencyLatch_.latched()) {
         stateMachine_.triggerEmergency(emergencyLatch_.reason());
@@ -440,7 +469,6 @@ void NeuralChipOnlyFullDivePipeline::injectSimulatedAck(std::uint64_t frameId, f
     if (!ackHandshake_.state().hasPendingAck) {
         const auto beforeAckState = stateMachine_.state();
         stateMachine_.onAckValid();
-        transitionAudit_.record(beforeAckState, stateMachine_.state(), "ack accepted", timebase_.nowMs(), PipelinePathKind::AwaitingAckWait);
     }
 }
 

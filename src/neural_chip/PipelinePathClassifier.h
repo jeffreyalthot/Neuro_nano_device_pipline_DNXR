@@ -5,8 +5,13 @@
 
 namespace dnxr {
 
+enum class PipelineRejectCode {
+    None, AckMissing, WorldFrameInvalid, EncoderContractFailed, CapabilityUnsupported, RealityAnchorFailed, LifecycleRejected, VectorValidationFailed, SessionSupervisorHold, EmergencyLatch, ReentrantStep, TraceCoverageFailed, Shutdown
+};
+
 class PipelinePathClassifier {
 public:
+    PipelinePathKind classify(PipelineRejectCode code) const;
     PipelinePathKind classifyRejectReason(const char* reason) const;
     PipelinePathKind classifyCommitResult(const FrameCommitResult& result) const;
 };

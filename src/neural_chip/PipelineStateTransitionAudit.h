@@ -3,6 +3,7 @@
 #include "neural_chip/DecisionTraceCoverageValidator.h"
 #include "neural_chip/NeuralChipPipelineStateMachine.h"
 
+#include <string>
 #include <vector>
 
 namespace dnxr {
@@ -10,7 +11,7 @@ namespace dnxr {
 struct PipelineStateTransition {
     NeuralChipPipelineState from;
     NeuralChipPipelineState to;
-    const char* reason;
+    std::string reason;
     double timestampMs;
     PipelinePathKind path;
 };

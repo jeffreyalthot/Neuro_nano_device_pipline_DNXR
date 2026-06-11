@@ -13,6 +13,7 @@ public:
     void setSimulatedNowMs(double nowMs);
     void advanceMs(double deltaMs);
     void beginStep(double worldTimestampMs);
+    void beginRawStep(double rawWorldTimestampMs);
     void setPolicy(NeuralChipTimebasePolicy policy);
     const NeuralChipTimebasePolicy& policy() const;
 

@@ -11,10 +11,10 @@ std::uint64_t NeuralChipSessionDigest::mix(std::uint64_t hash, std::uint64_t val
 void NeuralChipSessionDigest::update(const NeuralChipReplayRecord& record) {
     digest_.rollingHash = mix(digest_.rollingHash, record.frameId);
     digest_.rollingHash = mix(digest_.rollingHash, static_cast<std::uint64_t>(record.timestampMs * 1000.0));
-    digest_.rollingHash = mix(digest_.rollingHash, record.commitResult.accepted ? 1ULL : 0ULL);
+    digest_.rollingHash = mix(digest_.rollingHash, (record.commitResult.candidateAccepted || record.commitResult.accepted) ? 1ULL : 0ULL);
     digest_.rollingHash = mix(digest_.rollingHash, record.commitResult.safetyHold ? 1ULL : 0ULL);
     ++digest_.frameCount;
-    if (record.commitResult.accepted) ++digest_.acceptedCount;
+    if (record.commitResult.candidateAccepted || record.commitResult.accepted) ++digest_.acceptedCount;
     else ++digest_.rejectedCount;
 }
 

@@ -1,16 +1,17 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace dnxr {
 
 struct PipelineDecisionEvent {
     std::uint64_t frameId = 0;
-    const char* stage = "";
-    const char* modality = "";
-    const char* fieldPath = "";
-    const char* rule = "";
+    std::string stage;
+    std::string modality;
+    std::string fieldPath;
+    std::string rule;
     float before01 = 0.0f;
     float after01 = 0.0f;
     float risk01 = 0.0f;

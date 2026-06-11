@@ -7,6 +7,26 @@ namespace {
 bool has(const char* text, const char* needle) { return text && needle && std::strstr(text, needle); }
 }
 
+
+PipelinePathKind PipelinePathClassifier::classify(PipelineRejectCode code) const {
+    switch (code) {
+        case PipelineRejectCode::None: return PipelinePathKind::NormalCommit;
+        case PipelineRejectCode::AckMissing: return PipelinePathKind::AckMissingHold;
+        case PipelineRejectCode::WorldFrameInvalid: return PipelinePathKind::WorldFrameReject;
+        case PipelineRejectCode::EncoderContractFailed: return PipelinePathKind::EarlyEncoderReject;
+        case PipelineRejectCode::CapabilityUnsupported: return PipelinePathKind::CapabilityHold;
+        case PipelineRejectCode::RealityAnchorFailed: return PipelinePathKind::RealityAnchorHold;
+        case PipelineRejectCode::LifecycleRejected: return PipelinePathKind::LifecycleReject;
+        case PipelineRejectCode::VectorValidationFailed: return PipelinePathKind::ValidatorReject;
+        case PipelineRejectCode::SessionSupervisorHold: return PipelinePathKind::SessionSupervisorHold;
+        case PipelineRejectCode::EmergencyLatch: return PipelinePathKind::EmergencyLatchHold;
+        case PipelineRejectCode::ReentrantStep: return PipelinePathKind::ReentrantStepReject;
+        case PipelineRejectCode::TraceCoverageFailed: return PipelinePathKind::TraceCoverageReject;
+        case PipelineRejectCode::Shutdown: return PipelinePathKind::ShutdownNoOp;
+    }
+    return PipelinePathKind::ValidatorReject;
+}
+
 PipelinePathKind PipelinePathClassifier::classifyRejectReason(const char* reason) const {
     if (has(reason, "awaiting") && has(reason, "ack")) return PipelinePathKind::AwaitingAckWait;
     if (has(reason, "shutdown")) return PipelinePathKind::ShutdownNoOp;
@@ -24,9 +44,9 @@ PipelinePathKind PipelinePathClassifier::classifyRejectReason(const char* reason
 }
 
 PipelinePathKind PipelinePathClassifier::classifyCommitResult(const FrameCommitResult& result) const {
-    if (result.accepted && !result.safetyHold) return PipelinePathKind::NormalCommit;
-    if (has(result.holdFallback, "lifecycle") || has(result.reason, "lifecycle")) return PipelinePathKind::LifecycleReject;
-    return classifyRejectReason(result.reason);
+    if (result.candidateAccepted && !result.safetyHold) return PipelinePathKind::NormalCommit;
+    if (has(result.holdFallback.c_str(), "lifecycle") || has(result.reason.c_str(), "lifecycle")) return PipelinePathKind::LifecycleReject;
+    return classifyRejectReason(result.reason.c_str());
 }
 
 const char* toString(PipelinePathKind path) {
@@ -44,6 +64,8 @@ const char* toString(PipelinePathKind path) {
         case PipelinePathKind::ResumeHold: return "ResumeHold";
         case PipelinePathKind::SessionSupervisorHold: return "SessionSupervisorHold";
         case PipelinePathKind::ShutdownNoOp: return "ShutdownNoOp";
+        case PipelinePathKind::TraceCoverageReject: return "TraceCoverageReject";
+        case PipelinePathKind::ReentrantStepReject: return "ReentrantStepReject";
     }
     return "ValidatorReject";
 }
@@ -52,7 +74,7 @@ PipelinePathKind pipelinePathKindFromString(const char* value) {
     for (PipelinePathKind path : {PipelinePathKind::NormalCommit, PipelinePathKind::AwaitingAckWait, PipelinePathKind::WorldFrameReject, PipelinePathKind::EarlyEncoderReject,
                                  PipelinePathKind::AckMissingHold, PipelinePathKind::EmergencyLatchHold, PipelinePathKind::CapabilityHold,
                                  PipelinePathKind::RealityAnchorHold, PipelinePathKind::LifecycleReject, PipelinePathKind::ValidatorReject,
-                                 PipelinePathKind::ResumeHold, PipelinePathKind::SessionSupervisorHold, PipelinePathKind::ShutdownNoOp}) {
+                                 PipelinePathKind::ResumeHold, PipelinePathKind::SessionSupervisorHold, PipelinePathKind::ShutdownNoOp, PipelinePathKind::TraceCoverageReject, PipelinePathKind::ReentrantStepReject}) {
         if (value && std::strcmp(value, toString(path)) == 0) return path;
     }
     return PipelinePathKind::ValidatorReject;

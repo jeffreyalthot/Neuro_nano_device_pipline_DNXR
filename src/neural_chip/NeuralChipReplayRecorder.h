@@ -12,7 +12,7 @@
 
 namespace dnxr {
 
-static constexpr const char* DNXR_REPLAY_SCHEMA_VERSION = "dnxr-neural-chip-replay-v1";
+static constexpr const char* DNXR_REPLAY_SCHEMA_VERSION = "dnxr-neural-chip-replay-v2";
 
 struct NeuralChipReplayRecord {
     std::uint64_t frameId = 0;
@@ -26,7 +26,7 @@ struct NeuralChipReplayRecord {
     std::vector<PipelineDecisionEvent> decisionTrace{};
     FrameCommitResult commitResult{};
     bool emergencyLatched = false;
-    const char* holdReason = "";
+    std::string holdReason;
     float sessionRisk01 = 0.0f;
     float sessionFatigue01 = 0.0f;
     std::uint64_t sessionDigestHash = 0;
@@ -36,8 +36,16 @@ struct NeuralChipReplayRecord {
     bool noOp = false;
     PipelineStepOutcome stepOutcome = PipelineStepOutcome::Rejected;
     bool traceCoverageComplete = true;
-    const char* traceCoverageMissingStage = "";
-    const char* schemaVersion = DNXR_REPLAY_SCHEMA_VERSION;
+    std::string traceCoverageMissingStage;
+    bool busSubmitted = false;
+    bool candidateAccepted = false;
+    bool normalFrameSubmitted = false;
+    bool holdFrameSubmitted = false;
+    bool safetyHold = false;
+    bool lifecycleCommitted = false;
+    bool hasCandidateFrame = false;
+    bool hasSubmittedFrame = false;
+    std::string schemaVersion = DNXR_REPLAY_SCHEMA_VERSION;
 };
 
 struct ReplayRecorderPolicy {

@@ -23,6 +23,7 @@ int main() {
     assert(bus.lastAcceptedFrame().frameId == 2);
     assert(bus.lastAcceptedFrame().visual.globalLuminance01 == 0.0f);
     assert(!pipeline.lastRigCommand().joints.empty());
+    pipeline.injectSimulatedAck(2, 1.0f);
 
     world.frameId = 3;
     world.realityAnchor.orientation01 = 0.1f;

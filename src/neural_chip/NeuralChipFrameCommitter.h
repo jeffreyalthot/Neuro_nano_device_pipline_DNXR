@@ -6,13 +6,20 @@
 #include "neural_chip/NeuralChipHoldCommitPolicy.h"
 #include "neural_chip/SafeChipFrameHoldBuffer.h"
 
+#include <string>
+
 namespace dnxr {
 
 struct FrameCommitResult {
+    bool candidateAccepted = false;
     bool accepted = false;
+    bool busSubmitted = false;
+    bool normalFrameSubmitted = false;
+    bool holdFrameSubmitted = false;
     bool safetyHold = false;
-    const char* reason = "";
-    const char* holdFallback = "";
+    bool lifecycleCommitted = false;
+    std::string reason;
+    std::string holdFallback;
     FullDiveChipFrame submittedFrame{};
 };
 

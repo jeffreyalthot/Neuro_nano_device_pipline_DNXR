@@ -2,11 +2,13 @@
 
 #include "neural_chip/NeuralChipReplayRecorder.h"
 
+#include <string>
+
 namespace dnxr {
 
 struct ReplayConsistencyReport {
     bool valid = false;
-    const char* reason = "";
+    std::string reason;
     std::size_t recordsChecked = 0;
 };
 

@@ -16,6 +16,8 @@ const std::vector<const char*>& DecisionTraceCoverageValidator::requiredStages(P
     static const std::vector<const char*> ackWait = {"NeuralChipPipelineStateGate", "NeuralChipAckHandshake"};
     static const std::vector<const char*> ackHold = {"NeuralChipAckHandshake", "NeuralChipFrameCommitter"};
     static const std::vector<const char*> shutdownNoOp = {"NeuralChipPipelineStateGate"};
+    static const std::vector<const char*> traceReject = {"DecisionTraceCoverageValidator"};
+    static const std::vector<const char*> reentrant = {"PipelineReentrancyGuard"};
     static const std::vector<const char*> emergency = {"NeuralChipEmergencyLatch", "NeuralChipFrameCommitter"};
     static const std::vector<const char*> capability = {"ChipCapabilityContract", "NeuralChipFrameCommitter"};
     static const std::vector<const char*> anchor = {"RealityAnchorDegradationModel", "ChipRealityAnchorHardChannel", "NeuralChipFrameCommitter"};
@@ -36,6 +38,8 @@ const std::vector<const char*>& DecisionTraceCoverageValidator::requiredStages(P
         case PipelinePathKind::ResumeHold: return resume;
         case PipelinePathKind::SessionSupervisorHold: return supervisor;
         case PipelinePathKind::ShutdownNoOp: return shutdownNoOp;
+        case PipelinePathKind::TraceCoverageReject: return traceReject;
+        case PipelinePathKind::ReentrantStepReject: return reentrant;
         case PipelinePathKind::NormalCommit: return normal;
     }
     return normal;
@@ -47,7 +51,7 @@ DecisionTraceCoverageReport DecisionTraceCoverageValidator::validate(const Neura
 
 DecisionTraceCoverageReport DecisionTraceCoverageValidator::validate(const NeuralChipPipelineDecisionTrace& trace, PipelinePathKind path) const {
     for (const char* stage : requiredStages(path)) {
-        const bool found = std::any_of(trace.events().begin(), trace.events().end(), [&](const PipelineDecisionEvent& e){ return std::string(e.stage ? e.stage : "") == stage; });
+        const bool found = std::any_of(trace.events().begin(), trace.events().end(), [&](const PipelineDecisionEvent& e){ return e.stage == stage; });
         if (!found) return {false, false, stage};
     }
     return {true, true, ""};

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <string>
+
 namespace dnxr {
 
 enum class NeuralChipPipelineState {
@@ -16,8 +19,11 @@ enum class NeuralChipPipelineState {
 
 class NeuralChipPipelineStateMachine {
 public:
+    using TransitionObserver = std::function<void(NeuralChipPipelineState, NeuralChipPipelineState, const std::string&)>;
+
     NeuralChipPipelineState state() const;
     const char* reason() const;
+    void setTransitionObserver(TransitionObserver observer);
 
     bool start();
     bool onCommitAccepted();
@@ -27,7 +33,7 @@ public:
     bool onStableHold();
     bool onResumeRampComplete();
     bool triggerEmergency(const char* reason);
-    bool onAuditedReset();
+    bool onAuditedReset(bool operatorAuthorized = true);
     bool shutdown(const char* reason = "shutdown");
 
     bool allowsNormalFrame() const;
@@ -36,9 +42,10 @@ public:
     bool emergencyLatched() const;
 
 private:
-    bool transition(NeuralChipPipelineState next, const char* reason);
+    bool transition(NeuralChipPipelineState next, const char* reason, bool auditedReset = false, bool operatorAuthorized = false);
     NeuralChipPipelineState state_ = NeuralChipPipelineState::ColdStart;
-    const char* reason_ = "cold start";
+    std::string reason_ = "cold start";
+    TransitionObserver observer_{};
 };
 
 const char* toString(NeuralChipPipelineState state);

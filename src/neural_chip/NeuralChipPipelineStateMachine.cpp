@@ -1,6 +1,8 @@
 #include "neural_chip/NeuralChipPipelineStateMachine.h"
 #include "neural_chip/StateMachineTransitionValidator.h"
 
+#include <utility>
+
 namespace dnxr {
 
 const char* toString(NeuralChipPipelineState state) {
@@ -19,12 +21,16 @@ const char* toString(NeuralChipPipelineState state) {
 }
 
 NeuralChipPipelineState NeuralChipPipelineStateMachine::state() const { return state_; }
-const char* NeuralChipPipelineStateMachine::reason() const { return reason_; }
+const char* NeuralChipPipelineStateMachine::reason() const { return reason_.c_str(); }
+void NeuralChipPipelineStateMachine::setTransitionObserver(TransitionObserver observer) { observer_ = std::move(observer); }
 
-bool NeuralChipPipelineStateMachine::transition(NeuralChipPipelineState next, const char* reason) {
-    if (!StateMachineTransitionValidator{}.allows(state_, next)) return false;
+bool NeuralChipPipelineStateMachine::transition(NeuralChipPipelineState next, const char* reason, bool auditedReset, bool operatorAuthorized) {
+    StateTransitionRequest request{state_, next, reason ? reason : "transition", auditedReset, operatorAuthorized};
+    if (!StateMachineTransitionValidator{}.allows(request)) return false;
+    const auto from = state_;
     state_ = next;
     reason_ = reason ? reason : "transition";
+    if (observer_) observer_(from, state_, reason_);
     return true;
 }
 
@@ -56,7 +62,7 @@ bool NeuralChipPipelineStateMachine::onPersistentHold() {
 
 bool NeuralChipPipelineStateMachine::onStableHold() {
     if (state_ != NeuralChipPipelineState::HoldMinimal && state_ != NeuralChipPipelineState::EmergencyLatched) return false;
-    return transition(NeuralChipPipelineState::ControlledResume, "stable hold; controlled resume");
+    return transition(NeuralChipPipelineState::ControlledResume, "stable hold; controlled resume", state_ == NeuralChipPipelineState::EmergencyLatched, false);
 }
 
 bool NeuralChipPipelineStateMachine::onResumeRampComplete() {
@@ -69,9 +75,9 @@ bool NeuralChipPipelineStateMachine::triggerEmergency(const char* reason) {
     return transition(NeuralChipPipelineState::EmergencyLatched, reason ? reason : "critical violation");
 }
 
-bool NeuralChipPipelineStateMachine::onAuditedReset() {
+bool NeuralChipPipelineStateMachine::onAuditedReset(bool operatorAuthorized) {
     if (state_ != NeuralChipPipelineState::EmergencyLatched) return false;
-    return transition(NeuralChipPipelineState::ControlledResume, "audited reset accepted");
+    return transition(NeuralChipPipelineState::ControlledResume, "audited reset accepted", true, operatorAuthorized);
 }
 
 bool NeuralChipPipelineStateMachine::shutdown(const char* reason) { return transition(NeuralChipPipelineState::Shutdown, reason); }

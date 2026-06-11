@@ -2,6 +2,7 @@
 
 #include "neural_chip/NeuralChipPipelineDecisionTrace.h"
 
+#include <string>
 #include <vector>
 
 namespace dnxr {
@@ -19,13 +20,15 @@ enum class PipelinePathKind {
     ValidatorReject,
     ResumeHold,
     SessionSupervisorHold,
-    ShutdownNoOp
+    ShutdownNoOp,
+    TraceCoverageReject,
+    ReentrantStepReject
 };
 
 struct DecisionTraceCoverageReport {
     bool complete = false;
     bool accepted = false;
-    const char* missingStage = "";
+    std::string missingStage;
 };
 
 class DecisionTraceCoverageValidator {
