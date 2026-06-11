@@ -4,5 +4,6 @@
   "enableExperimentalChemicalChannels": false,
   "enableResearchVision": true,
   "enableResearchAuditory": true,
-  "enableResearchVestibular": false
+  "enableResearchVestibular": false,
+  "researchModeAcknowledgement": true
 }

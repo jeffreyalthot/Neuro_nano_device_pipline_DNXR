@@ -321,6 +321,17 @@ if(DNXR_BUILD_TESTS)
         dnxr_neural_chip_emergency_latch_test
         dnxr_neural_chip_only_long_session_stability_test
         dnxr_neural_chip_adversarial_sequence_test
+        dnxr_neural_chip_hold_commit_policy_test
+        dnxr_neural_chip_replay_recorder_integration_test
+        dnxr_full_dive_chip_frame_diff_coverage_test
+        dnxr_per_modality_rate_and_dose_policy_integration_test
+        dnxr_neural_chip_session_supervisor_test
+        dnxr_neural_chip_emergency_latch_authorized_reset_test
+        dnxr_neural_chip_ack_handshake_test
+        dnxr_motor_intent_confidence_gate_test
+        dnxr_avatar_safety_pose_controller_test
+        dnxr_neural_chip_pipeline_config_validator_test
+        dnxr_neural_chip_pipeline_fuzz_session_test
     )
 
     if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)

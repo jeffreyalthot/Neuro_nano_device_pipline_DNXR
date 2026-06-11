@@ -36,6 +36,10 @@ void ModalityExposureLedger::applyHoldPolicy(ModalityExposureState& state, const
 }
 
 FullDiveChipFrame ModalityExposureLedger::apply(const FullDiveChipFrame& frame) {
+    return apply(frame, FullDiveDosePolicy{});
+}
+
+FullDiveChipFrame ModalityExposureLedger::apply(const FullDiveChipFrame& frame, const FullDiveDosePolicy& policy) {
     FullDiveChipFrame out = frame;
 
     update(ledger_.visual, std::max(out.visual.globalLuminance01, out.visual.motionFlow01),
@@ -51,13 +55,19 @@ FullDiveChipFrame ModalityExposureLedger::apply(const FullDiveChipFrame& frame) 
     update(ledger_.gustatory, std::max(out.gustatory.sweet01, out.gustatory.mouthfeel01),
            std::max(out.gustatory.nauseaRisk01, out.gustatory.swallowingConflictRisk01));
 
-    if (ledger_.visual.fatigue01 > 0.75f) {
+    if (ledger_.visual.instantLoad01 > policy.visual.maxInstantLoad01) out.visual.globalLuminance01 *= policy.visual.maxInstantLoad01;
+    if (ledger_.auditory.instantLoad01 > policy.auditory.maxInstantLoad01) out.auditory.loudness01 *= policy.auditory.maxInstantLoad01;
+    if (ledger_.touch.instantLoad01 > policy.touch.maxInstantLoad01) out.touch.contactPressure01 *= policy.touch.maxInstantLoad01;
+    if (ledger_.vestibular.instantLoad01 > policy.vestibular.maxInstantLoad01) out.vestibular.angularVelocity01 *= policy.vestibular.maxInstantLoad01;
+    if (ledger_.motor.instantLoad01 > policy.motor.maxInstantLoad01) out.motorIntent.gaitIntent01 *= policy.motor.maxInstantLoad01;
+
+    if (ledger_.visual.fatigue01 > policy.visual.maxFatigue01) {
         out.visual.phospheneDensity01 *= 0.5f;
     }
-    if (ledger_.auditory.fatigue01 > 0.75f) {
+    if (ledger_.auditory.fatigue01 > policy.auditory.maxFatigue01) {
         out.auditory.loudness01 *= 0.5f;
     }
-    if (ledger_.vestibular.risk01 > 0.60f) {
+    if (ledger_.vestibular.risk01 > policy.vestibular.maxRollingLoad01) {
         out.vestibular.angularVelocity01 *= 0.4f;
     }
     applyHoldPolicy(ledger_.olfactory, holdPolicy_);
