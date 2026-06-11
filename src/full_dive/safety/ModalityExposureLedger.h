@@ -1,6 +1,7 @@
 #pragma once
 
 #include "neural_chip/NeuralChipFrame.h"
+#include <cstdint>
 
 namespace dnxr {
 
@@ -10,6 +11,14 @@ struct ModalityExposureState {
     float fatigue01 = 0.0f;
     float risk01 = 0.0f;
     bool hold = false;
+    std::uint32_t holdFrames = 0;
+};
+
+struct ExposureHoldPolicy {
+    float holdOn01 = 0.60f;
+    float holdOff01 = 0.30f;
+    std::uint32_t minimumHoldFrames = 120;
+    float recoveryRate01 = 0.01f;
 };
 
 struct FullDiveExposureLedger {
@@ -32,7 +41,9 @@ public:
 private:
     static float clamp01(float value);
     static void update(ModalityExposureState& state, float instantLoad01, float risk01);
+    static void applyHoldPolicy(ModalityExposureState& state, const ExposureHoldPolicy& policy);
 
+    ExposureHoldPolicy holdPolicy_{};
     FullDiveExposureLedger ledger_{};
 };
 

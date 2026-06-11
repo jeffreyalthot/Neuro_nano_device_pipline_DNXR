@@ -1,0 +1,46 @@
+#include "neural_chip/FrameLifecycleGuard.h"
+
+#include <cmath>
+
+namespace dnxr {
+
+FrameLifecycleGuard::FrameLifecycleGuard(FrameLifecyclePolicy policy) : policy_(policy) {}
+
+FrameLifecycleValidation FrameLifecycleGuard::validate(const FullDiveChipFrame& frame) {
+    if (!std::isfinite(frame.timestampMs)) {
+        return {false, "timestamp is non-finite", true};
+    }
+    if (hasLast_ && frame.frameId <= lastFrameId_) {
+        return {false, "frame replay or non-monotone frameId", true};
+    }
+    if (hasLast_ && frame.timestampMs <= lastTimestampMs_) {
+        return {false, "non-monotone timestamp", true};
+    }
+    if (policy_.nowMs > 0.0) {
+        if (frame.timestampMs > policy_.nowMs + policy_.maxFutureSkewMs) {
+            return {false, "timestamp too far in future", true};
+        }
+        if (frame.timestampMs < policy_.nowMs - policy_.maxFrameAgeMs) {
+            return {false, "frame too old", true};
+        }
+    }
+    if (hasLast_ && frame.timestampMs - lastTimestampMs_ > policy_.maxFrameGapMs) {
+        return {false, "frame deadline gap exceeded", true};
+    }
+    hasLast_ = true;
+    lastFrameId_ = frame.frameId;
+    lastTimestampMs_ = frame.timestampMs;
+    return {true, "accepted", false};
+}
+
+void FrameLifecycleGuard::reset() {
+    hasLast_ = false;
+    lastFrameId_ = 0;
+    lastTimestampMs_ = 0.0;
+}
+
+void FrameLifecycleGuard::setPolicy(FrameLifecyclePolicy policy) {
+    policy_ = policy;
+}
+
+} // namespace dnxr

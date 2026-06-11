@@ -8,6 +8,7 @@ class NeuralChipBus {
 public:
     ChipReadFrame readNeuralActivity() const;
     bool submitSensoryFrame(const FullDiveChipFrame& frame);
+    void injectSimulatedMotorReadFrame(const ChipReadFrame& frame);
     bool submitSafetyHold(const NeuralSafetyFrame& safety);
     ChipHealthStatus getHealthStatus() const;
     const FullDiveChipFrame& lastAcceptedFrame() const;

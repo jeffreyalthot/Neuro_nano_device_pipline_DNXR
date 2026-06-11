@@ -24,10 +24,11 @@ bool NeuralChipBus::submitSensoryFrame(const FullDiveChipFrame& frame) {
     health_.lastFrameAccepted = true;
 
     lastFrame_ = frame;
-    readFrame_.frameId = frame.frameId;
-    readFrame_.motorIntent = frame.motorIntent;
-    readFrame_.signalQuality01 = frame.motorIntent.confidence01;
     return true;
+}
+
+void NeuralChipBus::injectSimulatedMotorReadFrame(const ChipReadFrame& frame) {
+    readFrame_ = frame;
 }
 
 bool NeuralChipBus::submitSafetyHold(const NeuralSafetyFrame& safety) {

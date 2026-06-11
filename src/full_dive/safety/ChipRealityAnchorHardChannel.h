@@ -4,7 +4,7 @@
 
 namespace dnxr {
 
-class RealityAnchorHardChannel {
+class ChipRealityAnchorHardChannel {
 public:
     bool validates(const NeuralRealityAnchorVector& anchor) const;
     FullDiveChipFrame enforce(const FullDiveChipFrame& frame) const;
