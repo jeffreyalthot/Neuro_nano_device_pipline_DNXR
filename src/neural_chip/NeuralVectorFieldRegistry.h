@@ -36,6 +36,21 @@ public:
     template <typename Visitor> static void forEachGustatory(const NeuralGustatoryVector& v, Visitor&& visitor) {
         visitor("gustatory", "sweet01", v.sweet01, true); visitor("gustatory", "salty01", v.salty01, true); visitor("gustatory", "sour01", v.sour01, true); visitor("gustatory", "bitter01", v.bitter01, true); visitor("gustatory", "umami01", v.umami01, true); visitor("gustatory", "metallic01", v.metallic01, true); visitor("gustatory", "mouthfeel01", v.mouthfeel01, true); visitor("gustatory", "temperature01", v.temperature01, true); visitor("gustatory", "pleasantness01", v.pleasantness01, true); visitor("gustatory", "nauseaRisk01", v.nauseaRisk01, true); visitor("gustatory", "swallowingConflictRisk01", v.swallowingConflictRisk01, true);
     }
+
+    template <typename Visitor> static void forEachMotorIntent(const NeuralMotorIntentVector& v, Visitor&& visitor) {
+        visitor("motorIntent", "moveForward01", v.moveForward01, true); visitor("motorIntent", "moveBackward01", v.moveBackward01, true); visitor("motorIntent", "strafeLeft01", v.strafeLeft01, true); visitor("motorIntent", "strafeRight01", v.strafeRight01, true); visitor("motorIntent", "turnYaw01", v.turnYaw01, true); visitor("motorIntent", "lookPitch01", v.lookPitch01, true); visitor("motorIntent", "rightArmReach01", v.rightArmReach01, true); visitor("motorIntent", "leftArmReach01", v.leftArmReach01, true); visitor("motorIntent", "rightHandGrip01", v.rightHandGrip01, true); visitor("motorIntent", "leftHandGrip01", v.leftHandGrip01, true); visitor("motorIntent", "gaitIntent01", v.gaitIntent01, true); visitor("motorIntent", "postureBalance01", v.postureBalance01, true); visitor("motorIntent", "stopIntent01", v.stopIntent01, false); visitor("motorIntent", "confidence01", v.confidence01, true); visitor("motorIntent", "tremorRisk01", v.tremorRisk01, true); visitor("motorIntent", "spasmRisk01", v.spasmRisk01, true); visitor("motorIntent", "fatigueRisk01", v.fatigueRisk01, true);
+    }
+    template <typename Visitor> static void forEachRealityAnchor(const NeuralRealityAnchorVector& v, Visitor&& visitor) {
+        visitor("realityAnchor", "orientation01", v.orientation01, false); visitor("realityAnchor", "identityContinuity01", v.identityContinuity01, false); visitor("realityAnchor", "sessionBoundary01", v.sessionBoundary01, false); visitor("realityAnchor", "externalWorldRecall01", v.externalWorldRecall01, false);
+    }
+    template <typename Visitor> static void forEachSafety(const NeuralSafetyVector& v, Visitor&& visitor) {
+        visitor("safety", "aggregateRisk01", v.aggregateRisk01, false); visitor("safety", "activeCeiling01", v.activeCeiling01, false);
+    }
+    template <typename Visitor> static void forEachAllFrameFields(const FullDiveChipFrame& frame, Visitor&& visitor) {
+        forEachVisual(frame.visual, visitor); forEachAuditory(frame.auditory, visitor); forEachTouch(frame.touch, visitor);
+        forEachProprioception(frame.proprioception, visitor); forEachVestibular(frame.vestibular, visitor); forEachMotorIntent(frame.motorIntent, visitor);
+        forEachOlfactory(frame.olfactory, visitor); forEachGustatory(frame.gustatory, visitor); forEachRealityAnchor(frame.realityAnchor, visitor); forEachSafety(frame.safety, visitor);
+    }
 };
 
 } // namespace dnxr

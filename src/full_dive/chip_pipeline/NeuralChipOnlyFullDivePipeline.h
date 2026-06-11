@@ -30,6 +30,10 @@
 #include "neural_chip/NeuralChipSessionState.h"
 #include "neural_chip/NeuralChipSessionSupervisor.h"
 #include "neural_chip/NeuralChipReplayRecorder.h"
+#include "neural_chip/NeuralChipSessionDigest.h"
+#include "neural_chip/NeuralChipPipelineStateMachine.h"
+#include "neural_chip/NeuralChipTimebase.h"
+#include "neural_chip/SafetyInvariantEngine.h"
 #include "neural_chip/NeuralVectorSlewRateLimiter.h"
 #include "neural_chip/NeuralVectorValidator.h"
 #include "neural_chip/PatientModalityPolicyGate.h"
@@ -89,6 +93,9 @@ public:
     const NeuralChipSessionState& sessionState() const;
     const NeuralChipPipelineDecisionTrace& decisionTrace() const;
     const NeuralChipReplayRecorder& replayRecorder() const;
+    const SessionDigest& sessionDigest() const;
+    const NeuralChipPipelineStateMachine& stateMachine() const;
+    NeuralChipTimebase& timebase();
     NeuralChipEmergencyLatch& emergencyLatch();
     void injectSimulatedAck(std::uint64_t frameId, float quality01);
 
@@ -130,6 +137,10 @@ private:
     NeuralChipFrameCommitter committer_;
     NeuralChipPipelineDecisionTrace decisionTrace_{};
     NeuralChipReplayRecorder replayRecorder_{};
+    NeuralChipSessionDigest sessionDigest_{};
+    NeuralChipPipelineStateMachine stateMachine_{};
+    NeuralChipTimebase timebase_{};
+    SafetyInvariantEngine safetyInvariantEngine_{};
     PipelineResumeController resumeController_{};
     bool observedEmergencyLatch_ = false;
     NeuralChipSessionState sessionState_{};

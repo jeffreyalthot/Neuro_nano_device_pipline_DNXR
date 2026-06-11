@@ -28,6 +28,7 @@ public:
     FrameLifecycleValidation validate(const FullDiveChipFrame& frame);
     void reset();
     void setPolicy(FrameLifecyclePolicy policy);
+    const FrameLifecyclePolicy& policy() const;
 
 private:
     FrameLifecyclePolicy policy_{};

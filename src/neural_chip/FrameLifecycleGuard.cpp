@@ -60,4 +60,8 @@ void FrameLifecycleGuard::setPolicy(FrameLifecyclePolicy policy) {
     policy_ = policy;
 }
 
+const FrameLifecyclePolicy& FrameLifecycleGuard::policy() const {
+    return policy_;
+}
+
 } // namespace dnxr
