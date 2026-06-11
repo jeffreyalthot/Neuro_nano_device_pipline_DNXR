@@ -310,6 +310,17 @@ if(DNXR_BUILD_TESTS)
         dnxr_closed_loop_perception_error_controller_test
         dnxr_chip_capability_contract_test
         dnxr_neural_chip_adversarial_frame_test
+        dnxr_neural_chip_frame_committer_test
+        dnxr_closed_loop_pipeline_integration_test
+        dnxr_neural_vector_slew_rate_limiter_test
+        dnxr_experimental_chemical_channel_gate_test
+        dnxr_neural_chip_pipeline_config_test
+        dnxr_neural_chip_decision_trace_test
+        dnxr_full_dive_chip_frame_diff_test
+        dnxr_neural_chip_session_state_test
+        dnxr_neural_chip_emergency_latch_test
+        dnxr_neural_chip_only_long_session_stability_test
+        dnxr_neural_chip_adversarial_sequence_test
     )
 
     if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)

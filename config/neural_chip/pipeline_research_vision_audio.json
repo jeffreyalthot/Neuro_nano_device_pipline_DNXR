@@ -1,0 +1,8 @@
+{
+  "simulationOnly": true,
+  "allowStimulusDispatch": false,
+  "enableExperimentalChemicalChannels": false,
+  "enableResearchVision": true,
+  "enableResearchAuditory": true,
+  "enableResearchVestibular": false
+}
