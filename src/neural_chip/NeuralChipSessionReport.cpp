@@ -20,9 +20,9 @@ NeuralChipSessionReport NeuralChipSessionReportBuilder::build(const NeuralChipSe
         out.sessionDigestFrameCount = record.sessionDigestFrameCount;
         if (record.emergencyLatched) ++out.latchCount;
         for (const auto& event : record.decisionTrace) {
-            const std::string stage = event.stage ? event.stage : "";
-            const std::string modality = event.modality ? event.modality : "";
-            const std::string rule = event.rule ? event.rule : "";
+            const std::string stage = event.stage;
+            const std::string modality = event.modality;
+            const std::string rule = event.rule;
             if (modality.find("olfactory") != std::string::npos || modality.find("gustatory") != std::string::npos) ++out.chemicalHoldCount;
             if (modality.find("realityAnchor") != std::string::npos || rule.find("reality anchor") != std::string::npos) ++out.realityAnchorFailureCount;
             out.lastDecisionSummaries.push_back(stage + ":" + modality + ":" + rule);

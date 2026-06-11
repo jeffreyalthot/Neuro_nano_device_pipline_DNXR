@@ -1,21 +1,21 @@
 #include "neural_chip/NeuralChipReplayPlayer.h"
 #include "neural_chip/NeuralChipReplayRecorder.h"
+#include "config/JsonParser.h"
+#include "config/JsonValue.h"
 
 #include <fstream>
 #include <string>
 
 namespace dnxr {
 namespace {
-bool contains(const std::string& s, const char* token) { return s.find(token) != std::string::npos; }
-bool contains(const std::string& s, const std::string& token) { return s.find(token) != std::string::npos; }
+bool forbidden(const std::string& s) {
+    return s.find("payload") != std::string::npos || s.find("rawSensory") != std::string::npos ||
+           s.find(std::string("human") + "-ready") != std::string::npos || s.find(std::string("clinical") + "-ready") != std::string::npos;
+}
 
-bool extractUInt(const std::string& line, const char* key, std::uint64_t& value) {
-    const auto pos = line.find(key);
-    if (pos == std::string::npos) return false;
-    const auto start = line.find(':', pos);
-    if (start == std::string::npos) return false;
-    try { value = static_cast<std::uint64_t>(std::stoull(line.substr(start + 1))); return true; }
-    catch (...) { return false; }
+bool hasType(const JsonValue& root, const char* key, JsonValue::Type type) {
+    const auto* value = root.find(key);
+    return value && value->type() == type;
 }
 } // namespace
 
@@ -27,16 +27,24 @@ NeuralChipReplayPlaybackReport NeuralChipReplayPlayer::validateJsonl(const std::
     std::size_t count = 0;
     while (std::getline(in, line)) {
         if (line.empty()) continue;
-        if (contains(line, "payload") || contains(line, "rawSensory") || contains(line, std::string("human") + "-ready") || contains(line, std::string("clinical") + "-ready")) {
-            return {false, "replay contains forbidden payload or readiness claim", count};
+        if (forbidden(line)) return {false, "replay contains forbidden payload or readiness claim", count};
+        JsonValue root;
+        std::string error;
+        if (!JsonParser::tryParse(line, root, &error) || !root.isObject()) return {false, "invalid replay json", count};
+        if (root.getString("schemaVersion", "") != DNXR_REPLAY_SCHEMA_VERSION) return {false, "unknown replay schema", count};
+        for (const char* key : {"frameId", "timestampMs", "pipelineState", "pipelinePathKind", "stepOutcome", "noOp", "busSubmitted", "candidateAccepted", "normalFrameSubmitted", "holdFrameSubmitted", "safetyHold", "traceCoverageComplete", "traceCoverageMissingStage", "sessionDigestHash", "sessionDigestFrameCount", "hasCandidateFrame", "hasSubmittedFrame"}) {
+            if (!root.has(key)) return {false, "replay line missing required v2 field", count};
         }
-        if (!contains(line, std::string("\"schemaVersion\":\"") + DNXR_REPLAY_SCHEMA_VERSION + "\"")) return {false, "unknown replay schema", count};
-        for (const char* required : {"\"frameId\"", "\"timestampMs\"", "\"commitAccepted\"", "\"safetyHold\"", "\"decisionTraceCount\"", "\"pipelinePathKind\"", "\"pipelineState\""}) {
-            if (!contains(line, required)) return {false, "replay line missing required decision or commit field", count};
-        }
-        std::uint64_t frameId = 0;
-        if (!extractUInt(line, "\"frameId\"", frameId)) return {false, "invalid frameId", count};
+        if (!hasType(root, "pipelineState", JsonValue::Type::String) || !hasType(root, "pipelinePathKind", JsonValue::Type::String) || !hasType(root, "stepOutcome", JsonValue::Type::String)) return {false, "replay line has invalid string field", count};
+        if (!hasType(root, "noOp", JsonValue::Type::Bool) || !hasType(root, "busSubmitted", JsonValue::Type::Bool) || !hasType(root, "traceCoverageComplete", JsonValue::Type::Bool)) return {false, "replay line has invalid boolean field", count};
+        const auto frameId = root.getUInt64("frameId", 0);
+        if (frameId == 0) return {false, "invalid frameId", count};
         if (count > 0 && frameId <= lastFrameId) return {false, "non-monotone replay frameId", count};
+        const std::string outcome = root.getString("stepOutcome", "");
+        const bool noOp = root.getBool("noOp", false);
+        const bool busSubmitted = root.getBool("busSubmitted", false);
+        if ((outcome == "WaitingForAck" || outcome == "Shutdown") && (!noOp || busSubmitted || root.getBool("hasCandidateFrame", true) || root.getBool("hasSubmittedFrame", true))) return {false, "no-op outcome has submitted frame fields", count};
+        if (outcome == "NormalAccepted" && (!busSubmitted || !root.getBool("normalFrameSubmitted", false))) return {false, "normal accepted missing bus submission", count};
         lastFrameId = frameId;
         ++count;
     }

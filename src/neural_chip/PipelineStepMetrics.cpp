@@ -10,6 +10,7 @@ void updatePipelineStepMetrics(PipelineStepMetrics& metrics, PipelineStepOutcome
         case PipelineStepOutcome::HoldCommitted: ++metrics.holdCommitted; break;
         case PipelineStepOutcome::Rejected: ++metrics.rejected; break;
         case PipelineStepOutcome::EmergencyLatched: ++metrics.emergencyLatched; break;
+        case PipelineStepOutcome::TraceInvalid: ++metrics.rejected; break;
         case PipelineStepOutcome::Shutdown: ++metrics.shutdown; break;
         case PipelineStepOutcome::NoOp: break;
     }

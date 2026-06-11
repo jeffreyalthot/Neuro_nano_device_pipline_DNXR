@@ -42,6 +42,7 @@
 #include "neural_chip/NeuralChipSessionDigest.h"
 #include "neural_chip/NeuralChipPipelineStateMachine.h"
 #include "neural_chip/NeuralChipTimebase.h"
+#include "neural_chip/PipelineReentrancyGuard.h"
 #include "neural_chip/SafetyInvariantEngine.h"
 #include "neural_chip/NeuralVectorSlewRateLimiter.h"
 #include "neural_chip/NeuralVectorValidator.h"
@@ -110,7 +111,8 @@ public:
     void setStrictTraceCoverage(bool enabled);
     void shutdown(const char* reason);
     NeuralChipTimebase& timebase();
-    [[deprecated("Use resetEmergencyLatchWithAudit() for audited latch recovery")]] NeuralChipEmergencyLatch& emergencyLatch();
+    const NeuralChipEmergencyLatch& emergencyLatchStatus() const;
+    void injectSimulatedEmergencyLatchForTest(const char* reason);
     bool resetEmergencyLatchWithAudit(const EmergencyLatchResetRequest& request);
     void injectSimulatedAck(std::uint64_t frameId, float quality01);
 
@@ -178,6 +180,7 @@ private:
     NeuralChipOnlyPipelineConfig config_{};
     FullDiveChipFrame lastSubmittedFrame_{};
     bool hasLastSubmittedFrame_ = false;
+    PipelineReentrancyGuard reentrancyGuard_{};
     AvatarRigCommandFrame lastRigCommand_{};
 };
 

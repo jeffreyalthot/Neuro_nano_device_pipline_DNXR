@@ -3,19 +3,30 @@
 
 #include <fstream>
 #include <string>
-#include <algorithm>
 
 namespace dnxr {
 namespace {
-std::string jsonEscape(const char* raw) {
+std::string jsonEscape(const std::string& raw) {
     std::string out;
-    const char* s = raw ? raw : "";
-    for (; *s; ++s) {
-        if (*s == '"' || *s == '\\') out.push_back('\\');
-        if (*s == '\n' || *s == '\r') out.push_back(' ');
-        else out.push_back(*s);
+    for (char c : raw) {
+        if (c == '"' || c == '\\') out.push_back('\\');
+        if (c == '\n' || c == '\r') out.push_back(' ');
+        else out.push_back(c);
     }
     return out;
+}
+const char* toString(PipelineStepOutcome outcome) {
+    switch (outcome) {
+        case PipelineStepOutcome::NormalAccepted: return "NormalAccepted";
+        case PipelineStepOutcome::HoldCommitted: return "HoldCommitted";
+        case PipelineStepOutcome::WaitingForAck: return "WaitingForAck";
+        case PipelineStepOutcome::Rejected: return "Rejected";
+        case PipelineStepOutcome::EmergencyLatched: return "EmergencyLatched";
+        case PipelineStepOutcome::TraceInvalid: return "TraceInvalid";
+        case PipelineStepOutcome::Shutdown: return "Shutdown";
+        case PipelineStepOutcome::NoOp: return "NoOp";
+    }
+    return "Rejected";
 }
 } // namespace
 
@@ -37,21 +48,33 @@ bool NeuralChipReplayRecorder::exportJsonl(const std::string& path) const {
     std::ofstream out(path);
     if (!out) return false;
     for (const auto& record : records_) {
+        const std::string holdReason = !record.holdReason.empty() ? record.holdReason : record.commitResult.reason;
         out << "{\"schemaVersion\":\"" << DNXR_REPLAY_SCHEMA_VERSION << "\""
             << ",\"frameId\":" << record.frameId
             << ",\"timestampMs\":" << record.timestampMs
-            << ",\"commitAccepted\":" << (record.commitResult.accepted ? "true" : "false")
-            << ",\"safetyHold\":" << (record.commitResult.safetyHold ? "true" : "false")
+            << ",\"pipelineState\":\"" << toString(record.pipelineState) << "\""
+            << ",\"pipelinePathKind\":\"" << toString(record.pipelinePathKind) << "\""
+            << ",\"stepOutcome\":\"" << toString(record.stepOutcome) << "\""
+            << ",\"noOp\":" << (record.noOp ? "true" : "false")
+            << ",\"busSubmitted\":" << (record.busSubmitted ? "true" : "false")
+            << ",\"candidateAccepted\":" << (record.candidateAccepted ? "true" : "false")
+            << ",\"normalFrameSubmitted\":" << (record.normalFrameSubmitted ? "true" : "false")
+            << ",\"holdFrameSubmitted\":" << (record.holdFrameSubmitted ? "true" : "false")
+            << ",\"safetyHold\":" << (record.safetyHold ? "true" : "false")
+            << ",\"lifecycleCommitted\":" << (record.lifecycleCommitted ? "true" : "false")
+            << ",\"hasCandidateFrame\":" << (record.hasCandidateFrame ? "true" : "false")
+            << ",\"hasSubmittedFrame\":" << (record.hasSubmittedFrame ? "true" : "false")
+            << ",\"traceCoverageComplete\":" << (record.traceCoverageComplete ? "true" : "false")
+            << ",\"traceCoverageMissingStage\":\"" << jsonEscape(record.traceCoverageMissingStage) << "\""
+            << ",\"commitAccepted\":" << ((record.commitResult.candidateAccepted || record.commitResult.accepted) ? "true" : "false")
             << ",\"holdFallback\":\"" << jsonEscape(record.commitResult.holdFallback) << "\""
-            << ",\"holdReason\":\"" << jsonEscape(record.holdReason ? record.holdReason : record.commitResult.reason) << "\""
+            << ",\"holdReason\":\"" << jsonEscape(holdReason) << "\""
             << ",\"emergencyLatched\":" << (record.emergencyLatched ? "true" : "false")
             << ",\"sessionRisk01\":" << record.sessionRisk01
             << ",\"sessionFatigue01\":" << record.sessionFatigue01
             << ",\"sessionDigestHash\":" << record.sessionDigestHash
             << ",\"sessionDigestFrameCount\":" << record.sessionDigestFrameCount
             << ",\"decisionTraceCount\":" << record.decisionTrace.size()
-            << ",\"pipelinePathKind\":\"" << toString(record.pipelinePathKind) << "\""
-            << ",\"pipelineState\":\"" << toString(record.pipelineState) << "\""
             << "}\n";
     }
     return static_cast<bool>(out);

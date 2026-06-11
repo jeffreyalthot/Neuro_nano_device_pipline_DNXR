@@ -10,6 +10,6 @@ int main(){
     assert(v.allows(S::HoldNeutral,S::HoldMinimal)); assert(v.allows(S::HoldNeutral,S::ControlledResume));
     assert(v.allows(S::HoldMinimal,S::ControlledResume)); assert(!v.allows(S::HoldMinimal,S::Running));
     assert(v.allows(S::ControlledResume,S::Running)); assert(v.allows(S::ControlledResume,S::EmergencyLatched));
-    assert(v.allows(S::EmergencyLatched,S::ControlledResume)); assert(v.allows(S::EmergencyLatched,S::Shutdown)); assert(!v.allows(S::EmergencyLatched,S::Running));
+    assert(!v.allows(S::EmergencyLatched,S::ControlledResume)); dnxr::StateTransitionRequest reset{S::EmergencyLatched,S::ControlledResume,"audited",true,true}; assert(v.allows(reset)); assert(v.allows(S::EmergencyLatched,S::Shutdown)); assert(!v.allows(S::EmergencyLatched,S::Running));
     assert(v.allows(S::Shutdown,S::Shutdown)); assert(!v.allows(S::Shutdown,S::Running));
 }

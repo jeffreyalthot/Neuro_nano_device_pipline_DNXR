@@ -383,6 +383,10 @@ if(DNXR_BUILD_TESTS)
         dnxr_pipeline_shutdown_no_normal_frames_test
         dnxr_state_machine_transition_matrix_test
         dnxr_strict_trace_coverage_blocks_incomplete_trace_test
+        dnxr_frame_commit_result_bus_submitted_test
+        dnxr_emergency_transition_requires_audited_reset_test
+        dnxr_step_result_consistency_verifier_test
+        dnxr_pipeline_reject_code_classifier_test
         dnxr_neural_chip_stateful_long_session_test
     )
 

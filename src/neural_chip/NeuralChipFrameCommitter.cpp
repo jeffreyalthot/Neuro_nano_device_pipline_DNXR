@@ -19,13 +19,13 @@ FrameCommitResult NeuralChipFrameCommitter::commitCandidate(const FullDiveChipFr
 
     if (!bus_.submitSensoryFrame(frame)) {
         bus_.submitSafetyHold({frame.frameId, true, "neural chip bus rejected candidate"});
-        return {false, true, "neural chip bus rejected candidate", "bus safety hold only", frame};
+        return {false, false, true, false, false, true, false, "neural chip bus rejected candidate", "bus safety hold only", frame};
     }
 
     lifecycle_.commitAccepted(frame);
     holdBuffer_.rememberAccepted(frame);
     holdSequencer_.observeCommitted(frame.frameId, frame.timestampMs);
-    return {true, false, "accepted", "", frame};
+    return {true, true, true, true, false, false, true, "accepted", "", frame};
 }
 
 FrameCommitResult NeuralChipFrameCommitter::commitRejectedWithHold(const FullDiveChipFrame& rejectedFrame, const char* reason, float decompressionRamp01) {
@@ -54,14 +54,14 @@ FrameCommitResult NeuralChipFrameCommitter::commitRejectedWithHold(const FullDiv
             holdBuffer_.rememberAccepted(candidate.frame);
             holdSequencer_.observeCommitted(candidate.frame.frameId, candidate.frame.timestampMs);
             bus_.submitSafetyHold({candidate.frame.frameId, true, safeReason});
-            return {false, true, safeReason, holdPolicy_.fallbackName(candidate.fallback), candidate.frame};
+            return {false, false, true, false, true, true, true, safeReason, holdPolicy_.fallbackName(candidate.fallback), candidate.frame};
         }
     }
 
     const auto token = holdSequencer_.nextHold(rejectedFrame.timestampMs, "bus safety hold only");
     bus_.submitSafetyHold({token.frameId, true, safeReason});
     FullDiveChipFrame minimal = holdPolicy_.makeMinimalHardHoldFrame(token.frameId, token.timestampMs);
-    return {false, true, "hold frame rejected; bus safety hold active", holdPolicy_.fallbackName(NeuralChipHoldFallback::BusSafetyOnly), minimal};
+    return {false, false, true, false, false, true, false, "hold frame rejected; bus safety hold active", holdPolicy_.fallbackName(NeuralChipHoldFallback::BusSafetyOnly), minimal};
 }
 
 } // namespace dnxr

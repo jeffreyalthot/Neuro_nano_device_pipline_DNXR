@@ -3,6 +3,8 @@
 #include "neural_chip/DecisionTraceCoverageValidator.h"
 #include "neural_chip/NeuralChipPipelineStateMachine.h"
 
+#include <string>
+
 namespace dnxr {
 
 enum class PipelineStepOutcome {
@@ -11,6 +13,7 @@ enum class PipelineStepOutcome {
     WaitingForAck,
     Rejected,
     EmergencyLatched,
+    TraceInvalid,
     Shutdown,
     NoOp
 };
@@ -21,7 +24,7 @@ struct PipelineStepResult {
     NeuralChipPipelineState state = NeuralChipPipelineState::Running;
     bool busSubmitted = false;
     bool replayRecorded = false;
-    const char* reason = "";
+    std::string reason;
 };
 
 } // namespace dnxr
