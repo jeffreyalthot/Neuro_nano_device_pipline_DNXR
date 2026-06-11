@@ -378,6 +378,11 @@ if(DNXR_BUILD_TESTS)
         dnxr_replay_consistency_verifier_test
         dnxr_pipeline_safety_case_report_test
         dnxr_pipeline_state_machine_runtime_invariant_test
+        dnxr_pipeline_no_auto_ack_recovery_test
+        dnxr_timebase_advances_on_repeated_world_timestamp_test
+        dnxr_pipeline_shutdown_no_normal_frames_test
+        dnxr_state_machine_transition_matrix_test
+        dnxr_strict_trace_coverage_blocks_incomplete_trace_test
         dnxr_neural_chip_stateful_long_session_test
     )
 

@@ -5,6 +5,7 @@
 #include "neural_chip/NeuralChipPipelineDecisionTrace.h"
 #include "neural_chip/NeuralChipPipelineStateMachine.h"
 #include "neural_chip/DecisionTraceCoverageValidator.h"
+#include "neural_chip/PipelineStepResult.h"
 
 #include <string>
 #include <vector>
@@ -32,6 +33,10 @@ struct NeuralChipReplayRecord {
     std::uint64_t sessionDigestFrameCount = 0;
     PipelinePathKind pipelinePathKind = PipelinePathKind::NormalCommit;
     NeuralChipPipelineState pipelineState = NeuralChipPipelineState::Running;
+    bool noOp = false;
+    PipelineStepOutcome stepOutcome = PipelineStepOutcome::Rejected;
+    bool traceCoverageComplete = true;
+    const char* traceCoverageMissingStage = "";
     const char* schemaVersion = DNXR_REPLAY_SCHEMA_VERSION;
 };
 

@@ -9,27 +9,27 @@ PipelineStateDecision NeuralChipPipelineStateGate::evaluate(const NeuralChipPipe
     switch (stateMachine.state()) {
         case NeuralChipPipelineState::ColdStart:
         case NeuralChipPipelineState::Running:
-            return {true, true, false, PipelineHoldKind::None, 1.0f, "running"};
+            return {true, true, false, false, PipelineHoldKind::None, 1.0f, "running"};
         case NeuralChipPipelineState::AwaitingAck:
             if (ackHandshake.shouldHold(nowMs)) {
-                return {false, false, true, PipelineHoldKind::Decompression, 0.20f, "neural chip ack missing"};
+                return {false, false, true, false, PipelineHoldKind::Decompression, 0.20f, "neural chip ack missing"};
             }
-            return {false, false, true, PipelineHoldKind::AwaitingAck, 0.20f, "awaiting neural chip ack"};
+            return {false, false, false, true, PipelineHoldKind::None, 0.0f, "awaiting neural chip ack"};
         case NeuralChipPipelineState::HoldDecompression:
-            return {false, false, true, PipelineHoldKind::Decompression, 0.20f, stateMachine.reason()};
+            return {false, false, true, false, PipelineHoldKind::Decompression, 0.20f, stateMachine.reason()};
         case NeuralChipPipelineState::HoldNeutral:
-            return {false, false, true, PipelineHoldKind::Neutral, 0.0f, stateMachine.reason()};
+            return {false, false, true, false, PipelineHoldKind::Neutral, 0.0f, stateMachine.reason()};
         case NeuralChipPipelineState::HoldMinimal:
-            return {false, false, true, PipelineHoldKind::Minimal, 0.0f, stateMachine.reason()};
+            return {false, false, true, false, PipelineHoldKind::Minimal, 0.0f, stateMachine.reason()};
         case NeuralChipPipelineState::ControlledResume:
-            return {true, true, false, PipelineHoldKind::None, 0.25f, "controlled resume"};
+            return {true, true, false, false, PipelineHoldKind::None, 0.25f, "controlled resume"};
         case NeuralChipPipelineState::EmergencyLatched:
-            return {false, false, true, PipelineHoldKind::Emergency, 0.0f, stateMachine.reason()};
+            return {false, false, true, false, PipelineHoldKind::Emergency, 0.0f, stateMachine.reason()};
         case NeuralChipPipelineState::Shutdown:
-            return {false, false, true, PipelineHoldKind::Shutdown, 0.0f, "pipeline shutdown"};
+            return {false, false, false, true, PipelineHoldKind::Shutdown, 0.0f, "pipeline shutdown"};
     }
     (void)resumeController;
-    return {false, false, true, PipelineHoldKind::Emergency, 0.0f, "invalid pipeline state"};
+    return {false, false, true, false, PipelineHoldKind::Emergency, 0.0f, "invalid pipeline state"};
 }
 
 } // namespace dnxr

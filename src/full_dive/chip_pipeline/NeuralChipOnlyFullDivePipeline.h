@@ -35,6 +35,8 @@
 #include "neural_chip/NeuralChipPipelineDecisionTrace.h"
 #include "neural_chip/PipelineResumeController.h"
 #include "neural_chip/NeuralChipSessionState.h"
+#include "neural_chip/PipelineStepMetrics.h"
+#include "neural_chip/PipelineStateTransitionAudit.h"
 #include "neural_chip/NeuralChipSessionSupervisor.h"
 #include "neural_chip/NeuralChipReplayRecorder.h"
 #include "neural_chip/NeuralChipSessionDigest.h"
@@ -96,12 +98,17 @@ public:
     NeuralChipOnlyFullDivePipeline(NeuralChipBus& chipBus, const NeuralChipOnlyPipelineConfig& config);
 
     bool step(const NeuralChipOnlyWorldFrame& world);
+    PipelineStepResult stepDetailed(const NeuralChipOnlyWorldFrame& world);
     const AvatarRigCommandFrame& lastRigCommand() const;
     const NeuralChipSessionState& sessionState() const;
     const NeuralChipPipelineDecisionTrace& decisionTrace() const;
     const NeuralChipReplayRecorder& replayRecorder() const;
     const SessionDigest& sessionDigest() const;
     const NeuralChipPipelineStateMachine& stateMachine() const;
+    const PipelineStepMetrics& stepMetrics() const;
+    const PipelineStateTransitionAudit& transitionAudit() const;
+    void setStrictTraceCoverage(bool enabled);
+    void shutdown(const char* reason);
     NeuralChipTimebase& timebase();
     [[deprecated("Use resetEmergencyLatchWithAudit() for audited latch recovery")]] NeuralChipEmergencyLatch& emergencyLatch();
     bool resetEmergencyLatchWithAudit(const EmergencyLatchResetRequest& request);
@@ -109,8 +116,11 @@ public:
 
 private:
     void recordDiff(const char* stage, const FullDiveChipFrame& before, const FullDiveChipFrame& after);
-    bool rejectWithHold(FullDiveChipFrame frame, const char* reason, float ramp01, const ChipReadFrame& read, PipelinePathKind path);
-    void recordReplay(const ChipReadFrame& read, const FullDiveChipFrame& candidate, const FrameCommitResult& result, const char* holdReason);
+    PipelineStepResult rejectWithHold(FullDiveChipFrame frame, const char* reason, float ramp01, const ChipReadFrame& read, PipelinePathKind path);
+    void recordReplay(const ChipReadFrame& read, const FullDiveChipFrame& candidate, const FrameCommitResult& result, const char* holdReason, PipelineStepOutcome outcome = PipelineStepOutcome::Rejected, bool noOp = false);
+    void recordNoOpReplay(std::uint64_t frameId, double timestampMs, const char* reason, PipelinePathKind path, PipelineStepOutcome outcome);
+    void auditTransition(NeuralChipPipelineState before, const char* reason, PipelinePathKind path);
+    PipelineStepResult finishStep(PipelineStepResult result);
     bool criticalSafetyViolation(const FullDiveChipFrame& frame, const char** reason) const;
     void markAccepted(const FullDiveChipFrame& frame);
     PatientSpecificNeuralMap effectivePatientMap(const NeuralChipOnlyWorldFrame& world) const;
@@ -154,6 +164,8 @@ private:
     AckHoldFrameFactory ackHoldFactory_{};
     PipelinePathClassifier pathClassifier_{};
     DecisionTraceCoverageValidator traceCoverageValidator_{};
+    PipelineStepMetrics stepMetrics_{};
+    PipelineStateTransitionAudit transitionAudit_{};
     HoldStabilityTracker holdStabilityTracker_{};
     PipelineResumeStateBridge resumeStateBridge_{};
     PipelinePathKind currentPathKind_ = PipelinePathKind::NormalCommit;

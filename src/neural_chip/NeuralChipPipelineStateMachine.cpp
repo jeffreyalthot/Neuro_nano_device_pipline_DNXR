@@ -1,4 +1,5 @@
 #include "neural_chip/NeuralChipPipelineStateMachine.h"
+#include "neural_chip/StateMachineTransitionValidator.h"
 
 namespace dnxr {
 
@@ -21,7 +22,7 @@ NeuralChipPipelineState NeuralChipPipelineStateMachine::state() const { return s
 const char* NeuralChipPipelineStateMachine::reason() const { return reason_; }
 
 bool NeuralChipPipelineStateMachine::transition(NeuralChipPipelineState next, const char* reason) {
-    if (state_ == NeuralChipPipelineState::Shutdown && next != NeuralChipPipelineState::Shutdown) return false;
+    if (!StateMachineTransitionValidator{}.allows(state_, next)) return false;
     state_ = next;
     reason_ = reason ? reason : "transition";
     return true;

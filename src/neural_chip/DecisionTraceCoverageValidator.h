@@ -8,16 +8,18 @@ namespace dnxr {
 
 enum class PipelinePathKind {
     NormalCommit,
+    AwaitingAckWait,
+    AckMissingHold,
     WorldFrameReject,
     EarlyEncoderReject,
-    AckMissingHold,
     EmergencyLatchHold,
     CapabilityHold,
     RealityAnchorHold,
     LifecycleReject,
     ValidatorReject,
     ResumeHold,
-    SessionSupervisorHold
+    SessionSupervisorHold,
+    ShutdownNoOp
 };
 
 struct DecisionTraceCoverageReport {
