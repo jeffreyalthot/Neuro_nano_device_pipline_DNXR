@@ -1,0 +1,138 @@
+$ ctest --test-dir build -R neural_chip|pipeline --output-on-failure
+exit=0
+Internal ctest changing into directory: /workspace/Neuro_nano_device_pipline/build
+Test project /workspace/Neuro_nano_device_pipline/build
+      Start  17: dnxr_safety_pipeline_test
+ 1/59 Test  #17: dnxr_safety_pipeline_test ......................................   Passed    0.01 sec
+      Start  24: dnxr_pipeline_integration_test
+ 2/59 Test  #24: dnxr_pipeline_integration_test .................................   Passed    0.01 sec
+      Start  35: dnxr_neural_chip_hal_test
+ 3/59 Test  #35: dnxr_neural_chip_hal_test ......................................   Passed    0.01 sec
+      Start  52: dnxr_runtime_pipeline_runner_test
+ 4/59 Test  #52: dnxr_runtime_pipeline_runner_test ..............................   Passed    0.01 sec
+      Start  53: dnxr_runtime_pipeline_services_only_test
+ 5/59 Test  #53: dnxr_runtime_pipeline_services_only_test .......................   Passed    0.64 sec
+      Start  54: dnxr_runtime_pipeline_sink_refs_test
+ 6/59 Test  #54: dnxr_runtime_pipeline_sink_refs_test ...........................   Passed    0.01 sec
+      Start  55: dnxr_runtime_pipeline_run_input_ref_test
+ 7/59 Test  #55: dnxr_runtime_pipeline_run_input_ref_test .......................   Passed    0.01 sec
+      Start  56: dnxr_runtime_pipeline_legacy_input_test
+ 8/59 Test  #56: dnxr_runtime_pipeline_legacy_input_test ........................   Passed    0.01 sec
+      Start  57: dnxr_runtime_controller_pipeline_smoke_test
+ 9/59 Test  #57: dnxr_runtime_controller_pipeline_smoke_test ....................   Passed    2.31 sec
+      Start  59: dnxr_runtime_controller_pipeline_10k_cycles_test
+10/59 Test  #59: dnxr_runtime_controller_pipeline_10k_cycles_test ...............   Passed    8.25 sec
+      Start  60: dnxr_runtime_controller_pipeline_memory_growth_test
+11/59 Test  #60: dnxr_runtime_controller_pipeline_memory_growth_test ............   Passed    3.31 sec
+      Start  68: dnxr_runtime_pipeline_100k_cycles_test
+12/59 Test  #68: dnxr_runtime_pipeline_100k_cycles_test .........................   Passed    6.26 sec
+      Start  69: dnxr_runtime_pipeline_memory_growth_test
+13/59 Test  #69: dnxr_runtime_pipeline_memory_growth_test .......................   Passed    1.36 sec
+      Start  75: dnxr_neural_chip_immersion_integration_test
+14/59 Test  #75: dnxr_neural_chip_immersion_integration_test ....................   Passed    0.02 sec
+      Start 127: dnxr_neural_chip_only_interface_test
+15/59 Test #127: dnxr_neural_chip_only_interface_test ...........................   Passed    0.02 sec
+      Start 131: dnxr_neural_chip_ack_required_test
+16/59 Test #131: dnxr_neural_chip_ack_required_test .............................   Passed    0.01 sec
+      Start 145: dnxr_neural_chip_only_pipeline_test
+17/59 Test #145: dnxr_neural_chip_only_pipeline_test ............................   Passed    0.01 sec
+      Start 151: dnxr_neural_chip_bus_direction_split_test
+18/59 Test #151: dnxr_neural_chip_bus_direction_split_test ......................   Passed    0.01 sec
+      Start 152: dnxr_motor_intent_decoder_pipeline_test
+19/59 Test #152: dnxr_motor_intent_decoder_pipeline_test ........................   Passed    0.01 sec
+      Start 156: dnxr_neural_chip_latency_budget_test
+20/59 Test #156: dnxr_neural_chip_latency_budget_test ...........................   Passed    0.01 sec
+      Start 159: dnxr_neural_chip_adversarial_frame_test
+21/59 Test #159: dnxr_neural_chip_adversarial_frame_test ........................   Passed    0.01 sec
+      Start 160: dnxr_neural_chip_frame_committer_test
+22/59 Test #160: dnxr_neural_chip_frame_committer_test ..........................   Passed    0.01 sec
+      Start 161: dnxr_closed_loop_pipeline_integration_test
+23/59 Test #161: dnxr_closed_loop_pipeline_integration_test .....................   Passed    0.01 sec
+      Start 164: dnxr_neural_chip_pipeline_config_test
+24/59 Test #164: dnxr_neural_chip_pipeline_config_test ..........................   Passed    0.01 sec
+      Start 165: dnxr_neural_chip_decision_trace_test
+25/59 Test #165: dnxr_neural_chip_decision_trace_test ...........................   Passed    0.01 sec
+      Start 167: dnxr_neural_chip_session_state_test
+26/59 Test #167: dnxr_neural_chip_session_state_test ............................   Passed    0.01 sec
+      Start 168: dnxr_neural_chip_emergency_latch_test
+27/59 Test #168: dnxr_neural_chip_emergency_latch_test ..........................   Passed    0.01 sec
+      Start 169: dnxr_neural_chip_only_long_session_stability_test
+28/59 Test #169: dnxr_neural_chip_only_long_session_stability_test ..............   Passed    0.42 sec
+      Start 170: dnxr_neural_chip_adversarial_sequence_test
+29/59 Test #170: dnxr_neural_chip_adversarial_sequence_test .....................   Passed    0.01 sec
+      Start 171: dnxr_neural_chip_hold_commit_policy_test
+30/59 Test #171: dnxr_neural_chip_hold_commit_policy_test .......................   Passed    0.01 sec
+      Start 172: dnxr_neural_chip_replay_recorder_integration_test
+31/59 Test #172: dnxr_neural_chip_replay_recorder_integration_test ..............   Passed    0.01 sec
+      Start 175: dnxr_neural_chip_session_supervisor_test
+32/59 Test #175: dnxr_neural_chip_session_supervisor_test .......................   Passed    0.01 sec
+      Start 176: dnxr_neural_chip_emergency_latch_authorized_reset_test
+33/59 Test #176: dnxr_neural_chip_emergency_latch_authorized_reset_test .........   Passed    0.01 sec
+      Start 177: dnxr_neural_chip_ack_handshake_test
+34/59 Test #177: dnxr_neural_chip_ack_handshake_test ............................   Passed    0.01 sec
+      Start 185: dnxr_pipeline_resume_after_latch_reset_test
+35/59 Test #185: dnxr_pipeline_resume_after_latch_reset_test ....................   Passed    0.01 sec
+      Start 190: dnxr_neural_chip_pipeline_config_validator_test
+36/59 Test #190: dnxr_neural_chip_pipeline_config_validator_test ................   Passed    0.01 sec
+      Start 191: dnxr_neural_chip_pipeline_fuzz_session_test
+37/59 Test #191: dnxr_neural_chip_pipeline_fuzz_session_test ....................   Passed    0.06 sec
+      Start 192: dnxr_neural_chip_ack_external_injection_test
+38/59 Test #192: dnxr_neural_chip_ack_external_injection_test ...................   Passed    0.01 sec
+      Start 194: dnxr_neural_chip_hold_lifecycle_test
+39/59 Test #194: dnxr_neural_chip_hold_lifecycle_test ...........................   Passed    0.01 sec
+      Start 195: dnxr_neural_chip_safety_hold_does_not_mutate_motor_read_test
+40/59 Test #195: dnxr_neural_chip_safety_hold_does_not_mutate_motor_read_test ...   Passed    0.01 sec
+      Start 196: dnxr_pipeline_resume_controller_test
+41/59 Test #196: dnxr_pipeline_resume_controller_test ...........................   Passed    0.01 sec
+      Start 198: dnxr_neural_chip_replay_recorder_jsonl_test
+42/59 Test #198: dnxr_neural_chip_replay_recorder_jsonl_test ....................   Passed    0.01 sec
+      Start 199: dnxr_neural_chip_replay_player_test
+43/59 Test #199: dnxr_neural_chip_replay_player_test ............................   Passed    0.01 sec
+      Start 206: dnxr_neural_chip_pipeline_state_machine_test
+44/59 Test #206: dnxr_neural_chip_pipeline_state_machine_test ...................   Passed    0.01 sec
+      Start 207: dnxr_pipeline_state_machine_ack_timeout_sequence_test
+45/59 Test #207: dnxr_pipeline_state_machine_ack_timeout_sequence_test ..........   Passed    0.01 sec
+      Start 208: dnxr_pipeline_config_loader_parser_result_test
+46/59 Test #208: dnxr_pipeline_config_loader_parser_result_test .................   Passed    0.01 sec
+      Start 211: dnxr_pipeline_session_digest_integration_test
+47/59 Test #211: dnxr_pipeline_session_digest_integration_test ..................   Passed    0.01 sec
+      Start 214: dnxr_neural_chip_timebase_lifecycle_ack_test
+48/59 Test #214: dnxr_neural_chip_timebase_lifecycle_ack_test ...................   Passed    0.01 sec
+      Start 216: dnxr_pipeline_state_gate_test
+49/59 Test #216: dnxr_pipeline_state_gate_test ..................................   Passed    0.01 sec
+      Start 219: dnxr_pipeline_path_classifier_test
+50/59 Test #219: dnxr_pipeline_path_classifier_test .............................   Passed    0.01 sec
+      Start 220: dnxr_decision_trace_coverage_pipeline_integration_test
+51/59 Test #220: dnxr_decision_trace_coverage_pipeline_integration_test .........   Passed    0.01 sec
+      Start 221: dnxr_emergency_latch_controller_pipeline_integration_test
+52/59 Test #221: dnxr_emergency_latch_controller_pipeline_integration_test ......   Passed    0.01 sec
+      Start 223: dnxr_pipeline_resume_state_bridge_test
+53/59 Test #223: dnxr_pipeline_resume_state_bridge_test .........................   Passed    0.01 sec
+      Start 226: dnxr_pipeline_safety_case_report_test
+54/59 Test #226: dnxr_pipeline_safety_case_report_test ..........................   Passed    0.01 sec
+      Start 227: dnxr_pipeline_state_machine_runtime_invariant_test
+55/59 Test #227: dnxr_pipeline_state_machine_runtime_invariant_test .............   Passed    0.01 sec
+      Start 228: dnxr_pipeline_no_auto_ack_recovery_test
+56/59 Test #228: dnxr_pipeline_no_auto_ack_recovery_test ........................   Passed    0.01 sec
+      Start 230: dnxr_pipeline_shutdown_no_normal_frames_test
+57/59 Test #230: dnxr_pipeline_shutdown_no_normal_frames_test ...................   Passed    0.01 sec
+      Start 236: dnxr_pipeline_reject_code_classifier_test
+58/59 Test #236: dnxr_pipeline_reject_code_classifier_test ......................   Passed    0.01 sec
+      Start 237: dnxr_neural_chip_stateful_long_session_test
+59/59 Test #237: dnxr_neural_chip_stateful_long_session_test ....................   Passed    0.19 sec
+
+100% tests passed, 0 tests failed out of 59
+
+Label Time Summary:
+controller        =  13.87 sec*proc (3 tests)
+legacy            =   0.01 sec*proc (1 test)
+long_simulated    =  19.18 sec*proc (4 tests)
+memory            =   4.67 sec*proc (2 tests)
+runtime           =  22.16 sec*proc (10 tests)
+services          =   0.64 sec*proc (2 tests)
+sinks             =   0.01 sec*proc (1 test)
+soak              =   7.62 sec*proc (2 tests)
+stage             =   0.01 sec*proc (1 test)
+unit              =   2.98 sec*proc (6 tests)
+
+Total Test time (real) =  23.39 sec

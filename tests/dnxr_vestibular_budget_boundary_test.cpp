@@ -21,7 +21,7 @@ int main() {
         decision);
 
     assert(command.allowStimulusDispatch);
-    assert(command.modalityIntensities.size() == 6U);
+    assert(command.modalityIntensities.size() == dnxr::NeuralStimulusSafetyEnvelope::modalityCount());
     assert(command.modalityIntensities[static_cast<std::size_t>(dnxr::SensoryModality::Proprioceptive)] <= 0.60f);
     assert(command.modalityIntensities[static_cast<std::size_t>(dnxr::SensoryModality::Vestibular)] <= 0.35f);
     assert(dnxr::NeuralStimulusSafetyEnvelope::modalityForChannel(9U) == dnxr::SensoryModality::Proprioceptive);

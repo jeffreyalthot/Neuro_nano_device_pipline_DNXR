@@ -1,0 +1,4 @@
+#include "hil/HardwareBenchReadinessGate.h"
+#include <filesystem>
+#include <utility>
+namespace dnxr { HardwareBenchReadinessGate::HardwareBenchReadinessGate(std::string r):root_(std::move(r)){} HardwareBenchReadinessDecision HardwareBenchReadinessGate::evaluate() const { HardwareBenchReadinessDecision d; const char* req[]={"qms/generated/HILBenchSessionReport_0_6_5.md","qms/generated/HILBenchMetrics_0_6_5.json","qms/generated/HILFaultInjectionReport_0_6_5.md","qms/generated/HILEmergencyStopReport_0_6_5.md","qms/generated/HILPhantomDisconnectReport_0_6_5.md","qms/generated/HILReplayConsistencyReport_0_6_5.md"}; for(auto* r:req) if(!std::filesystem::exists(std::filesystem::path(root_)/r)) d.missingReports.push_back(r); if(d.missingReports.empty()) d.status=HardwareBenchReadinessStatus::ReadyForMedicalReview; return d; } }

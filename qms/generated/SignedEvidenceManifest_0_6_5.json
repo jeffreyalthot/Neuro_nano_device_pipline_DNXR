@@ -1,0 +1,72 @@
+{
+  "release": "0.6.5",
+  "files": [
+    {
+      "path": "docs/RND_TECHNICAL_DOSSIER_0_6_5.md",
+      "sha256": "37ffddbffec55864b7f1938aad9e1b2013de546ea15e67555eea8910df8b696e",
+      "role": "technical_dossier"
+    },
+    {
+      "path": "docs/RELEASE_NOTES_0_6_5.md",
+      "sha256": "64f897544c70a59535c7a9a29fdc99162662dffe759efd5ec82e6b3e5cb2546d",
+      "role": "release_notes"
+    },
+    {
+      "path": "qms/release_records/REL-0.6.5.md",
+      "sha256": "83990e7c5dd2333a1ad951f57dd9138afff03857f2f814a430c9713af2104e9b",
+      "role": "release_record"
+    },
+    {
+      "path": "docs/OPEN_RISK_REGISTER_0_6_5.md",
+      "sha256": "6704c23cd225ba13cc7a2c24da024966ba6b2207d916d37b11136d575e1e64ce",
+      "role": "open_risk_register"
+    },
+    {
+      "path": "qms/generated/FullBuildValidation_0_6_5.md",
+      "sha256": "90968cdaeee7f5a040ad30961a8b4e06b2b457b698ed1cc2b958c5565e4e264a",
+      "role": "full_build_validation"
+    },
+    {
+      "path": "qms/generated/CTestSummary_0_6_5.md",
+      "sha256": "f42e40b17f69bcf28a537d3d11faaf83bf1ee1c29bdabae9ecd71fcff3ec0e27",
+      "role": "ctest_summary"
+    },
+    {
+      "path": "qms/generated/StaticChecks_0_6_5.md",
+      "sha256": "b6d52f41769911b75dddd15d280fe48a5207f0dc8a249330635d57503a360ee7",
+      "role": "static_checks"
+    },
+    {
+      "path": "qms/generated/HILBenchMetrics_0_6_5.json",
+      "sha256": "6e9d2e02a76813636d571768763a3eedb246495750a238158ec34e42d0712cc8",
+      "role": "hil_bench_metrics"
+    },
+    {
+      "path": "qms/generated/HILBenchSessionReport_0_6_5.md",
+      "sha256": "599e64958001b006d846d40b08a9e35c5d8a321d665e06b927277e499029f2e9",
+      "role": "hil_bench_session_report"
+    },
+    {
+      "path": "qms/generated/HILFaultInjectionReport_0_6_5.md",
+      "sha256": "81f14c72f5bbff00cca33f972016b8f1e161d89d91062be524c3696a2728ec3e",
+      "role": "hil_fault_injection_report"
+    },
+    {
+      "path": "qms/generated/HILEmergencyStopReport_0_6_5.md",
+      "sha256": "ab5c7d581afd28fd52cf568e94106438377596518bcecdc8e4e448c3d29c5436",
+      "role": "hil_emergency_stop_report"
+    },
+    {
+      "path": "qms/generated/HILPhantomDisconnectReport_0_6_5.md",
+      "sha256": "45ed8a5aace438a927853ee86f51ea79aa2f1e8d76df48c511dedb82e5097be3",
+      "role": "hil_phantom_disconnect_report"
+    },
+    {
+      "path": "qms/generated/HILReplayConsistencyReport_0_6_5.md",
+      "sha256": "c42df7169409acdb97066f64adb2b3a4ad233435d7f96e5f30f9d8ab1d27133f",
+      "role": "hil_replay_consistency_report"
+    }
+  ],
+  "generatedAt": "2026-06-11T19:42:11.405356+00:00",
+  "generator": "dnxr-qms"
+}

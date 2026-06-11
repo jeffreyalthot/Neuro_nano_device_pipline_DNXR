@@ -1,0 +1,4 @@
+#pragma once
+#include <string>
+#include <vector>
+namespace dnxr { enum class P95P99AcceptanceStatus { EvidenceIncomplete, Blocked, Accepted }; struct HILBenchTargets { double targetAckP95Ms=20.0; double targetAckP99Ms=35.0; double targetHoldP95Ms=20.0; double targetEmergencyLatchP99Ms=50.0; double targetReplayExportP99Ms=50.0; }; struct HILBenchLatencyEvidence { bool present=false; double ackLatencyP95=0.0, ackLatencyP99=0.0, holdLatencyP95=0.0, holdLatencyP99=0.0, emergencyLatchP95=0.0, emergencyLatchP99=0.0, replayExportP95=0.0, replayExportP99=0.0; }; struct P95P99AcceptanceDecision { P95P99AcceptanceStatus status=P95P99AcceptanceStatus::EvidenceIncomplete; std::vector<std::string> failures; }; class P95P99AcceptanceGate { public: P95P99AcceptanceDecision evaluate(const HILBenchLatencyEvidence& evidence, const HILBenchTargets& targets={}) const; }; }

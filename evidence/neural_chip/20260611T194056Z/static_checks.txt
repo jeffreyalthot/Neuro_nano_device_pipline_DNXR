@@ -1,0 +1,31 @@
+$ python3 /workspace/Neuro_nano_device_pipline/tools/check_no_direct_neural_chip_bus_access.py
+exit=0
+No direct NeuralChipBus access from sensory encoders.
+
+$ python3 /workspace/Neuro_nano_device_pipline/tools/check_neural_chip_pipeline_order.py
+exit=0
+
+$ python3 /workspace/Neuro_nano_device_pipline/tools/check_no_electrical_stimulation_parameters.py
+exit=0
+No electrical stimulation parameters found in neural-chip-only sources.
+
+$ python3 /workspace/Neuro_nano_device_pipline/tools/check_no_human_ready_claims.py
+exit=0
+No forbidden human-readiness claims found.
+
+$ python3 /workspace/Neuro_nano_device_pipline/tools/check_no_unused_neural_chip_scaffolds.py
+exit=0
+All required neural-chip scaffolds are referenced by the pipeline.
+
+$ python3 /workspace/Neuro_nano_device_pipline/tools/check_reject_with_hold_requires_path_kind.py
+exit=0
+rejectWithHold PipelinePathKind invariant passed
+
+$ python3 /workspace/Neuro_nano_device_pipline/tools/check_neural_chip_build_invariants.py
+exit=0
+No direct NeuralChipBus access from sensory encoders.
+No electrical stimulation parameters found in neural-chip-only sources.
+No forbidden human-readiness claims found.
+All required neural-chip scaffolds are referenced by the pipeline.
+rejectWithHold PipelinePathKind invariant passed
+neural chip build invariants passed

@@ -1,0 +1,12 @@
+{
+  "benchMode": "phantom_loopback",
+  "humanSubjectAllowed": false,
+  "requiresPhysicalEStop": true,
+  "requiresAckLine": true,
+  "requiresReplayExport": true,
+  "targetAckP95Ms": 20.0,
+  "targetAckP99Ms": 35.0,
+  "targetHoldP95Ms": 20.0,
+  "targetEmergencyLatchP99Ms": 50.0,
+  "note": "Targets are software/bench objectives, not human limits."
+}

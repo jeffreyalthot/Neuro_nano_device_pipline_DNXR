@@ -9,6 +9,22 @@
 
 namespace dnxr {
 
+namespace {
+
+void applySimulationReviewSafetyMetadata(RuntimePipelineFrame& frame) {
+    frame.fullDiveNeuralFrame.sequenceId = frame.chipFrame.sequenceId;
+    frame.fullDiveNeuralFrame.monotonicTimestampMs = static_cast<std::uint64_t>(std::max(0.0, frame.timestamp * 1000.0));
+    frame.fullDiveNeuralFrame.safety.clinicalModeLocked = true;
+    frame.fullDiveNeuralFrame.safety.painSimulationBlocked = true;
+    frame.fullDiveNeuralFrame.safety.emergencyCutoffAvailable = frame.chipFrame.simulation && frame.chipFrame.signalQuality > 0.0f;
+    frame.fullDiveNeuralFrame.safety.aggregateRisk = std::clamp(frame.fusedSafetyDecision.riskScore, 0.0f, 1.0f);
+    frame.fullDiveNeuralFrame.safety.patientCalibrationHash = frame.fullDiveNeuralFrame.safety.patientCalibrationHash.empty()
+        ? "simulation_calibration_hash_0_6_5"
+        : frame.fullDiveNeuralFrame.safety.patientCalibrationHash;
+}
+
+} // namespace
+
 const char* RuntimeFullDiveStage::name() {
     return "full_dive";
 }
@@ -44,6 +60,7 @@ RuntimePipelineFrame RuntimeFullDiveStage::execute(RuntimePipelineFrame frame, c
     const FullDiveRuntimeSnapshot snapshot = input.evaluateAndRemember();
     frame.fullDiveSnapshot = snapshot;
     frame.fusedSafetyDecision = input.mergeIntoDecision(snapshot, frame.fusedSafetyDecision);
+    applySimulationReviewSafetyMetadata(frame);
 
     if (!snapshot.safetyInterventionRequired()) {
         frame.fullDiveStatus = validate(true, "full_dive_stage_unhealthy");

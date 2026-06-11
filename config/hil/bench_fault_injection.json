@@ -1,0 +1,12 @@
+{
+  "benchMode": "fault_injection",
+  "humanSubjectAllowed": false,
+  "requiresPhysicalEStop": true,
+  "requiresAckLine": true,
+  "requiresReplayExport": true,
+  "targetAckP95Ms": 20.0,
+  "targetAckP99Ms": 35.0,
+  "targetHoldP95Ms": 20.0,
+  "targetEmergencyLatchP99Ms": 50.0,
+  "faults": ["ack_timeout", "phantom_disconnect", "emergency_latch"]
+}

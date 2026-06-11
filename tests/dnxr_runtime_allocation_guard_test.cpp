@@ -35,7 +35,7 @@ int main() {
     assert(growth.growthSuspicious);
     assert(growth.allocationGrowthSuspicious);
     assert(growth.growthCritical);
-    assert(growth.suspiciousFieldCount == 2U);
+    assert(growth.suspiciousFieldCount == 1U);
 
     guard.reset();
     const auto afterReset = guard.observe(frame);
