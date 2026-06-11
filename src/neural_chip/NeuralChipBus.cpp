@@ -1,4 +1,5 @@
 #include "neural_chip/NeuralChipBus.h"
+#include "neural_chip/NeuralVectorValidator.h"
 
 namespace dnxr {
 
@@ -8,12 +9,19 @@ ChipReadFrame NeuralChipBus::readNeuralActivity() const {
 
 bool NeuralChipBus::submitSensoryFrame(const FullDiveChipFrame& frame) {
     health_.connected = true;
+    const auto validation = NeuralVectorValidator::validate(frame);
+    if (!validation.accepted) {
+        submitSafetyHold({frame.frameId, true, validation.reason});
+        return false;
+    }
+
     health_.safeHoldActive = false;
     health_.lastFrameAccepted = isSafeForChip(frame);
     if (!health_.lastFrameAccepted) {
-        health_.safeHoldActive = true;
+        submitSafetyHold({frame.frameId, true, "chip safety rules failed"});
         return false;
     }
+    health_.lastFrameAccepted = true;
 
     lastFrame_ = frame;
     readFrame_.frameId = frame.frameId;

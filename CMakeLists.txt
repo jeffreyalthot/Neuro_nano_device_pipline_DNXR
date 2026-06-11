@@ -291,6 +291,16 @@ if(DNXR_BUILD_TESTS)
         dnxr_clinical_asset_gate_blocks_mmorpg_combat_test
         dnxr_five_sense_exposure_ledger_session_limit_test
         dnxr_safe_frame_hold_suppresses_vestibular_and_chemical_channels_test
+        dnxr_neural_vector_validator_test
+        dnxr_patient_specific_neural_map_test
+        dnxr_modality_exposure_ledger_test
+        dnxr_per_modality_isolation_broker_test
+        dnxr_neural_chip_only_pipeline_test
+        dnxr_visual_cortical_world_encoder_test
+        dnxr_virtual_epidermis_contact_codec_test
+        dnxr_avatar_kinematic_rig_controller_test
+        dnxr_chemical_channels_hold_test
+        dnxr_reality_anchor_hard_channel_test
     )
 
     if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)
