@@ -1,0 +1,5 @@
+#include "full_dive/auditory_chip/AuditoryTonotopicEncoder.h"
+#include <algorithm>
+namespace dnxr { namespace { float b(float v){return std::max(0.0f,std::min(DNXR_NEURAL_CHIP_ACTIVE_CEILING_01,v));} float c(float v){return std::max(0.0f,std::min(1.0f,v));} }
+NeuralAuditoryVector AuditoryTonotopicEncoder::encode(const SpatialAudioFrame& audio,const PatientAuditoryMap& map,const AuditorySafetyState& safety) const { NeuralAuditoryVector out{}; if(!safety.allowAuditoryStimulus) return out; out.loudness01=b(audio.loudness01*map.tonotopicGain01); out.lowBand01=b(audio.lowBand01*map.tonotopicGain01); out.midBand01=b(audio.midBand01*map.tonotopicGain01); out.highBand01=b(audio.highBand01*map.tonotopicGain01); out.envelopeAttack01=b(audio.attack01); out.envelopeSustain01=b(audio.sustain01); out.spatialLeftRight01=c(audio.leftRight01); out.spatialFrontBack01=c(audio.frontBack01); out.distance01=c(audio.distance01); out.speechPriority01=b(audio.speech01); out.dangerSoundPriority01=b(audio.danger01); out.startleRisk01=c(safety.startleRisk01); return out; }
+}

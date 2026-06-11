@@ -1,0 +1,5 @@
+#include "full_dive/olfactory_chip/NeuralOlfactoryEncoder.h"
+#include <algorithm>
+namespace dnxr { namespace { float c(float v){return std::max(0.0f,std::min(1.0f,v));} }
+NeuralOlfactoryVector NeuralOlfactoryEncoder::encode(const VirtualOdorField& odor,const PatientOlfactoryMap& map,const OlfactorySafetyState& safety) const { NeuralOlfactoryVector out{}; if(!map.experimentalChannelEnabled || !safety.isolateChannel) return out; const float limit=c(map.lowIntensityLimit01); out.odorPresence01=std::min(c(odor.presence01),limit); out.odorIdentityCluster01=c(odor.identityCluster01); out.pleasantness01=std::min(c(odor.pleasantness01),limit); out.freshness01=std::min(c(odor.freshness01),limit); out.smokeWarning01=std::min(c(odor.smoke01),limit); out.chemicalWarning01=std::min(c(odor.chemical01),limit); out.decay01=std::min(c(odor.decay01),limit); out.habituation01=c(odor.habituation01); out.respirationPhase01=c(odor.respirationPhase01); out.nauseaRisk01=c(safety.nauseaRisk01); out.trigeminalContaminationRisk01=c(safety.trigeminalRisk01); return out; }
+}
