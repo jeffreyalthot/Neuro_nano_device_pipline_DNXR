@@ -1,4 +1,5 @@
 #include "neural_chip/NeuralChipPipelineConfigLoader.h"
+#include "neural_chip/NeuralChipPipelineConfigValidator.h"
 
 #include <fstream>
 #include <sstream>
@@ -21,10 +22,15 @@ bool jsonBool(const std::string& text, const char* key, bool fallback) {
 
 NeuralChipOnlyPipelineConfig NeuralChipPipelineConfigLoader::loadFromJsonText(const std::string& text) {
     NeuralChipOnlyPipelineConfig config = NeuralChipOnlyPipelineConfig::simulationSafeDefaults();
+    config.simulationOnly = jsonBool(text, "simulationOnly", true);
+    config.allowStimulusDispatch = jsonBool(text, "allowStimulusDispatch", false);
     config.enableExperimentalChemicalChannels = jsonBool(text, "enableExperimentalChemicalChannels", false);
     config.enableResearchVision = jsonBool(text, "enableResearchVision", false);
     config.enableResearchAuditory = jsonBool(text, "enableResearchAuditory", false);
     config.enableResearchVestibular = jsonBool(text, "enableResearchVestibular", false);
+    config.experimentalAcknowledgement = jsonBool(text, "experimentalAcknowledgement", false);
+    config.researchModeAcknowledgement = jsonBool(text, "researchModeAcknowledgement", false);
+    config.strictConfig = jsonBool(text, "strictConfig", false);
     config.capabilities.canVisual = config.enableResearchVision;
     config.capabilities.canAuditory = config.enableResearchAuditory;
     config.capabilities.canVestibular = config.enableResearchVestibular;
@@ -35,6 +41,10 @@ NeuralChipOnlyPipelineConfig NeuralChipPipelineConfigLoader::loadFromJsonText(co
     config.patientMap.vestibular.enabled = config.enableResearchVestibular;
     config.patientMap.olfactory.enabled = config.enableExperimentalChemicalChannels;
     config.patientMap.gustatory.enabled = config.enableExperimentalChemicalChannels;
+    const auto validation = NeuralChipPipelineConfigValidator::validate(config);
+    if (!validation.accepted) {
+        return NeuralChipOnlyPipelineConfig::simulationSafeDefaults();
+    }
     return config;
 }
 

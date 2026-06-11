@@ -13,11 +13,17 @@ struct NeuralChipReplayRecord {
     std::uint64_t frameId = 0;
     double timestampMs = 0.0;
     std::string inputWorldSummary;
+    ChipReadFrame readFrame{};
     ChipReadFrame motorReadFrame{};
+    FullDiveChipFrame candidateFrame{};
     FullDiveChipFrame outputChipFrame{};
+    FullDiveChipFrame committedOrHoldFrame{};
     std::vector<PipelineDecisionEvent> decisionTrace{};
     FrameCommitResult commitResult{};
+    bool emergencyLatched = false;
     const char* holdReason = "";
+    float sessionRisk01 = 0.0f;
+    float sessionFatigue01 = 0.0f;
 };
 
 class NeuralChipReplayRecorder {

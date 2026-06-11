@@ -2,6 +2,7 @@
 
 #include "neural_chip/FrameLifecycleGuard.h"
 #include "neural_chip/NeuralChipBus.h"
+#include "neural_chip/NeuralChipHoldCommitPolicy.h"
 #include "neural_chip/SafeChipFrameHoldBuffer.h"
 
 namespace dnxr {
@@ -10,6 +11,8 @@ struct FrameCommitResult {
     bool accepted = false;
     bool safetyHold = false;
     const char* reason = "";
+    const char* holdFallback = "";
+    FullDiveChipFrame submittedFrame{};
 };
 
 class NeuralChipFrameCommitter {
@@ -23,6 +26,7 @@ private:
     NeuralChipBus& bus_;
     FrameLifecycleGuard& lifecycle_;
     SafeChipFrameHoldBuffer& holdBuffer_;
+    NeuralChipHoldCommitPolicy holdPolicy_{};
 };
 
 } // namespace dnxr

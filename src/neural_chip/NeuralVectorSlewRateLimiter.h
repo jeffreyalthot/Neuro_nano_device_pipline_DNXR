@@ -1,6 +1,7 @@
 #pragma once
 
 #include "neural_chip/NeuralChipFrame.h"
+#include "full_dive/safety/PerModalityRateAndDosePolicy.h"
 
 namespace dnxr {
 
@@ -17,6 +18,7 @@ class NeuralVectorSlewRateLimiter {
 public:
     explicit NeuralVectorSlewRateLimiter(NeuralVectorSlewPolicy policy = {});
     FullDiveChipFrame apply(const FullDiveChipFrame& frame);
+    FullDiveChipFrame apply(const FullDiveChipFrame& frame, const FullDiveDosePolicy& policy);
     void reset();
 
 private:

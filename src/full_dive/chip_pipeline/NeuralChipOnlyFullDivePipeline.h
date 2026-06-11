@@ -5,6 +5,8 @@
 #include "full_dive/gustatory_chip/NeuralGustatoryEncoder.h"
 #include "full_dive/motor_chip/AvatarKinematicRigController.h"
 #include "full_dive/motor_chip/MotorCortexReadFrameAdapter.h"
+#include "full_dive/motor_chip/MotorIntentConfidenceGate.h"
+#include "full_dive/motor_chip/AvatarSafetyPoseController.h"
 #include "full_dive/olfactory_chip/NeuralOlfactoryEncoder.h"
 #include "full_dive/safety/ChipRealityAnchorHardChannel.h"
 #include "full_dive/safety/ExperimentalChemicalChannelGate.h"
@@ -20,10 +22,13 @@
 #include "neural_chip/FrameLifecycleGuard.h"
 #include "neural_chip/FullDiveChipFrameDiff.h"
 #include "neural_chip/NeuralChipBus.h"
+#include "neural_chip/NeuralChipAckHandshake.h"
 #include "neural_chip/NeuralChipEmergencyLatch.h"
 #include "neural_chip/NeuralChipFrameCommitter.h"
 #include "neural_chip/NeuralChipPipelineDecisionTrace.h"
 #include "neural_chip/NeuralChipSessionState.h"
+#include "neural_chip/NeuralChipSessionSupervisor.h"
+#include "neural_chip/NeuralChipReplayRecorder.h"
 #include "neural_chip/NeuralVectorSlewRateLimiter.h"
 #include "neural_chip/NeuralVectorValidator.h"
 #include "neural_chip/PatientModalityPolicyGate.h"
@@ -39,6 +44,11 @@ struct NeuralChipOnlyPipelineConfig {
     bool enableResearchVision = false;
     bool enableResearchAuditory = false;
     bool enableResearchVestibular = false;
+    bool simulationOnly = true;
+    bool allowStimulusDispatch = false;
+    bool experimentalAcknowledgement = false;
+    bool researchModeAcknowledgement = false;
+    bool strictConfig = false;
 
     static NeuralChipOnlyPipelineConfig simulationSafeDefaults();
 };
@@ -77,11 +87,13 @@ public:
     const AvatarRigCommandFrame& lastRigCommand() const;
     const NeuralChipSessionState& sessionState() const;
     const NeuralChipPipelineDecisionTrace& decisionTrace() const;
+    const NeuralChipReplayRecorder& replayRecorder() const;
     NeuralChipEmergencyLatch& emergencyLatch();
 
 private:
     void recordDiff(const char* stage, const FullDiveChipFrame& before, const FullDiveChipFrame& after);
-    bool rejectWithHold(FullDiveChipFrame frame, const char* reason, float ramp01);
+    bool rejectWithHold(FullDiveChipFrame frame, const char* reason, float ramp01, const ChipReadFrame& read = {});
+    void recordReplay(const ChipReadFrame& read, const FullDiveChipFrame& candidate, const FrameCommitResult& result, const char* holdReason);
     bool criticalSafetyViolation(const FullDiveChipFrame& frame, const char** reason) const;
     void markAccepted(const FullDiveChipFrame& frame);
     PatientSpecificNeuralMap effectivePatientMap(const NeuralChipOnlyWorldFrame& world) const;
@@ -95,7 +107,9 @@ private:
     NeuralOlfactoryEncoder olfactoryEncoder_{};
     NeuralGustatoryEncoder gustatoryEncoder_{};
     MotorIntentDecoder motorDecoder_{};
+    MotorIntentConfidenceGate motorConfidenceGate_{};
     AvatarKinematicRigController avatarRig_{};
+    AvatarSafetyPoseController avatarSafetyPose_{};
     PerModalityIsolationBroker isolationBroker_{};
     PatientModalityPolicyGate patientPolicyGate_{};
     ExperimentalChemicalChannelGate chemicalGate_{};
@@ -107,10 +121,13 @@ private:
     PerModalitySafetyEnvelope safetyEnvelope_{};
     ChipRealityAnchorHardChannel realityAnchor_{};
     NeuralVectorSlewRateLimiter slewRateLimiter_{};
+    NeuralChipSessionSupervisor sessionSupervisor_{};
+    NeuralChipAckHandshake ackHandshake_{};
     FrameLifecycleGuard lifecycleGuard_{};
     SafeChipFrameHoldBuffer holdBuffer_{};
     NeuralChipFrameCommitter committer_;
     NeuralChipPipelineDecisionTrace decisionTrace_{};
+    NeuralChipReplayRecorder replayRecorder_{};
     NeuralChipSessionState sessionState_{};
     NeuralChipEmergencyLatch emergencyLatch_{};
     NeuralChipOnlyPipelineConfig config_{};
