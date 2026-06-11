@@ -17,11 +17,13 @@ PatientSpecificNeuralMap PatientSpecificNeuralMap::simulationDefaults() {
     map.motor = profile(NeuralChannelMaturity::SupportedSimulation, true);
     map.touch = profile(NeuralChannelMaturity::SupportedSimulation, true);
     map.proprioception = profile(NeuralChannelMaturity::SupportedSimulation, true);
-    map.visual = profile(NeuralChannelMaturity::ResearchOnly, true);
-    map.auditory = profile(NeuralChannelMaturity::ResearchOnly, true);
-    map.vestibular = profile(NeuralChannelMaturity::ResearchOnly, true);
+    map.visual = profile(NeuralChannelMaturity::ResearchOnly, false);
+    map.auditory = profile(NeuralChannelMaturity::ResearchOnly, false);
+    map.vestibular = profile(NeuralChannelMaturity::ResearchOnly, false);
     map.olfactory = profile(NeuralChannelMaturity::Experimental, false);
     map.gustatory = profile(NeuralChannelMaturity::Experimental, false);
+    map.visualChip.retinotopicConfidence01 = 0.0f;
+    map.chemicalChip.allowedComplexity01 = 0.0f;
     return map;
 }
 

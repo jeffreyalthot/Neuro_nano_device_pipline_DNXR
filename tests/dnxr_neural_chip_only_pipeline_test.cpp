@@ -21,7 +21,7 @@ int main() {
     world.motion.angularVelocity01 = 0.2f;
     assert(pipeline.step(world));
     assert(bus.lastAcceptedFrame().frameId == 2);
-    assert(bus.lastAcceptedFrame().visual.globalLuminance01 > 0.0f);
+    assert(bus.lastAcceptedFrame().visual.globalLuminance01 == 0.0f);
     assert(!pipeline.lastRigCommand().joints.empty());
 
     world.frameId = 3;

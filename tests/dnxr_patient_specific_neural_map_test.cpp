@@ -7,8 +7,11 @@ int main() {
     assert(map.touch.enabled);
     assert(map.proprioception.enabled);
     assert(map.motor.maturity == dnxr::NeuralChannelMaturity::SupportedSimulation);
+    assert(!map.visual.enabled);
     assert(map.visual.maturity == dnxr::NeuralChannelMaturity::ResearchOnly);
+    assert(!map.auditory.enabled);
     assert(map.auditory.maturity == dnxr::NeuralChannelMaturity::ResearchOnly);
+    assert(!map.vestibular.enabled);
     assert(map.vestibular.maturity == dnxr::NeuralChannelMaturity::ResearchOnly);
     assert(!map.olfactory.enabled);
     assert(!map.gustatory.enabled);
