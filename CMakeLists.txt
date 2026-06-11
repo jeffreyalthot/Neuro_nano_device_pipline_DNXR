@@ -301,6 +301,15 @@ if(DNXR_BUILD_TESTS)
         dnxr_avatar_kinematic_rig_controller_test
         dnxr_chemical_channels_hold_test
         dnxr_reality_anchor_hard_channel_test
+        dnxr_neural_chip_bus_direction_split_test
+        dnxr_motor_intent_decoder_pipeline_test
+        dnxr_frame_lifecycle_guard_test
+        dnxr_patient_modality_policy_gate_test
+        dnxr_safe_chip_frame_hold_buffer_test
+        dnxr_neural_chip_latency_budget_test
+        dnxr_closed_loop_perception_error_controller_test
+        dnxr_chip_capability_contract_test
+        dnxr_neural_chip_adversarial_frame_test
     )
 
     if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)

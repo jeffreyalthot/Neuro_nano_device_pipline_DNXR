@@ -1,0 +1,3 @@
+#include "neural_chip/NeuralChipBus.h"
+#include <cassert>
+int main(){ dnxr::NeuralChipBus bus; dnxr::FullDiveChipFrame frame; frame.frameId=1; frame.timestampMs=1.0; frame.touch.painBlocked01=frame.touch.burnBlocked01=frame.touch.crushBlocked01=frame.touch.shockBlocked01=1.0f; frame.motorIntent.moveForward01=0.8f; frame.motorIntent.confidence01=0.9f; assert(bus.submitSensoryFrame(frame)); assert(bus.readNeuralActivity().motorIntent.moveForward01==0.0f); dnxr::ChipReadFrame read; read.frameId=9; read.motorIntent.moveForward01=0.4f; read.signalQuality01=0.7f; bus.injectSimulatedMotorReadFrame(read); assert(bus.readNeuralActivity().motorIntent.moveForward01==0.4f); }

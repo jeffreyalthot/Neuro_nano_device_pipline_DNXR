@@ -15,6 +15,26 @@ void ModalityExposureLedger::update(ModalityExposureState& state, float instantL
     state.fatigue01 = clamp01(state.fatigue01 * 0.995f + state.risk01 * 0.005f);
 }
 
+void ModalityExposureLedger::applyHoldPolicy(ModalityExposureState& state, const ExposureHoldPolicy& policy) {
+    if (state.risk01 > policy.holdOn01) {
+        state.hold = true;
+        state.holdFrames = 0;
+        return;
+    }
+    if (!state.hold) {
+        return;
+    }
+    ++state.holdFrames;
+    if (state.holdFrames < policy.minimumHoldFrames) {
+        state.risk01 = std::max(state.risk01, policy.holdOff01);
+        return;
+    }
+    if (state.risk01 < policy.holdOff01) {
+        state.fatigue01 = clamp01(state.fatigue01 - policy.recoveryRate01);
+        state.hold = state.fatigue01 > policy.holdOff01;
+    }
+}
+
 FullDiveChipFrame ModalityExposureLedger::apply(const FullDiveChipFrame& frame) {
     FullDiveChipFrame out = frame;
 
@@ -40,8 +60,8 @@ FullDiveChipFrame ModalityExposureLedger::apply(const FullDiveChipFrame& frame) 
     if (ledger_.vestibular.risk01 > 0.60f) {
         out.vestibular.angularVelocity01 *= 0.4f;
     }
-    ledger_.olfactory.hold = ledger_.olfactory.risk01 > 0.40f;
-    ledger_.gustatory.hold = ledger_.gustatory.risk01 > 0.40f;
+    applyHoldPolicy(ledger_.olfactory, holdPolicy_);
+    applyHoldPolicy(ledger_.gustatory, holdPolicy_);
     if (ledger_.olfactory.hold || ledger_.gustatory.hold) {
         out.olfactory = NeuralOlfactoryVector{};
         out.gustatory = NeuralGustatoryVector{};

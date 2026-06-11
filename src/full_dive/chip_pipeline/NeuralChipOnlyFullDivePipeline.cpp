@@ -3,11 +3,24 @@
 namespace dnxr {
 
 NeuralChipOnlyFullDivePipeline::NeuralChipOnlyFullDivePipeline(NeuralChipBus& chipBus)
-    : chipBus_(chipBus) {}
+    : chipBus_(chipBus) {
+    ChipCapabilities capabilities;
+    capabilities.canVisual = true;
+    capabilities.canAuditory = true;
+    capabilities.canHaptic = true;
+    capabilities.canVestibular = true;
+    capabilities.canProprioceptive = true;
+    capabilities.canOlfactory = true;
+    capabilities.canGustatory = true;
+    capabilities.supportsHardwareCutoff = true;
+    capabilities.supportsClosedLoopFeedback = true;
+    capabilityContract_.setCapabilities(capabilities);
+}
 
 bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& world) {
     ChipReadFrame read = chipBus_.readNeuralActivity();
-    NeuralMotorIntentVector motor = read.motorIntent;
+    MotorCortexReadFrame cortexFrame = MotorCortexReadFrameAdapter::fromChipReadFrame(read);
+    NeuralMotorIntentVector motor = motorDecoder_.decode(cortexFrame);
     lastRigCommand_ = avatarRig_.apply(motor);
 
     NeuralVisualVector visual = visualEncoder_.encode(world.scene, world.visualMap, world.visualSafety);
@@ -22,8 +35,21 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& world)
         visual, auditory, touch, proprio, vestibular, motor, olfactory, gustatory, world.frameId, world.timestampMs);
     frame.realityAnchor = world.realityAnchor;
 
-    frame = sync_.synchronize(frame);
+    frame = patientPolicyGate_.apply(frame, world.patientMap);
+    PhaseLockDecision syncDecision = sync_.decide(frame, world.latencyBudget);
+    if (syncDecision.holdLastSafeFrame) {
+        FullDiveChipFrame hold = holdBuffer_.makeDecompressionFrame(frame.frameId, frame.timestampMs, 0.35f);
+        chipBus_.submitSensoryFrame(hold);
+        chipBus_.submitSafetyHold({frame.frameId, true, "multisensory phase lock failed"});
+        return false;
+    }
+    frame = sync_.synchronize(frame, world.latencyBudget);
     frame = exposureLedger_.apply(frame);
+    frame = capabilityContract_.apply(frame);
+    if (capabilityContract_.requiresSafetyHold()) {
+        chipBus_.submitSafetyHold({frame.frameId, true, "chip capability contract requires hardware cutoff"});
+        return false;
+    }
     frame = safetyEnvelope_.apply(frame);
     frame = realityAnchor_.enforce(frame);
 
@@ -31,11 +57,24 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& world)
         chipBus_.submitSafetyHold({frame.frameId, true, "reality anchor hard channel failed"});
         return false;
     }
+    auto lifecycle = lifecycleGuard_.validate(frame);
+    if (!lifecycle.accepted) {
+        FullDiveChipFrame hold = holdBuffer_.makeNeutralHoldFrame(frame.frameId, frame.timestampMs);
+        chipBus_.submitSensoryFrame(hold);
+        chipBus_.submitSafetyHold({frame.frameId, true, lifecycle.reason});
+        return false;
+    }
     if (!NeuralVectorValidator::validate(frame).accepted) {
+        FullDiveChipFrame hold = holdBuffer_.makeDecompressionFrame(frame.frameId, frame.timestampMs, 0.25f);
+        chipBus_.submitSensoryFrame(hold);
         chipBus_.submitSafetyHold({frame.frameId, true, "neural vector validation failed"});
         return false;
     }
-    return chipBus_.submitSensoryFrame(frame);
+    const bool accepted = chipBus_.submitSensoryFrame(frame);
+    if (accepted) {
+        holdBuffer_.rememberAccepted(frame);
+    }
+    return accepted;
 }
 
 const AvatarRigCommandFrame& NeuralChipOnlyFullDivePipeline::lastRigCommand() const {

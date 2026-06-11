@@ -1,6 +1,8 @@
 #pragma once
 
 #include "neural_chip/NeuralChipFrame.h"
+#include "full_dive/motor_chip/AvatarGaitPhaseController.h"
+#include "full_dive/motor_chip/AvatarBalanceController.h"
 
 #include <vector>
 
@@ -53,6 +55,8 @@ public:
 private:
     static float clamp01(float value);
     static AvatarJointCommand command(BodyJoint joint, float activation01, float confidence01);
+    AvatarGaitPhaseController gait_{};
+    AvatarBalanceController balance_{};
 };
 
 } // namespace dnxr

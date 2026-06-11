@@ -78,6 +78,12 @@ int main() {
     assert(bus.submitSensoryFrame(safe));
     assert(bus.getHealthStatus().simulationOnly);
     assert(!bus.getHealthStatus().safeHoldActive);
+    assert(bus.readNeuralActivity().motorIntent.moveForward01 == 0.0f);
+    dnxr::ChipReadFrame simulatedRead;
+    simulatedRead.frameId = 43;
+    simulatedRead.motorIntent = safe.motorIntent;
+    simulatedRead.signalQuality01 = safe.motorIntent.confidence01;
+    bus.injectSimulatedMotorReadFrame(simulatedRead);
     assert(bus.readNeuralActivity().motorIntent.moveForward01 == 0.6f);
 
     dnxr::FullDiveChipFrame unsafe = safe;

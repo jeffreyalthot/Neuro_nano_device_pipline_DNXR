@@ -1,10 +1,10 @@
-#include "full_dive/safety/RealityAnchorHardChannel.h"
+#include "full_dive/safety/ChipRealityAnchorHardChannel.h"
 
 #include <algorithm>
 
 namespace dnxr {
 
-bool RealityAnchorHardChannel::validates(const NeuralRealityAnchorVector& anchor) const {
+bool ChipRealityAnchorHardChannel::validates(const NeuralRealityAnchorVector& anchor) const {
     return anchor.required &&
            anchor.orientation01 >= 0.70f &&
            anchor.identityContinuity01 >= 0.80f &&
@@ -12,7 +12,7 @@ bool RealityAnchorHardChannel::validates(const NeuralRealityAnchorVector& anchor
            anchor.externalWorldRecall01 >= 0.80f;
 }
 
-FullDiveChipFrame RealityAnchorHardChannel::enforce(const FullDiveChipFrame& frame) const {
+FullDiveChipFrame ChipRealityAnchorHardChannel::enforce(const FullDiveChipFrame& frame) const {
     if (validates(frame.realityAnchor)) {
         return frame;
     }

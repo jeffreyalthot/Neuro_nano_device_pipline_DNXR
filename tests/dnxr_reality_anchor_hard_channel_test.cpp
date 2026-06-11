@@ -1,8 +1,8 @@
-#include "full_dive/safety/RealityAnchorHardChannel.h"
+#include "full_dive/safety/ChipRealityAnchorHardChannel.h"
 #include <cassert>
 
 int main() {
-    dnxr::RealityAnchorHardChannel channel;
+    dnxr::ChipRealityAnchorHardChannel channel;
     dnxr::FullDiveChipFrame frame;
     assert(channel.validates(frame.realityAnchor));
 

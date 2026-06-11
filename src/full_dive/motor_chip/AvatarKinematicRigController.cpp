@@ -1,4 +1,5 @@
 #include "full_dive/motor_chip/AvatarKinematicRigController.h"
+#include "full_dive/motor_chip/AvatarInverseKinematicsSolver.h"
 
 #include <algorithm>
 
@@ -20,10 +21,12 @@ AvatarJointCommand AvatarKinematicRigController::command(BodyJoint joint, float 
 
 AvatarRigCommandFrame AvatarKinematicRigController::apply(const NeuralMotorIntentVector& intent) const {
     AvatarRigCommandFrame out;
+    const AvatarGaitState gaitState = gait_.update(intent);
+    const AvatarBalanceState balanceState = balance_.stabilize(intent, gaitState);
     const float confidence = clamp01(intent.confidence01) * (1.0f - clamp01(intent.stopIntent01));
-    const float gait = clamp01(intent.gaitIntent01 + intent.moveForward01 + intent.moveBackward01);
-    out.centerOfMassStability01 = clamp01(intent.postureBalance01);
-    out.footLock01 = intent.stopIntent01 > 0.5f ? 1.0f : 1.0f - clamp01(gait);
+    const float gait = gaitState.speed01;
+    out.centerOfMassStability01 = balanceState.centerOfMassStability01;
+    out.footLock01 = gaitState.footLock01;
     out.handReachConfidence01 = clamp01(std::max(intent.rightArmReach01, intent.leftArmReach01) * confidence);
 
     out.joints.push_back(command(BodyJoint::Root, gait, confidence));
@@ -41,6 +44,7 @@ AvatarRigCommandFrame AvatarKinematicRigController::apply(const NeuralMotorInten
     out.joints.push_back(command(BodyJoint::LeftHip, gait, confidence));
     out.joints.push_back(command(BodyJoint::LeftKnee, gait, confidence));
     out.joints.push_back(command(BodyJoint::LeftFoot, gait, confidence));
+    AvatarInverseKinematicsSolver{}.solve(intent, balanceState, out);
     return out;
 }
 
