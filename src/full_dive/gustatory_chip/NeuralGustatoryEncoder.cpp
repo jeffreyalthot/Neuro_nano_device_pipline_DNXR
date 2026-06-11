@@ -1,0 +1,5 @@
+#include "full_dive/gustatory_chip/NeuralGustatoryEncoder.h"
+#include <algorithm>
+namespace dnxr { namespace { float c(float v){return std::max(0.0f,std::min(1.0f,v));} }
+NeuralGustatoryVector NeuralGustatoryEncoder::encode(const VirtualTasteFrame& taste,const PatientGustatoryMap& map,const GustatorySafetyState& safety) const { NeuralGustatoryVector out{}; if(!map.experimentalChannelEnabled || safety.allowSwallowingInterference) return out; const float limit=c(map.discreteDoseBudget01); out.sweet01=std::min(c(taste.sweet01),limit); out.salty01=std::min(c(taste.salty01),limit); out.sour01=std::min(c(taste.sour01),limit); out.bitter01=std::min(c(taste.bitter01),limit); out.umami01=std::min(c(taste.umami01),limit); out.metallic01=std::min(c(taste.metallic01),limit); out.mouthfeel01=std::min(c(taste.mouthfeel01),limit); out.temperature01=std::min(c(taste.temperature01),limit); out.pleasantness01=std::min(c(taste.pleasantness01),limit); out.nauseaRisk01=c(safety.nauseaRisk01); out.swallowingConflictRisk01=c(safety.swallowingConflictRisk01); return out; }
+}
