@@ -24,6 +24,8 @@ struct NeuralChipReplayRecord {
     const char* holdReason = "";
     float sessionRisk01 = 0.0f;
     float sessionFatigue01 = 0.0f;
+    std::uint64_t sessionDigestHash = 0;
+    std::uint64_t sessionDigestFrameCount = 0;
 };
 
 struct ReplayRecorderPolicy {

@@ -16,6 +16,8 @@ NeuralChipSessionReport NeuralChipSessionReportBuilder::build(const NeuralChipSe
     for (const auto& record : recorder.records()) {
         out.maxRisk01 = std::max(out.maxRisk01, record.sessionRisk01);
         out.maxFatigue01 = std::max(out.maxFatigue01, record.sessionFatigue01);
+        out.sessionDigestHash = record.sessionDigestHash;
+        out.sessionDigestFrameCount = record.sessionDigestFrameCount;
         if (record.emergencyLatched) ++out.latchCount;
         for (const auto& event : record.decisionTrace) {
             const std::string stage = event.stage ? event.stage : "";

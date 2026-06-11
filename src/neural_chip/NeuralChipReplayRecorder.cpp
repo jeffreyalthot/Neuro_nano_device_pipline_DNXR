@@ -45,6 +45,8 @@ bool NeuralChipReplayRecorder::exportJsonl(const std::string& path) const {
             << ",\"emergencyLatched\":" << (record.emergencyLatched ? "true" : "false")
             << ",\"sessionRisk01\":" << record.sessionRisk01
             << ",\"sessionFatigue01\":" << record.sessionFatigue01
+            << ",\"sessionDigestHash\":" << record.sessionDigestHash
+            << ",\"sessionDigestFrameCount\":" << record.sessionDigestFrameCount
             << ",\"decisionTraceCount\":" << record.decisionTrace.size()
             << "}\n";
     }

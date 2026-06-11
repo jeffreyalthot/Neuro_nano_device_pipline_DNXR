@@ -19,6 +19,8 @@ struct NeuralChipSessionReport {
     std::uint64_t latchCount = 0;
     std::uint64_t chemicalHoldCount = 0;
     std::uint64_t realityAnchorFailureCount = 0;
+    std::uint64_t sessionDigestHash = 0;
+    std::uint64_t sessionDigestFrameCount = 0;
     std::vector<std::string> lastDecisionSummaries;
 };
 

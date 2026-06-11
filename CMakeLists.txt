@@ -356,6 +356,16 @@ if(DNXR_BUILD_TESTS)
         dnxr_reality_anchor_degradation_model_test
         dnxr_world_frame_sanitizer_test
         dnxr_sensor_encoder_output_contract_test
+        dnxr_neural_chip_pipeline_state_machine_test
+        dnxr_pipeline_state_machine_ack_timeout_sequence_test
+        dnxr_pipeline_config_loader_parser_result_test
+        dnxr_decision_trace_path_aware_coverage_test
+        dnxr_emergency_latch_controller_audit_test
+        dnxr_pipeline_session_digest_integration_test
+        dnxr_safety_invariant_engine_test
+        dnxr_sanitize_failure_frame_factory_test
+        dnxr_neural_chip_timebase_lifecycle_ack_test
+        dnxr_neural_vector_field_registry_single_source_test
     )
 
     if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)
