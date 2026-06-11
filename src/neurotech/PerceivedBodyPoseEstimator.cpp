@@ -20,7 +20,11 @@ BodyPoseState PerceivedBodyPoseEstimator::estimate(const NeuralChipFrame& neural
     p.balance = std::clamp(pick(bodySensors, 4, pick(proprioceptiveModel, 4, 1.0f)), 0.0f, 1.0f);
     p.virtualBodyScale = 1.0f;
     p.virtualLimbOwnership = std::clamp(neuralFrame.signalQuality, 0.0f, 1.0f);
-    if (bodySensors.size() >= 6U) p.contactPoints = {bodySensors[5]};
+    if (bodySensors.size() >= 6U) {
+        p.contactPoints = {bodySensors[5]};
+    } else if (p.virtualLimbOwnership > 0.0f && p.balance > 0.0f) {
+        p.contactPoints = {0.01f};
+    }
     return p;
 }
 

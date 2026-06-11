@@ -1,7 +1,7 @@
 # Runtime10kBoundedEvidence
 
 ## Scope
-Clinical-readiness bounded projection evidence for the 10,000-cycle controller-pipeline lane. The default readiness mode executes a bounded controller sample and projects deterministic 10k completion so CTest cannot hang; set `DNXR_CONTROLLER_10K_FULL=1` to generate the separate full-execution evidence artifact in a scheduled soak window.
+Medical-review bounded projection evidence for the 10,000-cycle controller-pipeline lane. The default readiness mode executes a bounded controller sample and projects deterministic 10k completion so CTest cannot hang; set `DNXR_CONTROLLER_10K_FULL=1` to generate the separate full-execution evidence artifact in a scheduled soak window.
 
 ## Results
 - Evidence class: bounded projection
@@ -11,9 +11,19 @@ Clinical-readiness bounded projection evidence for the 10,000-cycle controller-p
 - State events observed: 256
 - Full controller mode: false
 - Fast-readiness bounded mode: true
-- Elapsed controller milliseconds: 10751.699
-- Mean milliseconds per executed controller cycle: 41.999
-- Projected 10k controller milliseconds: 419988.246
+- Elapsed time: 7889.609 ms
+- Average cycle time: 30.819 ms
+- p95 cycle time: deterministic aggregate not sampled in this lane; bounded by observed average and controller assertions
+- p99 cycle time: deterministic aggregate not sampled in this lane; bounded by observed average and controller assertions
+- Dropped frames: 0
+- Emergency events: 0
+- Memory growth: not measured by this lane; see runtime memory growth tests
+- Timeout state: not tripped
+- Build ID: 0.4.4-software-evidence-lane
+- Operator role: runtime evidence operator
+- Reviewer role: independent runtime reviewer - named sign-off required
+- Artifact path: ../qms/generated/Runtime10kBoundedEvidence.md
+- Projected 10k controller milliseconds: 308187.856
 - Internal timeout tripped: false
 - Overall status: PASS
 

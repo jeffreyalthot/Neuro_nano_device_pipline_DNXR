@@ -61,7 +61,7 @@ void writeRuntimeEvidence(
     if (fullControllerMode) {
         out << "Clinical-readiness controller-pipeline evidence for an actual 10,000-cycle execution lane forced by `DNXR_CONTROLLER_10K_FULL=1`.\n\n";
     } else {
-        out << "Clinical-readiness bounded projection evidence for the 10,000-cycle controller-pipeline lane. The default readiness mode "
+        out << "Medical-review bounded projection evidence for the 10,000-cycle controller-pipeline lane. The default readiness mode "
             << "executes a bounded controller sample and projects deterministic 10k completion so CTest cannot hang; "
             << "set `DNXR_CONTROLLER_10K_FULL=1` to generate the separate full-execution evidence artifact in a scheduled soak window.\n\n";
     }

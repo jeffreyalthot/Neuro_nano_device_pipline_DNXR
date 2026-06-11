@@ -388,6 +388,18 @@ if(DNXR_BUILD_TESTS)
         dnxr_step_result_consistency_verifier_test
         dnxr_pipeline_reject_code_classifier_test
         dnxr_neural_chip_stateful_long_session_test
+        dnxr_human_subject_use_gate_test
+        dnxr_release_mode_lock_test
+        dnxr_medical_review_gate_test
+        dnxr_regulatory_authorization_evidence_gate_test
+        dnxr_hardware_bench_readiness_gate_test
+        dnxr_p95_p99_acceptance_gate_test
+        dnxr_performance_telemetry_recorder_test
+        dnxr_hardware_bench_session_runner_test
+        dnxr_bench_only_neural_hardware_adapter_test
+        dnxr_traceability_coverage_gate_test
+        dnxr_release_readiness_gate_test
+        dnxr_signed_evidence_manifest_test
     )
 
     if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)

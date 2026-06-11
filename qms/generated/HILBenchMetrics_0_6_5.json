@@ -1,0 +1,42 @@
+{
+  "release": "0.6.5",
+  "benchMode": "phantom_loopback",
+  "humanSubjectAllowed": false,
+  "generatedAt": "2026-06-11T19:40:56.066720+00:00",
+  "iterations": 1000,
+  "ackLatency": {
+    "p50Ms": 0.000325,
+    "p95Ms": 0.000606,
+    "p99Ms": 0.002545,
+    "maxMs": 0.02208
+  },
+  "commitLatency": {
+    "p50Ms": 0.003856,
+    "p95Ms": 0.00809,
+    "p99Ms": 0.024277,
+    "maxMs": 0.05167
+  },
+  "holdLatency": {
+    "p50Ms": 0.000467,
+    "p95Ms": 0.000859,
+    "p99Ms": 0.001078,
+    "maxMs": 0.002919
+  },
+  "emergencyLatchLatency": {
+    "p50Ms": 0.000183,
+    "p95Ms": 0.000325,
+    "p99Ms": 0.000523,
+    "maxMs": 0.021943
+  },
+  "replayWriteLatency": {
+    "p50Ms": 0.000564,
+    "p95Ms": 0.001098,
+    "p99Ms": 0.001421,
+    "maxMs": 0.019376
+  },
+  "droppedFrameCount": 3,
+  "ackTimeoutCount": 2,
+  "holdFallbackCount": 4,
+  "transitionCount": 1000,
+  "statement": "Not authorized for human use. For medical/regulatory review only. Requires external IDE/ITA/IRB/REB approval before any human-subject activity."
+}

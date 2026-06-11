@@ -8,3 +8,5 @@ Affirmation autorisée: **Plateforme logicielle de simulation et de préparation
 
 Human use remains blocked until signed evidence exists for physical HIL, preclinical safety, risk control verification, clinical protocol, REB/IRB approval, Health Canada ITA or FDA IDE authorization, and independent medical signoff.
 
+Not authorized for human use. For medical/regulatory review only. Requires external IDE/ITA/IRB/REB approval before any human-subject activity.
+
