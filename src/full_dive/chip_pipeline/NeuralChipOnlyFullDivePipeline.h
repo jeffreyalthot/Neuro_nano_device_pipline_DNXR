@@ -23,6 +23,13 @@
 #include "neural_chip/FullDiveChipFrameDiff.h"
 #include "neural_chip/NeuralChipBus.h"
 #include "neural_chip/NeuralChipAckHandshake.h"
+#include "neural_chip/NeuralChipPipelineStateGate.h"
+#include "neural_chip/PipelineResumeStateBridge.h"
+#include "neural_chip/PipelinePathClassifier.h"
+#include "neural_chip/HoldStabilityTracker.h"
+#include "neural_chip/EmergencyLatchController.h"
+#include "neural_chip/DecisionTraceCoverageValidator.h"
+#include "neural_chip/AckHoldFrameFactory.h"
 #include "neural_chip/NeuralChipEmergencyLatch.h"
 #include "neural_chip/NeuralChipFrameCommitter.h"
 #include "neural_chip/NeuralChipPipelineDecisionTrace.h"
@@ -96,12 +103,13 @@ public:
     const SessionDigest& sessionDigest() const;
     const NeuralChipPipelineStateMachine& stateMachine() const;
     NeuralChipTimebase& timebase();
-    NeuralChipEmergencyLatch& emergencyLatch();
+    [[deprecated("Use resetEmergencyLatchWithAudit() for audited latch recovery")]] NeuralChipEmergencyLatch& emergencyLatch();
+    bool resetEmergencyLatchWithAudit(const EmergencyLatchResetRequest& request);
     void injectSimulatedAck(std::uint64_t frameId, float quality01);
 
 private:
     void recordDiff(const char* stage, const FullDiveChipFrame& before, const FullDiveChipFrame& after);
-    bool rejectWithHold(FullDiveChipFrame frame, const char* reason, float ramp01, const ChipReadFrame& read = {});
+    bool rejectWithHold(FullDiveChipFrame frame, const char* reason, float ramp01, const ChipReadFrame& read, PipelinePathKind path);
     void recordReplay(const ChipReadFrame& read, const FullDiveChipFrame& candidate, const FrameCommitResult& result, const char* holdReason);
     bool criticalSafetyViolation(const FullDiveChipFrame& frame, const char** reason) const;
     void markAccepted(const FullDiveChipFrame& frame);
@@ -142,9 +150,19 @@ private:
     NeuralChipTimebase timebase_{};
     SafetyInvariantEngine safetyInvariantEngine_{};
     PipelineResumeController resumeController_{};
+    NeuralChipPipelineStateGate stateGate_{};
+    AckHoldFrameFactory ackHoldFactory_{};
+    PipelinePathClassifier pathClassifier_{};
+    DecisionTraceCoverageValidator traceCoverageValidator_{};
+    HoldStabilityTracker holdStabilityTracker_{};
+    PipelineResumeStateBridge resumeStateBridge_{};
+    PipelinePathKind currentPathKind_ = PipelinePathKind::NormalCommit;
+    bool strictTraceCoverage_ = false;
+    EmergencyResetAuditTrail emergencyResetAudit_{};
+    NeuralChipEmergencyLatch emergencyLatch_{};
+    EmergencyLatchController emergencyLatchController_;
     bool observedEmergencyLatch_ = false;
     NeuralChipSessionState sessionState_{};
-    NeuralChipEmergencyLatch emergencyLatch_{};
     NeuralChipOnlyPipelineConfig config_{};
     FullDiveChipFrame lastSubmittedFrame_{};
     bool hasLastSubmittedFrame_ = false;

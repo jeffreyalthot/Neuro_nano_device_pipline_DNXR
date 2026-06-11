@@ -28,7 +28,7 @@ NeuralChipOnlyFullDivePipeline::NeuralChipOnlyFullDivePipeline(NeuralChipBus& ch
     : NeuralChipOnlyFullDivePipeline(chipBus, NeuralChipOnlyPipelineConfig::simulationSafeDefaults()) {}
 
 NeuralChipOnlyFullDivePipeline::NeuralChipOnlyFullDivePipeline(NeuralChipBus& chipBus, const NeuralChipOnlyPipelineConfig& config)
-    : chipBus_(chipBus), committer_(chipBus_, lifecycleGuard_, holdBuffer_), config_(config) {
+    : chipBus_(chipBus), committer_(chipBus_, lifecycleGuard_, holdBuffer_), emergencyLatchController_(emergencyLatch_, emergencyResetAudit_, resumeController_), config_(config) {
     stateMachine_.start();
     ChipCapabilities capabilities = config_.capabilities;
     capabilities.canVisual = capabilities.canVisual && config_.enableResearchVision;
@@ -65,11 +65,15 @@ void NeuralChipOnlyFullDivePipeline::recordDiff(const char* stage, const FullDiv
     }
 }
 
-bool NeuralChipOnlyFullDivePipeline::rejectWithHold(FullDiveChipFrame frame, const char* reason, float ramp01, const ChipReadFrame& read) {
+bool NeuralChipOnlyFullDivePipeline::rejectWithHold(FullDiveChipFrame frame, const char* reason, float ramp01, const ChipReadFrame& read, PipelinePathKind path) {
+    currentPathKind_ = path;
     FrameCommitResult result = committer_.commitRejectedWithHold(frame, reason, ramp01);
     decisionTrace_.record({frame.frameId, "NeuralChipFrameCommitter", "commit", result.holdFallback, reason, 1.0f, 0.0f, frame.safety.aggregateRisk01});
     ++sessionState_.rejectedFrames;
     ++sessionState_.holdFrames;
+    const bool stillUnsafe = path == PipelinePathKind::AckMissingHold || path == PipelinePathKind::EmergencyLatchHold || path == PipelinePathKind::RealityAnchorHold || path == PipelinePathKind::ValidatorReject;
+    holdStabilityTracker_.observeHold(stateMachine_.state(), result.holdFallback, reason, stillUnsafe);
+    holdStabilityTracker_.applyTransitions(stateMachine_, stillUnsafe);
     recordReplay(read, frame, result, reason);
     return result.accepted && !result.safetyHold;
 }
@@ -84,6 +88,10 @@ void NeuralChipOnlyFullDivePipeline::recordReplay(const ChipReadFrame& read, con
     record.candidateFrame = candidate;
     record.outputChipFrame = result.submittedFrame;
     record.committedOrHoldFrame = result.submittedFrame;
+    auto coverage = traceCoverageValidator_.validate(decisionTrace_, currentPathKind_);
+    if (!coverage.complete) {
+        decisionTrace_.record({candidate.frameId, "DecisionTraceCoverageValidator", "trace", coverage.missingStage, "MissingRequiredStage", 1.0f, 0.0f, 1.0f});
+    }
     record.decisionTrace = decisionTrace_.events();
     record.commitResult = result;
     record.emergencyLatched = emergencyLatch_.latched();
@@ -93,6 +101,8 @@ void NeuralChipOnlyFullDivePipeline::recordReplay(const ChipReadFrame& read, con
     sessionDigest_.update(record);
     record.sessionDigestHash = sessionDigest_.value().rollingHash;
     record.sessionDigestFrameCount = sessionDigest_.value().frameCount;
+    record.pipelinePathKind = currentPathKind_;
+    record.pipelineState = stateMachine_.state();
     replayRecorder_.record(record);
 }
 
@@ -126,13 +136,39 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
     if (!worldSanitization.accepted) {
         decisionTrace_.record({rawWorld.frameId, "WorldFrameSanitizer", "world", "sanitize", worldSanitization.reason, 1.0f, 0.0f, 0.0f});
         FullDiveChipFrame holdProbe = SanitizeFailureFrameFactory::makeFailureProbe(rawWorld, worldSanitization, rawWorld.frameId, timebase_.nowMs());
-        return rejectWithHold(holdProbe, worldSanitization.reason, 0.0f);
+        return rejectWithHold(holdProbe, worldSanitization.reason, 0.0f, {}, PipelinePathKind::WorldFrameReject);
     }
     const NeuralChipOnlyWorldFrame world = worldSanitization.sanitized;
     timebase_.setSimulatedNowMs(std::max(timebase_.nowMs(), world.timestampMs));
     FrameLifecyclePolicy lifecyclePolicy = lifecycleGuard_.policy();
     lifecyclePolicy.nowMs = timebase_.nowMs();
     lifecycleGuard_.setPolicy(lifecyclePolicy);
+
+    if (emergencyLatch_.latched()) {
+        observedEmergencyLatch_ = true;
+        stateMachine_.triggerEmergency(emergencyLatch_.reason());
+        resumeController_.lock();
+    }
+
+    if (ackHandshake_.shouldHold(timebase_.nowMs())) {
+        stateMachine_.onAckMissingHold();
+        decisionTrace_.record({world.frameId, "NeuralChipAckHandshake", "ack", "timeout", "neural chip ack missing", 1.0f, 0.0f, 0.20f});
+        FullDiveChipFrame ackHold = ackHoldFactory_.makeAckHoldFrame(world.frameId, timebase_.nowMs());
+        return rejectWithHold(ackHold, "neural chip ack missing", 0.20f, {}, PipelinePathKind::AckMissingHold);
+    }
+
+    const PipelineStateDecision stateDecision = stateGate_.evaluate(stateMachine_, ackHandshake_, resumeController_, timebase_.nowMs());
+    if (!stateDecision.allowWorldProcessing) {
+        if (stateDecision.holdKind == PipelineHoldKind::Decompression) stateMachine_.onAckMissingHold();
+        decisionTrace_.record({world.frameId, "NeuralChipPipelineStateGate", "state", toString(stateMachine_.state()), stateDecision.reason, 1.0f, stateDecision.ramp01, 0.0f});
+        if (stateMachine_.awaitingAck()) decisionTrace_.record({world.frameId, "NeuralChipAckHandshake", "ack", "pending", stateDecision.reason, 1.0f, 0.0f, 0.20f});
+        if (stateMachine_.emergencyLatched()) decisionTrace_.record({world.frameId, "NeuralChipEmergencyLatch", "latch", "active", stateDecision.reason, 1.0f, 0.0f, 1.0f});
+        FullDiveChipFrame holdProbe = ackHoldFactory_.makeStateHoldFrame(stateDecision, world.frameId, timebase_.nowMs());
+        const PipelinePathKind path = stateMachine_.emergencyLatched() ? PipelinePathKind::EmergencyLatchHold : (stateMachine_.awaitingAck() || stateDecision.holdKind == PipelineHoldKind::Decompression ? PipelinePathKind::AckMissingHold : PipelinePathKind::ResumeHold);
+        return rejectWithHold(holdProbe, stateDecision.reason, stateDecision.ramp01, {}, path);
+    }
+
+    resumeStateBridge_.synchronizeBeforeDecision(stateMachine_, resumeController_, emergencyLatch_.latched());
 
     if (observedEmergencyLatch_ && !emergencyLatch_.latched() && resumeController_.locked()) {
         resumeController_.beginControlledResume();
@@ -166,7 +202,7 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
             FullDiveChipFrame holdProbe{};
             holdProbe.frameId = world.frameId;
             holdProbe.timestampMs = world.timestampMs;
-            return rejectWithHold(holdProbe, result.reason, 0.0f, read);
+            return rejectWithHold(holdProbe, result.reason, 0.0f, read, PipelinePathKind::EarlyEncoderReject);
         }
     }
 
@@ -179,14 +215,15 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
         stateMachine_.triggerEmergency(emergencyLatch_.reason());
         decisionTrace_.record({frame.frameId, "NeuralChipEmergencyLatch", "latch", "active", emergencyLatch_.reason(), 1.0f, 0.0f, frame.safety.aggregateRisk01});
         resumeController_.lock();
-        return rejectWithHold(frame, emergencyLatch_.reason(), 0.0f, read);
+        return rejectWithHold(frame, emergencyLatch_.reason(), 0.0f, read, PipelinePathKind::EmergencyLatchHold);
     }
 
     const auto resumeDecision = resumeController_.decide();
     if (!resumeDecision.allowNormalFrame) {
         decisionTrace_.record({frame.frameId, "PipelineResumeController", "resume", "hold", resumeDecision.reason, 1.0f, resumeDecision.globalGain01, frame.safety.aggregateRisk01});
-        return rejectWithHold(frame, resumeDecision.reason, resumeDecision.globalGain01, read);
+        return rejectWithHold(frame, resumeDecision.reason, resumeDecision.globalGain01, read, PipelinePathKind::ResumeHold);
     }
+    resumeStateBridge_.synchronizeAfterDecision(stateMachine_, resumeController_, resumeDecision);
     if (resumeDecision.globalGain01 < 1.0f) {
         frame.visual.globalLuminance01 *= resumeDecision.globalGain01;
         frame.auditory.loudness01 *= resumeDecision.globalGain01;
@@ -212,7 +249,7 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
                                                               error.proprioceptionError01, error.vestibularError01,
                                                               error.olfactoryError01, error.gustatoryError01, error.motorError01});
         if (correction.requireHold) {
-            return rejectWithHold(frame, "closed-loop perception divergence", 0.20f, read);
+            return rejectWithHold(frame, "closed-loop perception divergence", 0.20f, read, PipelinePathKind::SessionSupervisorHold);
         }
     } else {
         recordDiff("ClosedLoopPerceptionErrorController", frame, frame);
@@ -220,7 +257,7 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
 
     PhaseLockDecision syncDecision = sync_.decide(frame, world.latencyBudget);
     if (syncDecision.holdLastSafeFrame) {
-        return rejectWithHold(frame, "multisensory phase lock failed", 0.35f, read);
+        return rejectWithHold(frame, "multisensory phase lock failed", 0.35f, read, PipelinePathKind::ValidatorReject);
     }
     before = frame;
     frame = sync_.synchronize(frame, world.latencyBudget);
@@ -241,18 +278,18 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
         stateMachine_.triggerEmergency(supervisorDecision.reason);
         sessionState_.emergencyStopLatched = true;
         lastRigCommand_ = avatarSafetyPose_.apply(lastRigCommand_, config_.enableResearchVision);
-        return rejectWithHold(frame, supervisorDecision.reason, 0.0f, read);
+        return rejectWithHold(frame, supervisorDecision.reason, 0.0f, read, PipelinePathKind::SessionSupervisorHold);
     }
     if (supervisorDecision.requireHold) {
         lastRigCommand_ = avatarSafetyPose_.apply(lastRigCommand_, config_.enableResearchVision);
-        return rejectWithHold(frame, supervisorDecision.reason, 0.25f, read);
+        return rejectWithHold(frame, supervisorDecision.reason, 0.25f, read, PipelinePathKind::SessionSupervisorHold);
     }
 
     before = frame;
     frame = capabilityContract_.apply(frame);
     recordDiff("ChipCapabilityContract", before, frame);
     if (capabilityContract_.requiresSafetyHold()) {
-        return rejectWithHold(frame, "chip capability contract requires hardware cutoff", 0.0f, read);
+        return rejectWithHold(frame, "chip capability contract requires hardware cutoff", 0.0f, read, PipelinePathKind::CapabilityHold);
     }
 
     before = frame;
@@ -267,7 +304,7 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
     effectiveCapabilities.canGustatory = effectiveCapabilities.canGustatory && config_.enableExperimentalChemicalChannels;
     const auto disabledNeutrality = DisabledModalityNeutralityValidator{}.validate(frame, effectiveCapabilities);
     if (!disabledNeutrality.accepted) {
-        return rejectWithHold(frame, disabledNeutrality.reason, 0.0f, read);
+        return rejectWithHold(frame, disabledNeutrality.reason, 0.0f, read, PipelinePathKind::CapabilityHold);
     }
 
     RealityAnchorDegradationModel degradation;
@@ -281,10 +318,10 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
         sessionState_.emergencyStopLatched = true;
         observedEmergencyLatch_ = true;
         resumeController_.lock();
-        return rejectWithHold(frame, degradationDecision.reason, 0.0f, read);
+        return rejectWithHold(frame, degradationDecision.reason, 0.0f, read, PipelinePathKind::EmergencyLatchHold);
     }
     if (degradationDecision.requireHold) {
-        return rejectWithHold(frame, degradationDecision.reason, degradationDecision.globalGain01, read);
+        return rejectWithHold(frame, degradationDecision.reason, degradationDecision.globalGain01, read, PipelinePathKind::RealityAnchorHold);
     }
 
     before = frame;
@@ -299,7 +336,7 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
             stateMachine_.triggerEmergency(invariant.reason);
             sessionState_.emergencyStopLatched = true;
         }
-        if (invariant.requireHold) return rejectWithHold(frame, invariant.reason, 0.0f, read);
+        if (invariant.requireHold) return rejectWithHold(frame, invariant.reason, 0.0f, read, pathClassifier_.classifyRejectReason(invariant.reason));
     }
 
     const char* criticalReason = "";
@@ -307,20 +344,15 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
         emergencyLatch_.trigger(criticalReason);
         stateMachine_.triggerEmergency(criticalReason);
         sessionState_.emergencyStopLatched = true;
-        return rejectWithHold(frame, criticalReason, 0.0f, read);
+        return rejectWithHold(frame, criticalReason, 0.0f, read, pathClassifier_.classifyRejectReason(criticalReason));
     }
 
     before = frame;
     frame = slewRateLimiter_.apply(frame, rateAndDosePolicy_.policy());
     recordDiff("NeuralVectorSlewRateLimiter", before, frame);
 
-    if (ackHandshake_.shouldHold(timebase_.nowMs())) {
-        stateMachine_.onAckMissingHold();
-        decisionTrace_.record({frame.frameId, "NeuralChipAckHandshake", "ack", "timeout", "neural chip ack missing", 1.0f, 0.0f, frame.safety.aggregateRisk01});
-        return rejectWithHold(frame, "neural chip ack missing", 0.20f, read);
-    }
-
     // FrameLifecycleGuardCommitBoundary -> NeuralVectorValidatorCommitBoundary -> NeuralChipBusCommitBoundary
+    currentPathKind_ = PipelinePathKind::NormalCommit;
     FrameCommitResult result = committer_.commitCandidate(frame);
     decisionTrace_.record({frame.frameId, "NeuralChipFrameCommitter", "commit", result.holdFallback, result.reason, result.accepted ? 0.0f : 1.0f, result.accepted ? 1.0f : 0.0f, frame.safety.aggregateRisk01});
     if (result.accepted && !result.safetyHold) {
@@ -332,6 +364,7 @@ bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWor
     }
     ++sessionState_.rejectedFrames;
     if (result.safetyHold) ++sessionState_.holdFrames;
+    currentPathKind_ = pathClassifier_.classifyCommitResult(result);
     recordReplay(read, frame, result, result.reason);
     return false;
 }
@@ -344,6 +377,17 @@ const SessionDigest& NeuralChipOnlyFullDivePipeline::sessionDigest() const { ret
 const NeuralChipPipelineStateMachine& NeuralChipOnlyFullDivePipeline::stateMachine() const { return stateMachine_; }
 NeuralChipTimebase& NeuralChipOnlyFullDivePipeline::timebase() { return timebase_; }
 NeuralChipEmergencyLatch& NeuralChipOnlyFullDivePipeline::emergencyLatch() { return emergencyLatch_; }
+bool NeuralChipOnlyFullDivePipeline::resetEmergencyLatchWithAudit(const EmergencyLatchResetRequest& request) {
+    const bool accepted = emergencyLatchController_.resetWithAudit(request, timebase_.nowMs());
+    if (accepted) {
+        observedEmergencyLatch_ = false;
+        stateMachine_.onAuditedReset();
+        sessionState_.emergencyStopLatched = false;
+    } else if (emergencyLatch_.latched()) {
+        stateMachine_.triggerEmergency(emergencyLatch_.reason());
+    }
+    return accepted;
+}
 void NeuralChipOnlyFullDivePipeline::injectSimulatedAck(std::uint64_t frameId, float quality01) {
     ackHandshake_.receiveAck(frameId, quality01);
     if (!ackHandshake_.state().hasPendingAck) stateMachine_.onAckValid();

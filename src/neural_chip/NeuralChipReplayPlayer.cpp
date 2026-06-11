@@ -1,4 +1,5 @@
 #include "neural_chip/NeuralChipReplayPlayer.h"
+#include "neural_chip/NeuralChipReplayRecorder.h"
 
 #include <fstream>
 #include <string>
@@ -29,7 +30,8 @@ NeuralChipReplayPlaybackReport NeuralChipReplayPlayer::validateJsonl(const std::
         if (contains(line, "payload") || contains(line, "rawSensory") || contains(line, std::string("human") + "-ready") || contains(line, std::string("clinical") + "-ready")) {
             return {false, "replay contains forbidden payload or readiness claim", count};
         }
-        for (const char* required : {"\"frameId\"", "\"timestampMs\"", "\"commitAccepted\"", "\"safetyHold\"", "\"decisionTraceCount\""}) {
+        if (!contains(line, std::string("\"schemaVersion\":\"") + DNXR_REPLAY_SCHEMA_VERSION + "\"")) return {false, "unknown replay schema", count};
+        for (const char* required : {"\"frameId\"", "\"timestampMs\"", "\"commitAccepted\"", "\"safetyHold\"", "\"decisionTraceCount\"", "\"pipelinePathKind\"", "\"pipelineState\""}) {
             if (!contains(line, required)) return {false, "replay line missing required decision or commit field", count};
         }
         std::uint64_t frameId = 0;
