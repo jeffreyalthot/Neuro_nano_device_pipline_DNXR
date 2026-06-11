@@ -26,14 +26,24 @@ struct NeuralChipReplayRecord {
     float sessionFatigue01 = 0.0f;
 };
 
+struct ReplayRecorderPolicy {
+    std::size_t maxInMemoryRecords = 10000;
+    bool dropOldest = true;
+    bool streamToDisk = false;
+};
+
 class NeuralChipReplayRecorder {
 public:
+    explicit NeuralChipReplayRecorder(ReplayRecorderPolicy policy = {});
+    void setPolicy(ReplayRecorderPolicy policy);
+    const ReplayRecorderPolicy& policy() const;
     void record(const NeuralChipReplayRecord& record);
     const std::vector<NeuralChipReplayRecord>& records() const;
     void clear();
     bool exportJsonl(const std::string& path) const;
 
 private:
+    ReplayRecorderPolicy policy_{};
     std::vector<NeuralChipReplayRecord> records_{};
 };
 

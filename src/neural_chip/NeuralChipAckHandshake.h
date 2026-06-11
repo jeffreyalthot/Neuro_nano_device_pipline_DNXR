@@ -6,10 +6,13 @@ namespace dnxr {
 
 struct NeuralChipAckState {
     std::uint64_t expectedFrameId = 0;
+    bool hasPendingAck = false;
     bool ackReceived = true;
     bool timeout = false;
     float ackQuality01 = 1.0f;
     double expectedSinceMs = 0.0;
+    std::uint64_t rejectedAckFrameId = 0;
+    bool wrongFrameIdRejected = false;
 };
 
 class NeuralChipAckHandshake {

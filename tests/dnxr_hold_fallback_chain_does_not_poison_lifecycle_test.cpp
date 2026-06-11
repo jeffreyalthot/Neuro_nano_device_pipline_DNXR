@@ -1,0 +1,3 @@
+#include "neural_chip/NeuralChipFrameCommitter.h"
+#include <cassert>
+int main(){ dnxr::NeuralChipBus bus; dnxr::FrameLifecycleGuard lifecycle; dnxr::SafeChipFrameHoldBuffer hold; dnxr::NeuralChipFrameCommitter c(bus,lifecycle,hold); dnxr::FullDiveChipFrame bad; bad.frameId=1; bad.timestampMs=1; bad.visual.globalLuminance01=2.0f; auto r=c.commitCandidate(bad); assert(!r.accepted); assert(r.safetyHold); assert(bus.getHealthStatus().safeHoldActive); dnxr::FullDiveChipFrame good; good.frameId=2; good.timestampMs=2; good.touch.painBlocked01=good.touch.burnBlocked01=good.touch.crushBlocked01=good.touch.shockBlocked01=1.0f; auto ok=c.commitCandidate(good); assert(ok.accepted); }

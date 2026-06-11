@@ -114,9 +114,16 @@ void NeuralChipOnlyFullDivePipeline::markAccepted(const FullDiveChipFrame& frame
 
 bool NeuralChipOnlyFullDivePipeline::step(const NeuralChipOnlyWorldFrame& rawWorld) {
     decisionTrace_.clear();
-    const NeuralChipOnlyWorldFrame world = WorldFrameSanitizer{}.apply(rawWorld, config_);
+    const auto worldSanitization = WorldFrameSanitizer{}.sanitize(rawWorld, config_);
+    if (!worldSanitization.accepted) {
+        FullDiveChipFrame holdProbe{};
+        holdProbe.frameId = rawWorld.frameId;
+        holdProbe.timestampMs = rawWorld.timestampMs;
+        return rejectWithHold(holdProbe, worldSanitization.reason, 0.0f);
+    }
+    const NeuralChipOnlyWorldFrame world = worldSanitization.sanitized;
 
-    if (observedEmergencyLatch_ && !emergencyLatch_.latched() && resumeController_.normal()) {
+    if (observedEmergencyLatch_ && !emergencyLatch_.latched() && resumeController_.locked()) {
         resumeController_.beginControlledResume();
     }
 
