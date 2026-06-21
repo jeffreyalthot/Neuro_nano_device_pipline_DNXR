@@ -13,7 +13,15 @@ enum class ClinicalEvidenceKind {
     ClinicalProtocolPackage,
     REBIRBApproval,
     HealthCanadaITAOrIDEAuthorization,
-    IndependentMedicalSignoff
+    IndependentMedicalSignoff,
+    QMSReleaseSignoff,
+    ClinicalSiteAuthorization,
+    OperatorAuthorization,
+    PatientConsent,
+    PatientCalibration,
+    SessionPrescription,
+    MonitoringActivation,
+    EmergencyStopVerification
 };
 
 struct ClinicalEvidenceRecord {
@@ -30,6 +38,17 @@ struct ClinicalEvidenceRecord {
 
 struct ClinicalEvidenceVerificationResult {
     bool complete = false;
+    bool qmsPackageValid = false;
+    bool regulatoryPackageValid = false;
+    bool ethicsPackageValid = false;
+    bool physicianPackageValid = false;
+    bool clinicalProtocolValid = false;
+    bool clinicalSiteAuthorized = false;
+    bool sessionUnlockValid = false;
+    bool patientConsentValid = false;
+    bool patientCalibrationValid = false;
+    bool monitoringActive = false;
+    bool emergencyStopReady = false;
     std::vector<std::string> missing;
     std::vector<std::string> invalid;
 };

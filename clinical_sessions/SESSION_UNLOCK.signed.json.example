@@ -1,0 +1,19 @@
+{
+  "schema": "dnxr.clinical_session_unlock.v1",
+  "session_id": "SESSION-2026-0001",
+  "protocol_id": "DNXR-FIRST-IN-HUMAN-001",
+  "site_id": "SITE-001",
+  "subject_id": "SUBJECT-PSEUDONYMIZED-001",
+  "operator_id": "CLINICIAN-001",
+  "principal_investigator_id": "PI-001",
+  "patient_consent_signed": true,
+  "patient_calibration_signed": true,
+  "session_prescription_signed": true,
+  "monitoring_active": true,
+  "physical_emergency_stop_verified": true,
+  "software_emergency_stop_verified": true,
+  "clinician_present": true,
+  "allowed_capabilities": { "connect_human_subject": true, "record_neural_signal": true, "run_calibration": true, "dispatch_stimulus": true },
+  "session_limits": { "expires_at": "2026-06-20T15:00:00Z", "max_session_minutes": 30, "must_stop_on_monitoring_loss": true, "must_stop_on_emergency_button": true },
+  "signature": { "algorithm": "Ed25519", "key_id": "PI-001", "signed_at": "2026-06-20T14:00:00Z", "value": "base64-signature" }
+}
