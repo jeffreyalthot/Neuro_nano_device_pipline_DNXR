@@ -1,0 +1,15 @@
+{
+  "schema": "dnxr.clinic_test_unlock.v1",
+  "release": "0.6.5",
+  "build_hash": "sha256-of-binary-or-source-release",
+  "mode": "clinical_human_investigation",
+  "jurisdiction": "CA",
+  "clinical_site": { "name": "Authorized Clinic", "site_id": "SITE-001", "authorized": true },
+  "protocol": { "protocol_id": "DNXR-FIRST-IN-HUMAN-001", "title": "Controlled clinical investigation protocol", "version": "1.0", "signed": true, "expires_at": "2026-12-31T23:59:59Z" },
+  "qms": { "qms_release_id": "REL-0.6.5", "qms_signed": true, "risk_file_signed": true, "verification_package_signed": true, "validation_package_signed": true },
+  "regulatory": { "health_canada_ita": true, "fda_ide": false, "reb_approval": true, "irb_approval": false },
+  "clinical_roles": { "principal_investigator_signed": true, "medical_monitor_signed": true, "qms_lead_signed": true, "safety_officer_signed": true, "operator_authorized": true },
+  "runtime_requirements": { "patient_consent_required": true, "patient_calibration_required": true, "physical_emergency_stop_required": true, "continuous_monitoring_required": true, "clinician_presence_required": true },
+  "allowed_capabilities": { "connect_human_subject": true, "record_neural_signal": true, "run_calibration": true, "dispatch_stimulus": false },
+  "signature": { "algorithm": "Ed25519", "key_id": "QMS-LEAD-001", "signed_at": "2026-06-20T00:00:00Z", "expires_at": "2026-12-31T23:59:59Z", "value": "base64-signature" }
+}

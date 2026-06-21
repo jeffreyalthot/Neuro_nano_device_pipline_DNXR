@@ -385,3 +385,13 @@ Key runtime capabilities:
 
 See `docs/DEEP_IMMERSION_NEURAL_VECTOR_RUNTIME_SPEC.md` for complete technical documentation.
 See `docs/NEURAL_CHIP_XR_SOFTWARE_IMPROVEMENT_PLAN.md` for the software improvement backlog.
+
+## Controlled clinical investigation unlock path
+
+This repository supports a locked-by-default clinical investigation path. `DNXR_CLINICAL_TEST_BUILD=ON` compiles the path but does not unlock human use. Runtime unlock requires signed QMS, regulatory/ethics, protocol, site, operator, physician investigator, hardware bench, and session artifacts. See `docs/CLINICAL_UNLOCK_WORKFLOW.md`, `docs/CLINICAL_TEST_MODE.md`, `docs/SESSION_UNLOCK_SPEC.md`, and `docs/CLINIC_OPERATOR_GUIDE.md`.
+
+Use the non-Qt status panel:
+
+```bash
+python tools/clinical/dnxr_clinic_unlock_check.py --clinic-unlock clinical_evidence/CLINIC_TEST_UNLOCK.signed.json --session-unlock clinical_sessions/SESSION_UNLOCK.signed.json --trust-store qms/trust/qms_trust_store.json --revocations qms/trust/revoked_keys.json --source-root .
+```

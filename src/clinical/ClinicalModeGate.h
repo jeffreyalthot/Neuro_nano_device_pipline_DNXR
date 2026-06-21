@@ -8,6 +8,9 @@
 namespace dnxr {
 
 struct ClinicalModeGateDecision {
+    bool clinicalReviewAllowed = false;
+    bool humanConnectionAllowed = false;
+    bool humanSessionAllowed = false;
     bool humanUseAllowed = false;
     bool stimulusDispatchAllowed = false;
     std::vector<std::string> blockers;
