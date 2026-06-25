@@ -31,6 +31,18 @@ if(DNXR_ENABLE_CLINICAL_READINESS_VALIDATION)
     set(DNXR_ENABLE_NO_ALLOCATION_GUARD ON CACHE BOOL "Enable no-allocation guard readiness tests" FORCE)
 endif()
 
+if(DNXR_ENABLE_HARDWARE_BENCH AND DNXR_SIMULATION_ONLY)
+    message(FATAL_ERROR "DNXR_ENABLE_HARDWARE_BENCH requires DNXR_SIMULATION_ONLY=OFF")
+endif()
+
+if(DNXR_ENABLE_HUMAN_CLINICAL_TRIAL AND NOT DNXR_HUMAN_USE_BUILD)
+    message(FATAL_ERROR "DNXR_ENABLE_HUMAN_CLINICAL_TRIAL requires DNXR_HUMAN_USE_BUILD=ON and signed evidence gate")
+endif()
+
+if(DNXR_ENABLE_HUMAN_CLINICAL_TRIAL AND NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/clinical_evidence/HUMAN_USE_BUILD_GATE.signed.json")
+    message(FATAL_ERROR "Human clinical trial build requires signed HUMAN_USE_BUILD_GATE.signed.json")
+endif()
+
 if(DNXR_HUMAN_USE_BUILD AND NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/clinical_evidence/HUMAN_USE_BUILD_GATE.signed.json")
     message(FATAL_ERROR "DNXR_HUMAN_USE_BUILD requires clinical_evidence/HUMAN_USE_BUILD_GATE.signed.json and cannot be enabled by CMake flag alone")
 endif()
@@ -116,6 +128,11 @@ if(DNXR_SIMULATION_ONLY)
 else()
     target_compile_definitions(dnxr_core PUBLIC DNXR_SIMULATION_ONLY=0)
 endif()
+target_compile_definitions(dnxr_core PUBLIC
+    DNXR_ENABLE_HARDWARE_BENCH=$<BOOL:${DNXR_ENABLE_HARDWARE_BENCH}>
+    DNXR_ENABLE_PRECLINICAL_PHANTOM=$<BOOL:${DNXR_ENABLE_PRECLINICAL_PHANTOM}>
+    DNXR_ENABLE_HUMAN_CLINICAL_TRIAL=$<BOOL:${DNXR_ENABLE_HUMAN_CLINICAL_TRIAL}>
+)
 
 dnxr_apply_sanitizers(dnxr_core)
 
@@ -145,6 +162,8 @@ if(DNXR_BUILD_TESTS)
     function(dnxr_add_test test_name)
         if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/${test_name}.cpp")
             set(test_source "tests/${test_name}.cpp")
+        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/full_dive/${test_name}.cpp")
+            set(test_source "tests/full_dive/${test_name}.cpp")
         elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/hardware/${test_name}.cpp")
             set(test_source "tests/hardware/${test_name}.cpp")
         elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/runtime/${test_name}.cpp")
@@ -430,6 +449,25 @@ if(DNXR_BUILD_TESTS)
         dnxr_traceability_coverage_gate_test
         dnxr_release_readiness_gate_test
         dnxr_signed_evidence_manifest_test
+        dnxr_gustatory_discrete_stimulation_test
+        dnxr_haptic_proprioception_mismatch_test
+        dnxr_no_pain_mapping_test
+        dnxr_olfactory_persistence_budget_test
+        dnxr_thermal_burn_lockout_test
+        dnxr_visual_audio_phase_lock_test
+        dnxr_visual_vestibular_conflict_blocks_motion_test
+        dnxr_neural_chip_ack_timeout_test
+        dnxr_neural_chip_capability_mismatch_test
+        dnxr_neural_chip_feedback_required_test
+        dnxr_neural_chip_firmware_mismatch_test
+        dnxr_neural_chip_packet_hash_chain_test
+        dnxr_neural_chip_temperature_cutoff_test
+        dnxr_decompression_state_machine_test
+        dnxr_dissociation_reality_anchor_test
+        dnxr_flash_pattern_visual_block_test
+        dnxr_locked_in_channel_loss_test
+        dnxr_pain_perception_emergency_stop_test
+        dnxr_vestibular_hard_limit_test
     )
 
     if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)
@@ -441,6 +479,8 @@ if(DNXR_BUILD_TESTS)
     endforeach()
 
     set_tests_properties(dnxr_safety_state_machine_concurrency_test PROPERTIES LABELS "concurrency;safety")
+    set_tests_properties(dnxr_real_readiness_gate_allows_hardware_bench_no_human_test dnxr_real_readiness_gate_blocks_human_without_authorization_test PROPERTIES LABELS "real;clinical_blocker")
+    set_tests_properties(dnxr_hardware_bench_requires_dummy_load_test dnxr_hardware_bench_requires_emergency_stop_test dnxr_hardware_bench_requires_trace_recorder_test dnxr_hardware_bench_dry_run_sends_no_active_output_test PROPERTIES LABELS "hardware_bench;hardware;real")
     set_tests_properties(dnxr_vestibular_budget_boundary_test PROPERTIES LABELS "unit;safety")
     set_tests_properties(dnxr_sensory_frame_schema_test PROPERTIES LABELS "unit;safety")
     set_tests_properties(dnxr_vestibular_exposure_budget_test PROPERTIES LABELS "unit;safety")

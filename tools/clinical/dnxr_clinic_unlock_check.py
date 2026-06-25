@@ -19,7 +19,7 @@ def iso_expired(value):
 
 def signed(obj):
     sig=(obj or {}).get('signature',{})
-    return sig.get('algorithm')=='Ed25519' and bool(sig.get('key_id')) and bool(sig.get('value'))
+    return sig.get('algorithm')=='Ed25519' and bool(sig.get('key_id')) and bool(sig.get('value')) and not str(sig.get('value')).startswith('simulated') and not artifact.get('expired', False)
 
 def yes(v): return 'yes' if v else 'no'
 

@@ -1,55 +1,9 @@
 {
   "version": 3,
   "configurePresets": [
-    {
-      "name": "debug",
-      "displayName": "Debug",
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/debug",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "DNXR_BUILD_TESTS": "ON"
-      }
-    },
-    {
-      "name": "release",
-      "displayName": "Release",
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/release",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "DNXR_BUILD_TESTS": "ON"
-      }
-    },
-    {
-      "name": "asan",
-      "displayName": "Debug + ASAN + UBSAN",
-      "inherits": "debug",
-      "binaryDir": "${sourceDir}/build/asan",
-      "cacheVariables": {
-        "DNXR_ENABLE_ASAN": "ON",
-        "DNXR_ENABLE_UBSAN": "ON",
-        "DNXR_ENABLE_TSAN": "OFF"
-      }
-    },
-    {
-      "name": "tsan",
-      "displayName": "Debug + TSAN",
-      "inherits": "debug",
-      "binaryDir": "${sourceDir}/build/tsan",
-      "cacheVariables": {
-        "DNXR_ENABLE_ASAN": "OFF",
-        "DNXR_ENABLE_TSAN": "ON"
-      }
-    },
-    {
-      "name": "ubsan",
-      "displayName": "Debug + UBSAN",
-      "inherits": "debug",
-      "binaryDir": "${sourceDir}/build/ubsan",
-      "cacheVariables": {
-        "DNXR_ENABLE_UBSAN": "ON"
-      }
-    }
+    {"name":"simulation","generator":"Ninja","binaryDir":"build/simulation","cacheVariables":{"DNXR_SIMULATION_ONLY":"ON","DNXR_ENABLE_HARDWARE_BENCH":"OFF","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF"}},
+    {"name":"hardware-bench-dry-run","generator":"Ninja","binaryDir":"build/hardware-bench-dry-run","cacheVariables":{"DNXR_SIMULATION_ONLY":"OFF","DNXR_ENABLE_HARDWARE_BENCH":"ON","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF"}},
+    {"name":"hardware-bench-active-dummy","generator":"Ninja","binaryDir":"build/hardware-bench-active-dummy","cacheVariables":{"DNXR_SIMULATION_ONLY":"OFF","DNXR_ENABLE_HARDWARE_BENCH":"ON","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF"}},
+    {"name":"clinical-locked","generator":"Ninja","binaryDir":"build/clinical-locked","cacheVariables":{"DNXR_SIMULATION_ONLY":"OFF","DNXR_ENABLE_HARDWARE_BENCH":"ON","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF","DNXR_CLINICAL_TEST_BUILD":"ON"}}
   ]
 }

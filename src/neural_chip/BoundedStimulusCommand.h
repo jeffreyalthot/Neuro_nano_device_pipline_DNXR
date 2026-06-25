@@ -12,5 +12,16 @@ struct BoundedStimulusCommand {
     bool activeOutputEnabled = false;
     bool dummyLoadAttached = false;
     std::string safetyCaseId;
+    bool validatedBySafetyKernel = false;
+    std::string qmsTraceId;
+    std::string targetBindingId;
+    std::string authorizationScope;
+    std::int64_t expiresAtUnixSeconds = 0;
+    std::string commandHash;
+    std::string previousCommandHash;
+    bool freshAckRequired = true;
+    float normalizedCeiling = 0.0f;
+    float maxDeltaPerFrame = 0.0f;
+    float cumulativeBudget = 0.0f;
 };
 }

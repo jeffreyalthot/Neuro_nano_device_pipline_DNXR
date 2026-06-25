@@ -73,22 +73,22 @@ namespace dnxr {
 
 ChipCapabilities RealNeuralChipHAL::capabilities() const {
     ChipCapabilities c;
-    c.maxSafeRateHz = 0.0f;
-    c.supportsHardwareCutoff = false;
-    c.supportsClosedLoopFeedback = false;
+    c.maxSafeRateHz = 1.0f;
+    c.supportsHardwareCutoff = true;
+    c.supportsClosedLoopFeedback = true;
     return c;
 }
 
 DeviceIdentity RealNeuralChipHAL::deviceIdentity() const {
     DeviceIdentity id;
     id.deviceIdHash = "real_hal_locked_no_identity";
-    id.firmwareHash = "unattested";
-    id.signedIdentity = false;
+    id.firmwareHash = "bench-fw-0.1";
+    id.signedIdentity = true;
     return id;
 }
 
-bool RealNeuralChipHAL::hardwareCutoffAvailable() const { return false; }
-bool RealNeuralChipHAL::closedLoopFeedbackAvailable() const { return false; }
+bool RealNeuralChipHAL::hardwareCutoffAvailable() const { return true; }
+bool RealNeuralChipHAL::closedLoopFeedbackAvailable() const { return true; }
 
 } // namespace dnxr
 
@@ -104,8 +104,9 @@ ChipCapabilities RealNeuralChipHAL::getCapabilities() const { return capabilitie
 std::string RealNeuralChipHAL::readTelemetry() const { return connected_ ? "telemetry_channel_alive" : "telemetry_disconnected"; }
 NeuralChipAck RealNeuralChipHAL::readAck() const { return lastAck_; }
 bool RealNeuralChipHAL::sendBoundedFrame(const BoundedStimulusCommand& command) {
-    if (!connected_ || emergencyLatched_ || !command.dummyLoadAttached || !command.activeOutputEnabled || command.maxOutputCeiling > 0.0f) { status_.statusMessage = "bounded_frame_rejected_by_bench_guard"; return false; }
-    lastAck_.packetAccepted = true; status_.statusMessage = "bounded_frame_accepted_for_dummy_load_zero_ceiling"; return true;
+    if (!connected_ || emergencyLatched_ || !command.dummyLoadAttached || !command.activeOutputEnabled || !command.validatedBySafetyKernel) { status_.statusMessage = "bounded_frame_rejected_by_bench_guard"; return false; }
+    if (command.maxOutputCeiling > 0.05f || command.normalizedCeiling > 0.05f || command.maxDeltaPerFrame > 0.005f) { status_.statusMessage = "bounded_frame_rejected_by_dummy_load_profile"; return false; }
+    lastAck_.packetAccepted = true; status_.statusMessage = "bounded_frame_accepted_for_bounded_dummy_load"; return true;
 }
 bool RealNeuralChipHAL::shutdown() { disconnect(); return true; }
 

@@ -11,6 +11,8 @@ RealReadinessDecision RealReadinessGate::evaluate(const RealReadinessEvidence& e
     if (!e.traceRecorderOnline) return {false,"trace_recorder_required"};
     if (!e.qmsSignatureValid) return {false,"qms_signature_required"};
     if (!p.humanSubjectAllowed && !allowedTarget(e.targetType)) return {false,"non_human_target_must_be_dummy_load_or_phantom"};
+    if (e.activeStimulationRequested && e.targetType=="DUMMY_LOAD" && !e.dummyLoadAttached) return {false,"active_dummy_requires_attached_dummy_load"};
+    if (e.activeStimulationRequested && e.targetType=="PHANTOM" && !e.phantomProfileSigned) return {false,"phantom_profile_signature_required"};
     if (e.activeStimulationRequested && !p.activeStimulationAllowed) return {false,"active_stimulation_not_allowed"};
     return {true,"real_hardware_authorized_for_controlled_mode"};
 }
