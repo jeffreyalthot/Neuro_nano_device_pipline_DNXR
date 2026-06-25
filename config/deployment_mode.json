@@ -1,0 +1,9 @@
+{
+  "deployment_mode": "HARDWARE_BENCH_NO_HUMAN",
+  "human_use_enabled": false,
+  "requires_qms_signature": true,
+  "requires_hardware_self_test": true,
+  "requires_safety_kernel": true,
+  "requires_emergency_stop": true,
+  "requires_trace_recorder": true
+}

@@ -10,6 +10,7 @@
 #include "../immersion/SensoryFrameSchema.h"
 #include "NeuralChipAck.h"
 #include "ChipCapabilityNegotiation.h"
+#include "../neural_chip/BoundedStimulusCommand.h"
 
 namespace dnxr {
 
@@ -128,6 +129,15 @@ public:
     NeuralChipFrame readFrame() override;
     bool writeSafeStimulus(const SafeNeuralStimulusCommandFixed& command) override;
     bool writeSafeStimulus(const SafeNeuralStimulusCommand& command) { return command.modalityIntensities.size() == DNXR_STIMULUS_MODALITY_COUNT && writeSafeStimulus(toFixedCommand(command)); }
+    bool init(const std::string& deviceIdentifier);
+    bool selfTest();
+    bool handshake();
+    ChipCapabilities getCapabilities() const;
+    std::string readTelemetry() const;
+    NeuralChipAck readAck() const;
+    bool sendBoundedFrame(const BoundedStimulusCommand& command);
+    bool sendBoundedFrame(const RawSensoryPayload&) = delete;
+    bool shutdown();
     void emergencyStop(const std::string& reason) override;
     NeuralChipStatus status() const override;
     NeuralChipAck lastAck() const override;
@@ -156,6 +166,15 @@ public:
     NeuralChipFrame readFrame() override;
     bool writeSafeStimulus(const SafeNeuralStimulusCommandFixed& command) override;
     bool writeSafeStimulus(const SafeNeuralStimulusCommand& command) { return command.modalityIntensities.size() == DNXR_STIMULUS_MODALITY_COUNT && writeSafeStimulus(toFixedCommand(command)); }
+    bool init(const std::string& deviceIdentifier);
+    bool selfTest();
+    bool handshake();
+    ChipCapabilities getCapabilities() const;
+    std::string readTelemetry() const;
+    NeuralChipAck readAck() const;
+    bool sendBoundedFrame(const BoundedStimulusCommand& command);
+    bool sendBoundedFrame(const RawSensoryPayload&) = delete;
+    bool shutdown();
     void emergencyStop(const std::string& reason) override;
     NeuralChipStatus status() const override;
     NeuralChipAck lastAck() const override;

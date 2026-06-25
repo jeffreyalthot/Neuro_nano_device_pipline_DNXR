@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DNXR Hardware Bench Session Manifest",
+  "type": "object",
+  "required": ["session_id", "deployment_mode", "human_subject_present", "target_type", "qms_signature_id", "safety_kernel_enabled", "emergency_stop_verified", "trace_recording_enabled", "max_output_ceiling", "active_stimulation_enabled"],
+  "properties": {
+    "session_id": {"type": "string"},
+    "deployment_mode": {"const": "HARDWARE_BENCH_NO_HUMAN"},
+    "human_subject_present": {"const": false},
+    "target_type": {"enum": ["DUMMY_LOAD", "PHANTOM"]},
+    "operator_id": {"type": "string"},
+    "qms_signature_id": {"type": "string"},
+    "hardware_serial": {"type": "string"},
+    "firmware_version": {"type": "string"},
+    "safety_kernel_enabled": {"const": true},
+    "emergency_stop_verified": {"const": true},
+    "trace_recording_enabled": {"const": true},
+    "max_output_ceiling": {"type": "number", "maximum": 0.0},
+    "active_stimulation_enabled": {"type": "boolean"}
+  }
+}
