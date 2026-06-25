@@ -12,8 +12,8 @@ namespace dnxr {
 #define DNXR_SIMULATION_ONLY 1
 #endif
 
-#if !DNXR_SIMULATION_ONLY
-#error Real crypto backend required for non-simulation builds
+#if !DNXR_SIMULATION_ONLY && !DNXR_ENABLE_HARDWARE_BENCH
+#error Real crypto backend required for non-simulation builds outside controlled hardware bench
 #endif
 
 class SimulationCryptoTransport {
