@@ -7,6 +7,10 @@ option(DNXR_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 option(DNXR_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 option(DNXR_ENABLE_TSAN "Enable ThreadSanitizer" OFF)
 option(DNXR_SIMULATION_ONLY "Force simulation-only runtime guardrails" ON)
+option(DNXR_ENABLE_SIMULATION "Enable simulation runtime" ON)
+option(DNXR_ENABLE_HARDWARE_BENCH "Enable real hardware bench runtime without human use" OFF)
+option(DNXR_ENABLE_PRECLINICAL_PHANTOM "Enable preclinical phantom mode" OFF)
+option(DNXR_ENABLE_HUMAN_CLINICAL_TRIAL "Enable authorized human clinical trial mode" OFF)
 option(DNXR_HUMAN_USE_BUILD "Build clinical human-use runtime; requires a local signed evidence gate file" OFF)
 option(DNXR_CLINICAL_TEST_BUILD "Enable controlled clinical investigation unlock path" OFF)
 option(DNXR_ENABLE_LONG_SIMULATED_TESTS "Enable long simulated tests" ON)
@@ -128,6 +132,13 @@ add_executable(distributed_neural_xr src/main.cpp)
 target_link_libraries(distributed_neural_xr PRIVATE dnxr_core)
 dnxr_apply_sanitizers(distributed_neural_xr)
 
+if(DNXR_ENABLE_HARDWARE_BENCH)
+    add_executable(dnxr_hardware_bench src/hardware_bench/main.cpp src/hardware_bench/HardwareBenchRuntime.cpp src/hardware_bench/HardwareBenchSession.cpp src/hardware_bench/HardwareBenchSelfTest.cpp src/hardware_bench/HardwareBenchEmergencyStop.cpp src/hardware_bench/HardwareBenchTelemetry.cpp src/bench/DummyLoadAdapter.cpp src/bench/SignalSinkProbe.cpp src/bench/NeuralChipPhantomInterface.cpp src/real/RealReadinessGate.cpp src/real/RealModePolicy.cpp src/real/HardwareBenchAuthorization.cpp src/core/RuntimeDeploymentMode.cpp src/hardware/RealNeuralChipHAL.cpp src/hardware/NeuralChipHAL.cpp)
+    target_include_directories(dnxr_hardware_bench PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(dnxr_hardware_bench PRIVATE dnxr_core)
+    dnxr_apply_sanitizers(dnxr_hardware_bench)
+endif()
+
 if(DNXR_BUILD_TESTS)
     enable_testing()
 
@@ -146,6 +157,10 @@ if(DNXR_BUILD_TESTS)
             set(test_source "tests/assets/${test_name}.cpp")
         elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/safety/${test_name}.cpp")
             set(test_source "tests/safety/${test_name}.cpp")
+        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/real/${test_name}.cpp")
+            set(test_source "tests/real/${test_name}.cpp")
+        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/hardware_bench/${test_name}.cpp")
+            set(test_source "tests/hardware_bench/${test_name}.cpp")
         else()
             message(FATAL_ERROR "Missing test source for ${test_name}")
         endif()
@@ -378,6 +393,14 @@ if(DNXR_BUILD_TESTS)
         dnxr_reject_with_hold_path_kind_test
         dnxr_pipeline_path_classifier_test
         dnxr_decision_trace_coverage_pipeline_integration_test
+        dnxr_real_readiness_gate_allows_hardware_bench_no_human_test
+        dnxr_real_readiness_gate_blocks_human_without_authorization_test
+        dnxr_hardware_bench_requires_dummy_load_test
+        dnxr_hardware_bench_requires_emergency_stop_test
+        dnxr_hardware_bench_requires_trace_recorder_test
+        dnxr_real_hal_rejects_raw_sensory_payload_compile_test
+        dnxr_real_hal_accepts_bounded_stimulus_command_test
+        dnxr_hardware_bench_dry_run_sends_no_active_output_test
         dnxr_emergency_latch_controller_pipeline_integration_test
         dnxr_hold_stability_tracker_test
         dnxr_pipeline_resume_state_bridge_test
