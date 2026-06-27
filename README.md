@@ -395,3 +395,48 @@ Use the non-Qt status panel:
 ```bash
 python tools/clinical/dnxr_clinic_unlock_check.py --clinic-unlock clinical_evidence/CLINIC_TEST_UNLOCK.signed.json --session-unlock clinical_sessions/SESSION_UNLOCK.signed.json --trust-store qms/trust/qms_trust_store.json --revocations qms/trust/revoked_keys.json --source-root .
 ```
+
+## Full Unlocked controlled runtime lane
+
+This repository now includes a controlled **Full Unlocked** software lane for development, simulation, replay, diagnostics, and benchmark work. It exposes modules and diagnostics without removing critical emergency, physiological, signed-evidence, or human-use safety gates.
+
+### Configure and build
+
+```bash
+# Debug
+cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug -DDNXR_BUILD_TESTS=ON
+cmake --build build/debug -j
+
+# Release
+cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release -DDNXR_BUILD_TESTS=ON
+cmake --build build/release -j
+```
+
+### Execute modes
+
+```bash
+./build/release/distributed_neural_xr --mode standard --headless --cycles=10
+./build/release/distributed_neural_xr --mode simulation --headless --cycles=10
+./build/release/distributed_neural_xr --full-unlocked --headless --cycles=10
+./build/release/distributed_neural_xr --diagnostic --headless --cycles=10
+./build/release/distributed_neural_xr --replay --headless --cycles=10
+./build/release/distributed_neural_xr --benchmark --headless --cycles=1
+```
+
+### Focused validation and benchmark commands
+
+```bash
+ctest --test-dir build/debug -R '^(runtime_mode_test|full_unlocked_runtime_test|pipeline_state_machine_test|safety_decision_test|performance_smoke_test|replay_consistency_test|timebase_sync_test)$' --output-on-failure
+./build/release/distributed_neural_xr --benchmark --headless --cycles=1
+```
+
+See also:
+
+- `docs/FULL_UNLOCKED_MODE.md`
+- `docs/ARCHITECTURE.md`
+- `docs/PERFORMANCE.md`
+- `docs/SAFETY_MODEL.md`
+- `docs/TESTING.md`
+- `docs/DEPLOYMENT.md`
+- `docs/RESEARCH_SPECIALIZATION_REPORT.md`
+- `docs/VALIDATION_REPORT.md`

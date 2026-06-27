@@ -4,6 +4,12 @@
 #include "../calibration/NeuralCalibrationEngine.h"
 #include "../cognition/StateInferenceEngine.h"
 #include "../core/SystemKernel.h"
+#include "../core/PipelineOrchestrator.h"
+#include "../config/FullUnlockedConfig.h"
+#include "../config/RuntimeMode.h"
+#include "../performance/FrameBudgetMonitor.h"
+#include "../performance/HotPathDiagnostics.h"
+#include "../performance/PipelineBenchmark.h"
 #include "../devices/XRHeadsetInterface.h"
 #include "../immersion/ImmersionCore.h"
 #include "../input/RuntimeSignalRouter.h"
@@ -40,7 +46,19 @@ RuntimeApplication::RuntimeApplication(RuntimeConfig config)
     : config_(std::move(config)) {}
 
 int RuntimeApplication::run() {
-    Logger::info("Booting DNXR runtime | profile=" + config_.profile);
+    Logger::info("Booting DNXR runtime | profile=" + config_.profile + " | mode=" + config_.runtimeMode);
+
+    const RuntimeMode mode = runtimeModeFromString(config_.runtimeMode);
+    PipelineOrchestrator orchestrator(config_);
+    FrameBudgetMonitor frameBudget(static_cast<double>(config_.targetLoopMs));
+    if (mode == RuntimeMode::FullUnlocked) {
+        const auto unlocked = FullUnlockedConfig::defaults();
+        Logger::info("[FullUnlocked] " + unlocked.describe());
+    }
+    if (config_.benchmarkEnabled || mode == RuntimeMode::Benchmark) {
+        PipelineBenchmark benchmark;
+        Logger::info("[PipelineBenchmark] " + benchmark.run(config_.benchmarkCycles, [](std::uint64_t) noexcept {}));
+    }
 
     SystemKernel kernel;
     kernel.setCycleDuration(config_.targetLoopMs);
@@ -79,6 +97,10 @@ int RuntimeApplication::run() {
     while (config_.maxRuntimeCycles <= 0 || cycle < config_.maxRuntimeCycles) {
         const auto loopStart = std::chrono::steady_clock::now();
         metrics.beginCycle();
+        const auto orchestration = orchestrator.runSyntheticCycle(static_cast<std::uint64_t>(cycle));
+        if (!orchestration.accepted) {
+            Logger::warn("[PipelineOrchestrator] " + orchestration.reason);
+        }
         kernel.runCycle();
 
         const auto rawSignal = signalRouter.nextSignal(cycle);
@@ -162,6 +184,7 @@ int RuntimeApplication::run() {
         const auto elapsedMs =
             std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now() - loopStart).count();
+        frameBudget.observe(static_cast<double>(elapsedMs));
         if (elapsedMs < config_.targetLoopMs) {
             sleepMs(static_cast<int>(config_.targetLoopMs - elapsedMs));
         }
@@ -178,6 +201,13 @@ int RuntimeApplication::run() {
 
     if (!safetyJournal.saveToFile(auditSessionPath, "logs/safety/latest.audit")) {
         Logger::warn("[RuntimeApplication] Failed to persist safety audit journal.");
+    }
+
+    if (isInspectionEnabled(mode) || config_.fullUnlockedDiagnostics) {
+        HotPathDiagnostics hotPath;
+        Logger::info("[RuntimeDiagnostics] " + orchestrator.diagnostics());
+        Logger::info("[FrameBudget] " + frameBudget.report());
+        Logger::info("[HotPathDiagnostics] " + hotPath.summary());
     }
 
     Logger::info("Shutdown complete.");

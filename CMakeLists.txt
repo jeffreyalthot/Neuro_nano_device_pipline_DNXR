@@ -190,6 +190,13 @@ if(DNXR_BUILD_TESTS)
     endfunction()
 
     set(DNXR_TEST_TARGETS
+        runtime_mode_test
+        full_unlocked_runtime_test
+        pipeline_state_machine_test
+        replay_consistency_test
+        performance_smoke_test
+        safety_decision_test
+        timebase_sync_test
         dnxr_state_smoke_test
         dnxr_config_loader_test
         dnxr_json_parser_test
