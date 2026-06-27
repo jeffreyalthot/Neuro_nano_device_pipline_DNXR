@@ -27,6 +27,10 @@ void operator delete(void* ptr) noexcept {
     std::free(ptr);
 }
 
+void operator delete(void* ptr, std::size_t) noexcept {
+    std::free(ptr);
+}
+
 int main() {
     dnxr::RuntimePipelineSinks sinks;
     std::uint64_t states = 0U;

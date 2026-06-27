@@ -1,0 +1,6 @@
+level,name,default_contents,required_gate
+0,Public summary,Non-confidential abstracts,None
+1,Architecture summary,High-level design without code,Mutual NDA recommended
+2,Technical dossier partial,QMS excerpts and selected evidence,Executed NDA
+3,Full technical package,Source code tests QMS evidence,Executed NDA and logged access
+4,IP commercial,Ownership valuation negotiation materials,Need-to-know approval

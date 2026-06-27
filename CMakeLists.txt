@@ -187,6 +187,9 @@ if(DNXR_BUILD_TESTS)
         target_link_libraries(${test_name} PRIVATE dnxr_core)
         dnxr_apply_sanitizers(${test_name})
         add_test(NAME ${test_name} COMMAND ${test_name})
+        set_tests_properties(${test_name} PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        )
     endfunction()
 
     set(DNXR_TEST_TARGETS

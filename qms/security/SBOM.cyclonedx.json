@@ -1,0 +1,550 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:00000000-0000-0000-0000-dnxr00000606",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-06-27T00:00:00Z",
+    "tools": [
+      {
+        "vendor": "DNXR QMS",
+        "name": "generate_due_diligence_manifests.py"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "Neuro_nano_device_pipline",
+      "version": "0.6.6"
+    },
+    "properties": [
+      {
+        "name": "dnxr:file_hash_manifest",
+        "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "file",
+      "name": ".gitignore",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d8b35c71f59c468661a53a4b12d83f9c810e2fb6fcac6a37d98d2830f8d35d03"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "1"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "UNKNOWN_REQUIRES_REVIEW"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "CMakeLists.txt",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ac7a1a75d646c14920b8b092c1fa5612b81c1e00a89f5a133cb95be6a511b1cb"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "1"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "CONFIG_SAMPLE"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "CMakePresets.json",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b9d133b08445006427763fc6a14a8afa663a7483c5b1e8285c31c1863635746c"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "1"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "CONFIG_SAMPLE"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "COMMANDE_SECTION_GAME_DEVICE.md",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "cbe6ca11ff86c3d87c743f8fa0f8f0a3db1f9b9deeafb1fefad10e8d1d014ae2"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "1"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "ORIGINAL_DOCUMENTATION"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "LICENCE",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8506a46a945bb882f290eeb6def18bb89835686735280fdf735a4690bda0632f"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "1"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "UNKNOWN_REQUIRES_REVIEW"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "README.md",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8408549fd99304191243b31bde87bb9e931fab0bd1c6eb1b8b8358d5b14bcb5b"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "1"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "ORIGINAL_DOCUMENTATION"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "TERMS_OF_USE.md",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f9da0a83d0d7caf42b4c50a73ee2a78f57a93717cc01e904f545fdab34c1bd14"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "1"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "ORIGINAL_DOCUMENTATION"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "VERSION",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ba3f4ddb87bf192e47c1eafe96e30c6b9323fc0e0b0c89d6c80528101338369d"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "1"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "UNKNOWN_REQUIRES_REVIEW"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "assets",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "442bbb1c591bb60ad0368657ddc9f128b83d185da8c634cb529b412a7ea8407f"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "9"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "ORIGINAL_DOCUMENTATION;THIRD_PARTY_ASSET"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "clinical_evidence",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "05934ab8df9bd5e6d3167a1d20c9f644e6916080b44270b74c739999853d100c"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "2"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "CONFIG_SAMPLE;UNKNOWN_REQUIRES_REVIEW"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 3"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "clinical_sessions",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8626cf976c4fc1221e3dc39ad1b251a5d11a1b77278d7ce89b603921508f56f5"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "1"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "UNKNOWN_REQUIRES_REVIEW"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 3"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "config",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f37049650fd256759f39bfc8731680bf7cb0ba4c223c6b108c8b3d98851abab7"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "17"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "CONFIG_SAMPLE"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "docs",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "774c08c5d8f962c85643b9cac03c9281d61a03c96059584a3f0b7bc3265da431"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "165"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "CONFIG_SAMPLE;ORIGINAL_DOCUMENTATION"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "evidence",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3e965ee5fc40b4c62bb3b522b49dad40c5aee4a66c160ffd76b500e3ff7694a4"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "7"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "CONFIG_SAMPLE"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "qms",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4dcbeebfde316d7392e149e95bf8a1b078caf5531d5161d310e098aeadf2e01c"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "108"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "CONFIG_SAMPLE;GENERATED_QMS_ARTIFACT;ORIGINAL_DOCUMENTATION;UNKNOWN_REQUIRES_REVIEW"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 3"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "src",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c2a8151d617f6a29eb3f1b65f3646b1165488269c4741eb9be078cc100e3b733"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "851"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "ORIGINAL_SOURCE;UNKNOWN_REQUIRES_REVIEW"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 3"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "tests",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "36f50428db0f2c8ecbf37bf199250167d74dfad575170fc6cb3f05beb7ff443a"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "285"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "ORIGINAL_SOURCE;UNKNOWN_REQUIRES_REVIEW"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 3"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "tools",
+      "version": "0.6.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f16dd2faebb3bc57ea95ad571b773f422e3fcb9ff2ccdecef2f7c8ebe3a31285"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dnxr:file_count",
+          "value": "42"
+        },
+        {
+          "name": "dnxr:provenance_classes",
+          "value": "UNKNOWN_REQUIRES_REVIEW"
+        },
+        {
+          "name": "dnxr:confidentiality_levels",
+          "value": "Level 2"
+        },
+        {
+          "name": "dnxr:file_hash_manifest",
+          "value": "docs/acquisition/SHA256_MASTER_MANIFEST.txt"
+        }
+      ]
+    }
+  ]
+}

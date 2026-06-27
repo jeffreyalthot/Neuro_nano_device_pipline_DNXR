@@ -1,0 +1,2 @@
+test_name,configuration,status,root_cause,disposition,owner,notes
+ALL,/tmp/neuro_build_dd,PASS,none,No failed tests to disposition,Engineering,"No failed tests in the 2026-06-27 due-diligence run after test working-directory and gate expectation corrections."
