@@ -66,6 +66,7 @@ RuntimeConfig ConfigLoader::loadRuntimeConfigFromString(const std::string& json,
     }
 
     config.profile = root.getString("profile", config.profile);
+    config.runtimeMode = root.getString("runtime_mode", config.runtimeMode);
     config.targetLoopMs = root.getInt("target_loop_ms", config.targetLoopMs);
     config.maxCyclesPerSecond = root.getInt("max_cycles_per_second", config.maxCyclesPerSecond);
     config.maxRuntimeCycles = root.getInt("max_runtime_cycles", config.maxRuntimeCycles);
@@ -90,6 +91,10 @@ RuntimeConfig ConfigLoader::loadRuntimeConfigFromString(const std::string& json,
         root.getUInt64("xr_target_framerate", config.xrTargetFramerate),
         std::numeric_limits<std::uint32_t>::max()));
     config.xrAsyncTelemetry = root.getBool("xr_async_telemetry", config.xrAsyncTelemetry);
+    config.fullUnlockedDiagnostics = root.getBool("full_unlocked_diagnostics", config.fullUnlockedDiagnostics);
+    config.replayEnabled = root.getBool("replay_enabled", config.replayEnabled);
+    config.benchmarkEnabled = root.getBool("benchmark_enabled", config.benchmarkEnabled);
+    config.benchmarkCycles = root.getUInt64("benchmark_cycles", config.benchmarkCycles);
     config.simulatedSignal = root.getFloatArray("simulated_signal", config.simulatedSignal);
     normalize(config);
     return config;

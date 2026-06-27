@@ -8,6 +8,7 @@ namespace dnxr {
 
 struct RuntimeConfig {
     std::string profile = "simulation_safe";
+    std::string runtimeMode = "simulation_mode";
     int targetLoopMs = 20;
     int maxCyclesPerSecond = 50;
     int maxRuntimeCycles = 0; // 0 = run until externally stopped.
@@ -26,6 +27,11 @@ struct RuntimeConfig {
     std::string xrAuthTokenEnv = "DNXR_XR_AUTH_TOKEN";
     std::uint32_t xrTargetFramerate = 90;
     bool xrAsyncTelemetry = true;
+
+    bool fullUnlockedDiagnostics = false;
+    bool replayEnabled = false;
+    bool benchmarkEnabled = false;
+    std::uint64_t benchmarkCycles = 256;
 
     std::vector<float> simulatedSignal = {0.2f, 0.4f, 0.6f, 0.3f, 0.1f};
 };

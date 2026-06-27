@@ -1,0 +1,2 @@
+#include "EmergencyLatchController.h"
+namespace dnxr { void EmergencyLatchController::trigger(const SafetyDecision& decision){ latched_=true; audit_.append(decision); } bool EmergencyLatchController::reset(const std::string& operatorId, const std::string& reason){ if (operatorId.empty() || reason.empty()) return false; SafetyDecision d; d.module="EmergencyLatchController"; d.rule="audited_reset"; d.action="reset_by_" + operatorId; d.correction=reason; audit_.append(d); latched_=false; return true; } }
