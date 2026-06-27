@@ -1,0 +1,322 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "Neuro_nano_device_pipline due diligence module SBOM",
+  "documentNamespace": "https://example.invalid/dnxr/sbom/0.6.6/due-diligence",
+  "creationInfo": {
+    "created": "2026-06-27T00:00:00Z",
+    "creators": [
+      "Tool: tools/qms/generate_due_diligence_manifests.py"
+    ]
+  },
+  "documentComment": "Compact module-level SBOM. File-level SHA-256 values are in docs/acquisition/SHA256_MASTER_MANIFEST.txt and SOURCE_CODE_DISCLOSURE_MANIFEST.csv.",
+  "packages": [
+    {
+      "name": ".gitignore",
+      "SPDXID": "SPDXRef-Module-1",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d8b35c71f59c468661a53a4b12d83f9c810e2fb6fcac6a37d98d2830f8d35d03"
+        }
+      ],
+      "summary": "Repository module with 1 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "CMakeLists.txt",
+      "SPDXID": "SPDXRef-Module-2",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ac7a1a75d646c14920b8b092c1fa5612b81c1e00a89f5a133cb95be6a511b1cb"
+        }
+      ],
+      "summary": "Repository module with 1 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "CMakePresets.json",
+      "SPDXID": "SPDXRef-Module-3",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b9d133b08445006427763fc6a14a8afa663a7483c5b1e8285c31c1863635746c"
+        }
+      ],
+      "summary": "Repository module with 1 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "COMMANDE_SECTION_GAME_DEVICE.md",
+      "SPDXID": "SPDXRef-Module-4",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cbe6ca11ff86c3d87c743f8fa0f8f0a3db1f9b9deeafb1fefad10e8d1d014ae2"
+        }
+      ],
+      "summary": "Repository module with 1 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "LICENCE",
+      "SPDXID": "SPDXRef-Module-5",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8506a46a945bb882f290eeb6def18bb89835686735280fdf735a4690bda0632f"
+        }
+      ],
+      "summary": "Repository module with 1 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "README.md",
+      "SPDXID": "SPDXRef-Module-6",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8408549fd99304191243b31bde87bb9e931fab0bd1c6eb1b8b8358d5b14bcb5b"
+        }
+      ],
+      "summary": "Repository module with 1 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "TERMS_OF_USE.md",
+      "SPDXID": "SPDXRef-Module-7",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f9da0a83d0d7caf42b4c50a73ee2a78f57a93717cc01e904f545fdab34c1bd14"
+        }
+      ],
+      "summary": "Repository module with 1 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "VERSION",
+      "SPDXID": "SPDXRef-Module-8",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ba3f4ddb87bf192e47c1eafe96e30c6b9323fc0e0b0c89d6c80528101338369d"
+        }
+      ],
+      "summary": "Repository module with 1 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "assets",
+      "SPDXID": "SPDXRef-Module-9",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "442bbb1c591bb60ad0368657ddc9f128b83d185da8c634cb529b412a7ea8407f"
+        }
+      ],
+      "summary": "Repository module with 9 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "clinical_evidence",
+      "SPDXID": "SPDXRef-Module-10",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "05934ab8df9bd5e6d3167a1d20c9f644e6916080b44270b74c739999853d100c"
+        }
+      ],
+      "summary": "Repository module with 2 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "clinical_sessions",
+      "SPDXID": "SPDXRef-Module-11",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8626cf976c4fc1221e3dc39ad1b251a5d11a1b77278d7ce89b603921508f56f5"
+        }
+      ],
+      "summary": "Repository module with 1 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "config",
+      "SPDXID": "SPDXRef-Module-12",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f37049650fd256759f39bfc8731680bf7cb0ba4c223c6b108c8b3d98851abab7"
+        }
+      ],
+      "summary": "Repository module with 17 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "docs",
+      "SPDXID": "SPDXRef-Module-13",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "774c08c5d8f962c85643b9cac03c9281d61a03c96059584a3f0b7bc3265da431"
+        }
+      ],
+      "summary": "Repository module with 165 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "evidence",
+      "SPDXID": "SPDXRef-Module-14",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3e965ee5fc40b4c62bb3b522b49dad40c5aee4a66c160ffd76b500e3ff7694a4"
+        }
+      ],
+      "summary": "Repository module with 7 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "qms",
+      "SPDXID": "SPDXRef-Module-15",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4dcbeebfde316d7392e149e95bf8a1b078caf5531d5161d310e098aeadf2e01c"
+        }
+      ],
+      "summary": "Repository module with 108 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "src",
+      "SPDXID": "SPDXRef-Module-16",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c2a8151d617f6a29eb3f1b65f3646b1165488269c4741eb9be078cc100e3b733"
+        }
+      ],
+      "summary": "Repository module with 851 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "SOURCE"
+    },
+    {
+      "name": "tests",
+      "SPDXID": "SPDXRef-Module-17",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "36f50428db0f2c8ecbf37bf199250167d74dfad575170fc6cb3f05beb7ff443a"
+        }
+      ],
+      "summary": "Repository module with 285 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    },
+    {
+      "name": "tools",
+      "SPDXID": "SPDXRef-Module-18",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f16dd2faebb3bc57ea95ad571b773f422e3fcb9ff2ccdecef2f7c8ebe3a31285"
+        }
+      ],
+      "summary": "Repository module with 42 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "primaryPackagePurpose": "DOCUMENTATION"
+    }
+  ]
+}

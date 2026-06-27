@@ -16,6 +16,15 @@ HumanSubjectUseDecision HumanSubjectUseGate::evaluate(const HumanSubjectUseEvide
     }
 
     if (!e.qmsReleaseSignatureValid) {
+        if (e.benchProfilePresent && e.hilEvidencePresent) {
+            d.status = HumanSubjectUseStatus::PreclinicalReviewCandidate;
+            d.allowClinicalReview = true;
+            d.blockers.push_back("qms_release_signature_invalid_or_missing");
+            d.reason =
+                "Preclinical review candidate: bench and HIL evidence are present, "
+                "but human use remains locked until signed QMS release evidence is valid.";
+            return d;
+        }
         d.status = HumanSubjectUseStatus::BlockedSimulationOnly;
         d.blockers.push_back("qms_release_signature_invalid_or_missing");
         d.reason = "Simulation-only lock: QMS release signature is missing or invalid.";

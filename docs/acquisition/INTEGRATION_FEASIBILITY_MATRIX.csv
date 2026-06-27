@@ -1,0 +1,6 @@
+area,current_state,integration_dependency,risk,disposition
+Runtime architecture,Modular C++17 package,Target platform adapter,Medium,Review APIs and threading model
+Safety gates,Documented software interlocks,Signed evidence and external review,High,Keep gates mandatory
+HIL evidence,Simulation/HIL scaffold,Independent HIL lab execution,Medium,Generate external report
+Clinical path,Locked by default,IDE/ITA IRB/REB physician approvals,High,Do not bypass QMS gates
+Supply chain,SBOM scaffold,Tool-generated SBOM and license review,Medium,Complete before disclosure

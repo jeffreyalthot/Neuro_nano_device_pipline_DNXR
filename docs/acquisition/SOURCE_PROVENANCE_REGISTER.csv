@@ -1,0 +1,4 @@
+path_or_pattern,provenance_class,owner,review_status,notes
+src/**,ORIGINAL_SOURCE,TBD,Needs legal confirmation,
+docs/**,ORIGINAL_DOCUMENTATION,TBD,Needs owner confirmation,
+qms/generated/**,GENERATED_QMS_ARTIFACT,TBD,Generated evidence needs reproducibility record,

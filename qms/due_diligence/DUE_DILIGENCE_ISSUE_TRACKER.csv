@@ -1,0 +1,5 @@
+id,priority,domain,issue,owner,status,disposition
+DD-P0-001,P0,Versioning,Clarify 0.6.5 versus 0.6.6 disclosure boundary,QMS lead,Open,0.6.6 treated as internal due-diligence/hardware-bench audit increment
+DD-P0-002,P0,Build,Produce full build and CTest logs,Engineering,Open,Pending complete local/CI execution
+DD-P0-003,P0,Security,Generate tool-backed SPDX and CycloneDX SBOMs,Security,Open,Scaffold added pending tool run
+DD-P0-004,P0,Clinical,Preserve human-use lock with documented QMS unlock evidence,Medical/QMS,Open,No bypass allowed
