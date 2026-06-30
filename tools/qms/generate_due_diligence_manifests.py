@@ -24,6 +24,8 @@ SELF_REFERENTIAL = {
     "docs/acquisition/SHA256_MASTER_MANIFEST.txt",
     "qms/security/SBOM.spdx.json",
     "qms/security/SBOM.cyclonedx.json",
+    "docs/acquisition/REPOSITORY_INVENTORY.md",
+    "qms/security/LICENSE_COMPLIANCE_MATRIX.csv",
 }
 EXCLUDED_DIRS = {
     ".git",

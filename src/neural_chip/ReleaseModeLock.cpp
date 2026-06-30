@@ -32,8 +32,8 @@ bool ReleaseModeLock::isCompliant(const ReleaseModeLockConfig& config) const {
 
 std::string ReleaseModeLock::explain(const ReleaseModeLockConfig& config) const {
     return isCompliant(config) ?
-        "0.6.5 release mode locked to bench/HIL medical-review candidate with human use and stimulus dispatch disabled." :
-        "0.6.5 release mode request violates bench-only no-human-use constraints.";
+        "0.6.6 release mode locked to bench/HIL medical-review candidate with human use and stimulus dispatch disabled." :
+        "0.6.6 release mode request violates bench-only no-human-use constraints.";
 }
 
 } // namespace dnxr

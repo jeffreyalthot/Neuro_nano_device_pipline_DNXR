@@ -6,20 +6,14 @@ import json
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+RELEASE = "0.6.6"
 ARTIFACTS = {
-    "docs/RND_TECHNICAL_DOSSIER_0_6_5.md": "technical_dossier",
-    "docs/RELEASE_NOTES_0_6_5.md": "release_notes",
-    "qms/release_records/REL-0.6.5.md": "release_record",
-    "docs/OPEN_RISK_REGISTER_0_6_5.md": "open_risk_register",
-    "qms/generated/FullBuildValidation_0_6_5.md": "full_build_validation",
-    "qms/generated/CTestSummary_0_6_5.md": "ctest_summary",
-    "qms/generated/StaticChecks_0_6_5.md": "static_checks",
-    "qms/generated/HILBenchMetrics_0_6_5.json": "hil_bench_metrics",
-    "qms/generated/HILBenchSessionReport_0_6_5.md": "hil_bench_session_report",
-    "qms/generated/HILFaultInjectionReport_0_6_5.md": "hil_fault_injection_report",
-    "qms/generated/HILEmergencyStopReport_0_6_5.md": "hil_emergency_stop_report",
-    "qms/generated/HILPhantomDisconnectReport_0_6_5.md": "hil_phantom_disconnect_report",
-    "qms/generated/HILReplayConsistencyReport_0_6_5.md": "hil_replay_consistency_report",
+    "docs/RND_TECHNICAL_DOSSIER_0_6_5.md": "historical_technical_dossier",
+    "docs/RELEASE_NOTES_0_6_6.md": "release_notes",
+    "docs/OPEN_RISK_REGISTER_0_6_6.md": "open_risk_register",
+    "docs/HARDWARE_BENCH_MODE_0_6_6.md": "hardware_bench_mode",
+    "qms/release_records/REL-0.6.6.md": "release_record",
+    "qms/generated/HardwareBenchReadiness_0_6_6.md": "hardware_bench_readiness",
 }
 
 def sha256(path: pathlib.Path) -> str:
@@ -35,10 +29,13 @@ def main() -> int:
         p = ROOT / rel
         if p.exists():
             files.append({"path": rel, "sha256": sha256(p), "role": role})
-    manifest = {"release": "0.6.5", "files": files, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(), "generator": "dnxr-qms"}
-    out = ROOT / "qms/generated/SignedEvidenceManifest_0_6_5.json"
+    generated = dt.datetime.now(dt.timezone.utc).isoformat()
+    manifest = {"release": RELEASE, "files": files, "generatedAt": generated, "generator": "dnxr-qms", "signatureStatus": "development_only_unsigned_index"}
+    out = ROOT / "qms/generated/SignedEvidenceManifest_0_6_6.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    index = {"release": RELEASE, "generatedAt": generated, "generated_evidence": files, "signedEvidenceManifest": out.relative_to(ROOT).as_posix()}
+    (ROOT / "qms/generated/ReleaseEvidenceIndex_0_6_6.json").write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
     return 0
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -15,8 +15,8 @@
 ## Blocked claims unless independently evidenced and authorized
 | Claim | Required evidence before use |
 | --- | --- |
-| Safe for humans | Clinical evidence, regulatory authorization, medical approval |
-| Clinically ready | Approved protocol, ethics review, regulator authorization, monitoring plan |
+| Human-safety claim | Clinical evidence, regulatory authorization, medical approval |
+| Clinical-readiness claim | Approved protocol, ethics review, regulator authorization, monitoring plan |
 | Implant-ready | Device verification/validation, biocompatibility/safety evidence, regulatory clearance |
 | Certified/approved medical device | Applicable regulator certification/clearance/license |
 | Validated on real patients | Controlled clinical data and approvals |

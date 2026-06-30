@@ -40,7 +40,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "ac7a1a75d646c14920b8b092c1fa5612b81c1e00a89f5a133cb95be6a511b1cb"
+          "checksumValue": "acca3603e11ceb8aa058cfda464c33b2e072c6cbf70ca6c061d7112599c26f53"
         }
       ],
       "summary": "Repository module with 1 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
@@ -176,7 +176,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "05934ab8df9bd5e6d3167a1d20c9f644e6916080b44270b74c739999853d100c"
+          "checksumValue": "d4db1f161f2817bb28f1721dcc18718cacdf654fc5cae48b489039d47a86992f"
         }
       ],
       "summary": "Repository module with 2 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
@@ -227,10 +227,10 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "774c08c5d8f962c85643b9cac03c9281d61a03c96059584a3f0b7bc3265da431"
+          "checksumValue": "9979ddb8cd1b95977e18683392b82b247e04d9554ebc00762d393fe5f2b6e3f2"
         }
       ],
-      "summary": "Repository module with 165 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "summary": "Repository module with 164 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
       "primaryPackagePurpose": "DOCUMENTATION"
     },
     {
@@ -261,10 +261,10 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "4dcbeebfde316d7392e149e95bf8a1b078caf5531d5161d310e098aeadf2e01c"
+          "checksumValue": "07934bf100ad57d2a0251b5cc1df08084bad24c59f93a41f2b8df4770b99610d"
         }
       ],
-      "summary": "Repository module with 108 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "summary": "Repository module with 109 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
       "primaryPackagePurpose": "DOCUMENTATION"
     },
     {
@@ -278,10 +278,10 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "c2a8151d617f6a29eb3f1b65f3646b1165488269c4741eb9be078cc100e3b733"
+          "checksumValue": "9f4b027f3b7507afa2c6bfb09959db0b3c75c43d8cdd01dc7d0514bde7617945"
         }
       ],
-      "summary": "Repository module with 851 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "summary": "Repository module with 861 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
       "primaryPackagePurpose": "SOURCE"
     },
     {
@@ -295,10 +295,10 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "36f50428db0f2c8ecbf37bf199250167d74dfad575170fc6cb3f05beb7ff443a"
+          "checksumValue": "8103314a02e93a6e39b59dd506d672db7d7aea32b6fb1cb81ed4d1becc186c0f"
         }
       ],
-      "summary": "Repository module with 285 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
+      "summary": "Repository module with 290 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
       "primaryPackagePurpose": "DOCUMENTATION"
     },
     {
@@ -312,7 +312,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "f16dd2faebb3bc57ea95ad571b773f422e3fcb9ff2ccdecef2f7c8ebe3a31285"
+          "checksumValue": "0c4a1847bbfb84a5a3e758fe07afb6718b617fd9a6df7c3ad4e6c4901921452c"
         }
       ],
       "summary": "Repository module with 42 files; file-level hashes are in docs/acquisition/SHA256_MASTER_MANIFEST.txt",
