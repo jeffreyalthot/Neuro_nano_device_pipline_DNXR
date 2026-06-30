@@ -11,8 +11,8 @@
 - Architecture, traceability, risk, test, and QMS documentation prepared for expert review.
 
 ## Prohibited unsupported characterization
-- Safe for humans.
-- Clinically ready or patient validated.
+- Human-safety claim.
+- Clinical-readiness or patient-validation claim.
 - Implant-ready or approved/certified medical device.
 - Full-dive human deployment ready.
 - Authorized for clinical trial or human-subject use without external IDE/ITA/IRB/REB/physician approvals.

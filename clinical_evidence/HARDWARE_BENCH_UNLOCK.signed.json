@@ -1,1 +1,15 @@
-{"payload":{"scope":"hardware_bench","session":"HB-0.6.6-DRY-RUN"},"signature":{"algorithm":"Ed25519","key_id":"dnxr-qms-dev-key","value":"development-placeholder-not-cryptographic"}}
+{
+  "payload": {
+    "scope": "hardware_bench",
+    "session": "HB-0.6.6-DRY-RUN",
+    "development_only": true,
+    "active_output_authorized": false,
+    "human_subject_allowed": false,
+    "warning": "Development-only structural signature scaffold; not acceptable for active output."
+  },
+  "signature": {
+    "algorithm": "Ed25519",
+    "key_id": "dnxr-qms-dev-key",
+    "value": "development-placeholder-not-cryptographic"
+  }
+}

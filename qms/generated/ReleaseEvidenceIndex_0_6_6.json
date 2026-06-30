@@ -1,1 +1,37 @@
-{"release":"0.6.6","generated_evidence":[]}
+{
+  "release": "0.6.6",
+  "generatedAt": "2026-06-30T06:13:03.416595+00:00",
+  "generated_evidence": [
+    {
+      "path": "docs/RND_TECHNICAL_DOSSIER_0_6_5.md",
+      "sha256": "37ffddbffec55864b7f1938aad9e1b2013de546ea15e67555eea8910df8b696e",
+      "role": "historical_technical_dossier"
+    },
+    {
+      "path": "docs/RELEASE_NOTES_0_6_6.md",
+      "sha256": "fda7c818e238a36757d6ce1452d07c8c4491411e9ffa2c9d4a5e5fffec7d1f9c",
+      "role": "release_notes"
+    },
+    {
+      "path": "docs/OPEN_RISK_REGISTER_0_6_6.md",
+      "sha256": "327eb5996b4592a0bebb22cf2d534f0374cc50c366fcb3b4bffea7adf06b851d",
+      "role": "open_risk_register"
+    },
+    {
+      "path": "docs/HARDWARE_BENCH_MODE_0_6_6.md",
+      "sha256": "1a743dc64ebc56ed5eeebbbe24fcf77eb1a4dd9d27b9302661febdfbf62bf9cf",
+      "role": "hardware_bench_mode"
+    },
+    {
+      "path": "qms/release_records/REL-0.6.6.md",
+      "sha256": "212759704a33476e4e2cbfd9419fab10da98e51306bd5c3db71175c86a1090ff",
+      "role": "release_record"
+    },
+    {
+      "path": "qms/generated/HardwareBenchReadiness_0_6_6.md",
+      "sha256": "cd630c2745c2bc1367942863372ecc2ec4cd3f5efbf0236e9f3ee192e74477fb",
+      "role": "hardware_bench_readiness"
+    }
+  ],
+  "signedEvidenceManifest": "qms/generated/SignedEvidenceManifest_0_6_6.json"
+}
