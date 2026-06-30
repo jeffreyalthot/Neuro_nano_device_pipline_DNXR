@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include "../evidence/CryptoSignatureVerifier.h"
 
 namespace dnxr {
 
@@ -32,6 +33,14 @@ struct ClinicalEvidenceRecord {
     std::string author;
     std::string role;
     bool approved = false;
+    std::string keyId;
+    std::string trustAnchor;
+    std::string signedBuildHash;
+    std::string signedSourceManifestHash;
+    std::string patientId;
+    std::string sessionId;
+    std::string protocolId;
+    bool revoked = false;
     std::int64_t signedAtUnixSeconds = 0;
     std::int64_t expiresAtUnixSeconds = 0;
 };
