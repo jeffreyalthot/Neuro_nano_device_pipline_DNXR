@@ -12,6 +12,8 @@ This generated report merges normal CTest expectations, clinical-readiness lane 
 - NamedIndependentSignOffMissing
 - Runtime10kBoundedEvidencePassed
 - Runtime10kFullEvidencePassed
+- ClinicalReadinessLane289Passed
+- LongReadinessTestsExecuted
 - ReadinessLanePassed
 - PreclinicalEvidenceIncomplete
 - RegulatoryPackageDraftReady
@@ -39,11 +41,12 @@ ctest --test-dir build_readiness --output-on-failure
 - Full 10k lane transcript: `qms/generated/ReadinessLaneTranscript-Full10k.md` (present)
 - Runtime evidence rule: bounded projection evidence supports routine CI readiness only; full execution evidence is required before clinical-test readiness can be unblocked.
 
-## Disabled-test impact
-- dnxr_runtime_controller_pipeline_10k_cycles_test: Blocking unless executed in the clinical-readiness validation lane or justified in the clinical gap report.
-- dnxr_vestibular_exposure_budget_long_test: Blocking unless executed in the clinical-readiness validation lane or justified in the clinical gap report.
-- dnxr_full_dive_intervention_window_long_test: Blocking unless executed in the clinical-readiness validation lane or justified in the clinical gap report.
-- dnxr_runtime_controller_100k_cycles_test: Blocking unless executed in the clinical-readiness validation lane or justified in the clinical gap report.
+## Long-test execution impact
+- dnxr_runtime_controller_pipeline_10k_cycles_test: executed and passed in `qms/generated/FULL_CTEST_REPORT_0_6_6.md`.
+- dnxr_vestibular_exposure_budget_long_test: executed and passed in `qms/generated/FULL_CTEST_REPORT_0_6_6.md`.
+- dnxr_full_dive_intervention_window_long_test: executed and passed in `qms/generated/FULL_CTEST_REPORT_0_6_6.md`.
+- dnxr_runtime_controller_100k_cycles_test: executed and passed in `qms/generated/FULL_CTEST_REPORT_0_6_6.md`.
+- Full clinical-readiness lane result: 289/289 tests passed, 0 failed.
 
 ## QMS checks
 - Required readiness documents: passed
@@ -66,7 +69,8 @@ ctest --test-dir build_readiness --output-on-failure
 - High-severity hazards requiring independent review: 17
 
 ## Cybersecurity evidence status
-- Structural cybersecurity controls and tests exist; penetration/vulnerability evidence and signed threat-model review remain blocking for clinical-readiness claims.
+- 0.6.6 internal cybersecurity execution closure is present at `qms/security/CYBERSECURITY_EXECUTION_CLOSURE_0_6_6.md`.
+- Vulnerability scan/disposition evidence and SBOM artifacts are present. External penetration testing remains a limitation for advanced clinical or human-use cybersecurity claims.
 
 ## Canada readiness status
 - CanadaReadinessProfile tracks ITA pathway memo, manufacturer/importer role, REB readiness, investigator package, protocol readiness, and Medical Devices Regulations assumptions.
@@ -77,4 +81,4 @@ ctest --test-dir build_readiness --output-on-failure
 - Status remains blocked until those items are completed and reviewed by qualified regulatory/clinical owners.
 
 ## Overall conclusion
-ClinicalTestAcceptanceReviewReady is the software/QMS review target when manifest-selected artifacts are coherent; ClinicalTestReady remains blocked until physical HIL, named sign-off, regulatory/ethics authorization, and clinical protocol records are complete. Bounded Runtime10k evidence is reported separately and is not treated as equivalent to full execution evidence.
+ClinicalTestAcceptanceReviewReady is the software/QMS review target when manifest-selected artifacts are coherent and the 0.6.6 clinical-readiness lane now has 289/289 passing tests. ClinicalTestReady remains blocked until physical HIL, named sign-off, regulatory/ethics authorization, clinical protocol records, and independent external cybersecurity validation are complete. Bounded Runtime10k evidence is reported separately and is not treated as equivalent to full execution evidence.

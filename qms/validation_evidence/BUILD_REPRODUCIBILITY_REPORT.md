@@ -5,18 +5,18 @@
 
 ## Reference commands
 ```bash
-cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_SIMULATION_ONLY=ON
-cmake --build build -j2
-ctest --test-dir build --output-on-failure
+cmake -S . -B build_readiness -DDNXR_ENABLE_CLINICAL_READINESS_VALIDATION=ON
+cmake --build build_readiness -j2
+ctest --test-dir build_readiness --output-on-failure
 ```
 
-## Due-diligence run completed
-- Configure: `cmake -S . -B /tmp/neuro_build_dd -DDNXR_BUILD_TESTS=ON -DDNXR_SIMULATION_ONLY=ON`
-- Build: `cmake --build /tmp/neuro_build_dd -j2`
-- Test: `ctest --test-dir /tmp/neuro_build_dd --output-on-failure`
-- Result: configure PASS, build PASS, CTest PASS.
-- Raw build log: `qms/generated/FULL_BUILD_LOG_0_6_5.md`.
-- Raw CTest report: `qms/generated/FULL_CTEST_REPORT_0_6_5.md`.
+## 0.6.6 clinical-readiness run completed
+- Configure: `cmake -S . -B build_readiness -DDNXR_ENABLE_CLINICAL_READINESS_VALIDATION=ON`
+- Build: `cmake --build build_readiness -j2`
+- Test: `ctest --test-dir build_readiness --output-on-failure`
+- Result: configure PASS, build PASS, CTest PASS with 289/289 tests passing.
+- Raw build log: `qms/generated/FULL_BUILD_LOG_0_6_6.md`.
+- Raw CTest report: `qms/generated/FULL_CTEST_REPORT_0_6_6.md`.
 
 ## Sanitizer lanes to execute for final release evidence
 ```bash

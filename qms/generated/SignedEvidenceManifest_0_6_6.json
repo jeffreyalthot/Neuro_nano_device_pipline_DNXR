@@ -32,7 +32,10 @@
       "role": "hardware_bench_readiness"
     }
   ],
-  "generatedAt": "2026-06-30T06:13:03.416595+00:00",
+  "generatedAt": "2026-06-30T07:15:43.514894+00:00",
   "generator": "dnxr-qms",
-  "signatureStatus": "development_only_unsigned_index"
+  "signatureStatus": "internal_qms_sha256_signed_index",
+  "signatureAlgorithm": "sha256(canonical_release_payload)",
+  "signatureScope": "internal software evidence integrity only; not a medical/regulatory approval signature",
+  "internalSignature": "d008d6c24c115684bf13464bf2a1f67efc40424001a2206ab7a47995999fca2b"
 }
