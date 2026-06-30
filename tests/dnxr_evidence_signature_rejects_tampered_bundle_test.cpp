@@ -1,0 +1,3 @@
+#include "../src/evidence/EvidenceBundleVerifier.h"
+#include <cassert>
+int main(){ auto b=dnxr::BuildFingerprint::current(); dnxr::SignedEvidenceDocument d{"artifact", dnxr::CryptoSignatureVerifier::digestHex("payload"), "bad", "qa", "qms", "key", 1, 2000}; d.signature=dnxr::CryptoSignatureVerifier::digestHex(dnxr::CryptoSignatureVerifier::canonicalPayload(d)+"|trust"); d.payloadHash=dnxr::CryptoSignatureVerifier::digestHex("tampered"); dnxr::EvidenceBundleDocument bd{d,b.buildHash,b.sourceManifestHash,"p","s","pr"}; auto r=dnxr::EvidenceBundleVerifier{}.verify({bd},{},b,"trust",1000); assert(!r.valid); }

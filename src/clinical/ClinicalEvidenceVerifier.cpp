@@ -1,6 +1,8 @@
 #include "ClinicalEvidenceVerifier.h"
 
 #include <algorithm>
+#include "../evidence/BuildFingerprint.h"
+#include "../evidence/CryptoSignatureVerifier.h"
 
 namespace dnxr {
 
@@ -48,17 +50,26 @@ ClinicalEvidenceVerificationResult ClinicalEvidenceVerifier::verify(
             result.missing.push_back(toString(required));
             continue;
         }
-        if (it->artifactId.empty() || it->hash.size() < 16U || it->signature.size() < 16U ||
-            it->author.empty() || it->role.empty() || !it->approved ||
-            it->expiresAtUnixSeconds <= nowUnixSeconds || it->signedAtUnixSeconds <= 0) {
+        std::string reason;
+        CryptoSignatureVerifier verifier;
+        SignedEvidenceDocument document{it->artifactId, it->hash, it->signature, it->author, it->role, it->keyId, it->signedAtUnixSeconds, it->expiresAtUnixSeconds};
+        const auto build = BuildFingerprint::current();
+        if (!it->approved || it->revoked || it->signedBuildHash != build.buildHash ||
+            it->signedSourceManifestHash != build.sourceManifestHash ||
+            !verifier.verify(document, it->trustAnchor, nowUnixSeconds, &reason)) {
             result.invalid.push_back(toString(required));
         }
     }
     auto valid = [&](ClinicalEvidenceKind kind) {
         return std::find_if(records.begin(), records.end(), [kind, nowUnixSeconds](const ClinicalEvidenceRecord& record) {
-            return record.kind == kind && !record.artifactId.empty() && record.hash.size() >= 16U &&
-                   record.signature.size() >= 16U && !record.author.empty() && !record.role.empty() &&
-                   record.approved && record.expiresAtUnixSeconds > nowUnixSeconds && record.signedAtUnixSeconds > 0;
+            std::string reason;
+            CryptoSignatureVerifier verifier;
+            SignedEvidenceDocument document{record.artifactId, record.hash, record.signature, record.author, record.role, record.keyId, record.signedAtUnixSeconds, record.expiresAtUnixSeconds};
+            const auto build = BuildFingerprint::current();
+            return record.kind == kind && record.approved && !record.revoked &&
+                   record.signedBuildHash == build.buildHash &&
+                   record.signedSourceManifestHash == build.sourceManifestHash &&
+                   verifier.verify(document, record.trustAnchor, nowUnixSeconds, &reason);
         }) != records.end();
     };
     result.qmsPackageValid = valid(ClinicalEvidenceKind::QMSReleaseSignoff) &&

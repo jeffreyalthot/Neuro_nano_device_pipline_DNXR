@@ -322,6 +322,11 @@ if(DNXR_BUILD_TESTS)
         dnxr_deadline_violation_triggers_emergency_test
         dnxr_patient_stop_signal_latches_shutdown_test
         dnxr_unsigned_evidence_cannot_unlock_clinical_mode_test
+        dnxr_evidence_signature_rejects_tampered_bundle_test
+        dnxr_human_unlock_rejects_wrong_build_hash_test
+        dnxr_human_unlock_rejects_revoked_signature_test
+        dnxr_human_unlock_rejects_expired_protocol_test
+        dnxr_human_unlock_rejects_unsigned_patient_session_test
         dnxr_runtime_five_sense_coherence_stage_test
         dnxr_runtime_body_schema_stage_test
         dnxr_runtime_closed_loop_feedback_stage_test
