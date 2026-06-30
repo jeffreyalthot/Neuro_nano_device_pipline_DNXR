@@ -16,6 +16,6 @@ int main() {
     auto manifest = builder.build({{path, "test_artifact"}});
     assert(manifest.files.size() == 1U);
     assert(manifest.files[0].sha256 == digest);
-    assert(manifest.toJson().find("0.6.5") != std::string::npos);
+    assert(manifest.toJson().find("0.6.6") != std::string::npos);
     return 0;
 }

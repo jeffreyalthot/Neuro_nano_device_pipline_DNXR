@@ -30,7 +30,10 @@ def main() -> int:
         if p.exists():
             files.append({"path": rel, "sha256": sha256(p), "role": role})
     generated = dt.datetime.now(dt.timezone.utc).isoformat()
-    manifest = {"release": RELEASE, "files": files, "generatedAt": generated, "generator": "dnxr-qms", "signatureStatus": "development_only_unsigned_index"}
+    payload = {"release": RELEASE, "files": files, "generatedAt": generated, "generator": "dnxr-qms"}
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    internal_signature = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    manifest = {**payload, "signatureStatus": "internal_qms_sha256_signed_index", "signatureAlgorithm": "sha256(canonical_release_payload)", "signatureScope": "internal software evidence integrity only; not a medical/regulatory approval signature", "internalSignature": internal_signature}
     out = ROOT / "qms/generated/SignedEvidenceManifest_0_6_6.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
