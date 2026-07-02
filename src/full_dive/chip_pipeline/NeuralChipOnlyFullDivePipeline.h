@@ -48,6 +48,7 @@
 #include "neural_chip/NeuralVectorValidator.h"
 #include "neural_chip/PatientModalityPolicyGate.h"
 #include "neural_chip/PatientSpecificNeuralMap.h"
+#include "full_dive/spike_bridge/StimulusBySpikeRuntime.h"
 #include "neural_chip/SafeChipFrameHoldBuffer.h"
 
 namespace dnxr {
@@ -140,6 +141,7 @@ private:
     AvatarKinematicRigController avatarRig_{};
     AvatarSafetyPoseController avatarSafetyPose_{};
     PerModalityIsolationBroker isolationBroker_{};
+    StimulusBySpikeRuntime stimulusBySpikeRuntime_{};
     PatientModalityPolicyGate patientPolicyGate_{};
     ExperimentalChemicalChannelGate chemicalGate_{};
     ClosedLoopPerceptionErrorController closedLoopController_{};
