@@ -172,6 +172,8 @@ if(DNXR_BUILD_TESTS)
             set(test_source "tests/performance/${test_name}.cpp")
         elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/qms/${test_name}.cpp")
             set(test_source "tests/qms/${test_name}.cpp")
+        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/replay/${test_name}.cpp")
+            set(test_source "tests/replay/${test_name}.cpp")
         elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/assets/${test_name}.cpp")
             set(test_source "tests/assets/${test_name}.cpp")
         elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/safety/${test_name}.cpp")
@@ -193,6 +195,15 @@ if(DNXR_BUILD_TESTS)
     endfunction()
 
     set(DNXR_TEST_TARGETS
+        dnxr_vector_to_spike_normalizer_test
+        dnxr_vector_temporal_alignment_test
+        dnxr_patient_target_binding_test
+        dnxr_cross_modal_coherence_binder_test
+        dnxr_engine_spike_core_test
+        dnxr_spike_to_stimulus_translator_test
+        dnxr_stimulus_by_spike_runtime_test
+        dnxr_full_dive_environment_sync_graph_test
+        dnxr_spike_bridge_replay_coverage_test
         runtime_mode_test
         full_unlocked_runtime_test
         pipeline_state_machine_test

@@ -2,6 +2,7 @@
 
 #include "hardware/NeuralChipHAL.h"
 #include "neural_chip/NeuralChipFrame.h"
+#include "full_dive/spike_bridge/SpikeBridgeTypes.h"
 
 namespace dnxr {
 
@@ -10,6 +11,8 @@ enum class FullDiveStimulusCoveragePolicy { RequiredModalities, FullMultisensory
 class FullDiveChipFrameToSafeStimulusTranslator {
 public:
     SafeNeuralStimulusCommandFixed translate(const FullDiveChipFrame& frame,
+                                             FullDiveStimulusCoveragePolicy policy = FullDiveStimulusCoveragePolicy::RequiredModalities) const;
+    SafeNeuralStimulusCommandFixed translate(const StimulusBySpikeFrame& frame,
                                              FullDiveStimulusCoveragePolicy policy = FullDiveStimulusCoveragePolicy::RequiredModalities) const;
 
 private:

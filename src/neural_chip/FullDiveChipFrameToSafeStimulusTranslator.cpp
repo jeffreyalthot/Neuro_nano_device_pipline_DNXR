@@ -41,3 +41,23 @@ SafeNeuralStimulusCommandFixed FullDiveChipFrameToSafeStimulusTranslator::transl
 }
 
 } // namespace dnxr
+namespace dnxr {
+SafeNeuralStimulusCommandFixed FullDiveChipFrameToSafeStimulusTranslator::translate(
+    const StimulusBySpikeFrame& frame, FullDiveStimulusCoveragePolicy policy) const {
+    SafeNeuralStimulusCommandFixed command;
+    command.sequenceId = frame.frameId;
+    command.monotonicTimestampMs = static_cast<std::int64_t>(frame.timestampMs);
+    command.safetyMode = "stimulus_by_spike_middleware_brain_chip_final_distribution";
+    command.coveragePolicy = policy == FullDiveStimulusCoveragePolicy::FullMultisensoryFrame ? StimulusCoveragePolicy::FullMultisensoryFrame : StimulusCoveragePolicy::RequiredModalities;
+    command.coverageReason = "stimulus_by_spike_normalized_no_raw_hardware_parameters";
+    command.allowStimulusDispatch = frame.allowDispatch;
+    command.exposureBudgetOk = frame.exposureBudgetOk;
+    command.riskScore = clamp01(frame.riskScore01);
+    command.intensityScale = clamp01(frame.intensityScale01);
+    command.aggregateSensoryLoad = clamp01(frame.aggregateSensoryLoad01);
+    command.fiveSenseCoverage = frame.fiveSenseCoverage;
+    for (std::size_t i = 0; i < frame.channelCount && i < frame.boundedChannels01.size(); ++i) append(command, frame.boundedChannels01[i]);
+    for (std::size_t i = 0; i < command.modalityIntensities.size() && i < frame.modalityIntensity01.size(); ++i) command.modalityIntensities[i] = clamp01(frame.modalityIntensity01[i]);
+    return command;
+}
+} // namespace dnxr
