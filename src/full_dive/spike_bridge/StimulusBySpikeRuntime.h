@@ -3,6 +3,8 @@
 #include "full_dive/spike_bridge/CrossModalCoherenceBinder.h"
 #include "full_dive/spike_bridge/EngineSpikeCore.h"
 #include "full_dive/spike_bridge/EngineSpikeOutputValidator.h"
+#include "full_dive/spike_bridge/MultiLayerSpikeThinkingEngine.h"
+#include "full_dive/spike_bridge/PPPGrammarFrameBuilder.h"
 #include "full_dive/spike_bridge/PatientTargetBindingLayer.h"
 #include "full_dive/spike_bridge/SpikeEnvelopePolicyApplier.h"
 #include "full_dive/spike_bridge/SpikeToStimulusIntentTranslator.h"
@@ -21,16 +23,18 @@
 
 namespace dnxr {
 
-constexpr std::size_t DNXR_STIMULUS_BY_SPIKE_STAGE_COUNT = 11;
+constexpr std::size_t DNXR_STIMULUS_BY_SPIKE_STAGE_COUNT = 13;
 
 inline constexpr std::array<std::string_view,
                             DNXR_STIMULUS_BY_SPIKE_STAGE_COUNT>
     DNXR_STIMULUS_BY_SPIKE_STAGE_ORDER = {
         "VectorIntentNormalizer",          "VectorTemporalAlignmentBuffer",
         "PatientTargetBindingLayer",       "CrossModalCoherenceBinder",
-        "VectorToSpikeEngineFrameBuilder", "EngineSpikeCore",
+        "PPPGrammarFrameBuilder",          "VectorToSpikeEngineFrameBuilder",
+        "MultiLayerSpikeThinkingEngine",   "EngineSpikeCore",
         "EngineSpikeOutputValidator",      "SpikeEnvelopePolicyApplier",
-        "SpikeToStimulusIntentTranslator", "StimulusBySpikePacketAssembler",
+        "SpikeToStimulusIntentTranslator",
+        "StimulusBySpikePacketAssembler",
         "StimulusFeedbackSynchronizer"};
 
 struct StimulusBySpikeInput {
@@ -57,6 +61,8 @@ struct StimulusBySpikeResult {
   bool holdRequired = false;
   const char *reason = "not_processed";
   VectorBundleFrame vectorBundle;
+  PPPGrammarFrame pppGrammarFrame;
+  MultiThinkingFrame multiThinkingFrame;
   SpikeEngineIntentFrame spikeIntent;
   EngineSpikeFrame engineSpike;
   StimulusBySpikeFrame stimulusBySpike;
@@ -81,7 +87,9 @@ private:
   VectorTemporalAlignmentBuffer aligner_{};
   PatientTargetBindingLayer patientBinder_{};
   CrossModalCoherenceBinder coherenceBinder_{};
+  PPPGrammarFrameBuilder grammarBuilder_{};
   VectorToSpikeEngineFrameBuilder intentBuilder_{};
+  MultiLayerSpikeThinkingEngine thinkingEngine_{};
   EngineSpikeCore engine_{};
   EngineSpikeOutputValidator validator_{};
   SpikeEnvelopePolicyApplier envelope_{};

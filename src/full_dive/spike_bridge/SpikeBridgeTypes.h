@@ -11,6 +11,8 @@ namespace dnxr {
 constexpr std::size_t DNXR_SPIKE_BRIDGE_MODALITY_COUNT = 9;
 constexpr std::size_t DNXR_SPIKE_BRIDGE_VECTOR_CHANNELS = 32;
 constexpr std::size_t DNXR_SPIKE_BRIDGE_LANES = 64;
+constexpr std::size_t DNXR_PPP_GRAMMAR_REFRESH_FRAMES = 60;
+constexpr float DNXR_PPP_STIMULUS_SYNC_THRESHOLD_01 = 0.80f;
 
 enum class SpikeModality {
   Visual,
@@ -75,6 +77,66 @@ struct SpikeEngineIntentFrame {
   float expectedFeedbackQuality01 = 1.0f;
   bool holdRequired = false;
   const char *holdReason = "none";
+};
+
+struct PPPGrammarModalityEntry {
+  std::uint16_t modalityId = 0;
+  std::uint16_t channelId = 0;
+  const char *modalityName = "UNKNOWN";
+  const char *semanticPath = "unknown";
+  float channelConfidence01 = 0.0f;
+  float maxActiveIntensity01 = DNXR_NEURAL_CHIP_ACTIVE_CEILING_01;
+  bool requiresAck = true;
+  bool requiresClinicalGate = true;
+  bool feedbackExpected = true;
+  bool stimulusUnlocked = false;
+};
+
+struct PPPGrammarFrame {
+  const char *pppVersion = "0.7.0";
+  const char *grammarId = "DNXR_SPIKE_GRAMMAR_MAIN";
+  std::uint64_t frameId = 0;
+  std::uint64_t validFromFrame = 0;
+  std::uint64_t expiresAtFrame = DNXR_PPP_GRAMMAR_REFRESH_FRAMES;
+  std::size_t grammarRefreshFrames = DNXR_PPP_GRAMMAR_REFRESH_FRAMES;
+  float globalSync01 = 0.0f;
+  float activeCeiling01 = DNXR_NEURAL_CHIP_ACTIVE_CEILING_01;
+  bool clinicalGated = true;
+  bool feedbackOnly = true;
+  bool stimulusCandidateAllowed = false;
+  bool ackRequired = true;
+  bool ackReceived = false;
+  bool emergencyLatched = false;
+  bool blockedDangerSymbols = true;
+  bool rawSensoryPayloadBlocked = true;
+  std::size_t hardwareElectrodeCount = 0;
+  std::size_t hardwareWireCount = 0;
+  std::size_t hardwareStimulusChannelLimit = 0;
+  std::array<PPPGrammarModalityEntry, DNXR_SPIKE_BRIDGE_MODALITY_COUNT>
+      modalities{};
+  std::size_t modalityCount = 0;
+};
+
+struct ThinkingGroupSummary {
+  SpikeModality modality = SpikeModality::Visual;
+  float featureLayer01 = 0.0f;
+  float temporalLayer01 = 0.0f;
+  float safetyLayer01 = 0.0f;
+  float idealSpikeLayer01 = 0.0f;
+  float internalSpikeCoherence01 = 0.0f;
+};
+
+struct MultiThinkingFrame {
+  std::uint64_t frameId = 0;
+  double timestampMs = 0.0;
+  std::array<ThinkingGroupSummary, DNXR_SPIKE_BRIDGE_MODALITY_COUNT>
+      thinkingGroups{};
+  std::size_t thinkingGroupCount = 0;
+  float crossGroupCoherence01 = 0.0f;
+  float candidateConfidence01 = 0.0f;
+  float safetyConsensus01 = 0.0f;
+  bool accepted = true;
+  const char *reason = "accepted";
 };
 
 struct EngineSpikeFrame {

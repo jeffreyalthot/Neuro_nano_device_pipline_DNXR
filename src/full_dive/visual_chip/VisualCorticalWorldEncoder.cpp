@@ -3,7 +3,10 @@
 #include <algorithm>
 
 namespace dnxr {
-namespace { float bounded(float v) { return std::max(0.0f, std::min(DNXR_NEURAL_CHIP_ACTIVE_CEILING_01, v)); } }
+namespace {
+float bounded(float v) { return std::max(0.0f, std::min(DNXR_NEURAL_CHIP_ACTIVE_CEILING_01, v)); }
+float unit(float v) { return std::max(0.0f, std::min(1.0f, v)); }
+}
 
 NeuralVisualVector VisualCorticalWorldEncoder::encode(const VirtualSceneFrame& scene,
                                                        const PatientVisualMap& map,
@@ -24,14 +27,44 @@ NeuralVisualVector VisualCorticalWorldEncoder::encode(const VirtualSceneFrame& s
     out.textSymbolPriority01 = bounded(scene.textSymbol01);
     out.phospheneDensity01 = bounded(map.phospheneDensityLimit01);
     out.phospheneStability01 = bounded(map.stability01);
-    out.flickerRisk01 = std::max(0.0f, std::min(1.0f, safety.flickerRisk01));
-    out.visualFatigueRisk01 = std::max(0.0f, std::min(1.0f, safety.fatigueRisk01));
+    out.flickerRisk01 = unit(safety.flickerRisk01);
+    out.visualFatigueRisk01 = unit(safety.fatigueRisk01);
     if (out.flickerRisk01 > 0.35f) {
         out.contrast01 *= 0.5f;
         out.phospheneDensity01 *= 0.5f;
         out.motionFlow01 *= 0.6f;
     }
     return out;
+}
+
+VisualComplianceDecision VisualCorticalWorldEncoder::validateEncoded(
+    const NeuralVisualVector& visual) const {
+    VisualComplianceDecision decision{};
+    const float peakStimulus = std::max({
+        visual.globalLuminance01, visual.contrast01, visual.edgeMap01,
+        visual.motionFlow01, visual.depthNear01, visual.depthMid01,
+        visual.depthFar01, visual.objectSaliency01,
+        visual.navigationCorridor01, visual.hazardMap01,
+        visual.avatarBodyVisibility01, visual.textSymbolPriority01,
+        visual.phospheneDensity01, visual.phospheneStability01});
+    decision.normalizedLoad01 =
+        unit(std::max(peakStimulus / DNXR_NEURAL_CHIP_ACTIVE_CEILING_01,
+                      std::max(visual.flickerRisk01,
+                               visual.visualFatigueRisk01)));
+    if (peakStimulus > DNXR_NEURAL_CHIP_ACTIVE_CEILING_01) {
+        decision.accepted = false;
+        decision.requiresHold = true;
+        decision.reason = "visual_active_ceiling_exceeded";
+    } else if (visual.flickerRisk01 > 0.65f) {
+        decision.accepted = false;
+        decision.requiresHold = true;
+        decision.reason = "visual_flicker_qms_hold";
+    } else if (visual.visualFatigueRisk01 > 0.85f) {
+        decision.accepted = false;
+        decision.requiresHold = true;
+        decision.reason = "visual_fatigue_qms_hold";
+    }
+    return decision;
 }
 
 } // namespace dnxr

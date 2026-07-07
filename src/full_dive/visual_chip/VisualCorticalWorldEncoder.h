@@ -27,12 +27,19 @@ struct VirtualSceneFrame {
 
 struct PatientVisualMap { float phospheneDensityLimit01 = 0.35f; float stability01 = 0.5f; };
 struct VisualSafetyState { bool allowVisualStimulus = true; float flickerRisk01 = 0.0f; float fatigueRisk01 = 0.0f; float edgeGain = 1.0f; };
+struct VisualComplianceDecision {
+    bool accepted = true;
+    bool requiresHold = false;
+    float normalizedLoad01 = 0.0f;
+    const char* reason = "visual_qms_accept";
+};
 
 class VisualCorticalWorldEncoder {
 public:
     NeuralVisualVector encode(const VirtualSceneFrame& scene,
                               const PatientVisualMap& map,
                               const VisualSafetyState& safety) const;
+    VisualComplianceDecision validateEncoded(const NeuralVisualVector& visual) const;
 };
 
 } // namespace dnxr

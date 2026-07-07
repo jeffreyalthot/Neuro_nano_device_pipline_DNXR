@@ -21,7 +21,24 @@ int main() {
   const auto result = StimulusBySpikeRuntime{}.process(input);
   assert(result.chipFrame.frameId == 1);
   assert(result.vectorBundle.modalityCount == DNXR_SPIKE_BRIDGE_MODALITY_COUNT);
+  assert(result.pppGrammarFrame.frameId == 1);
+  assert(result.pppGrammarFrame.modalityCount == DNXR_SPIKE_BRIDGE_MODALITY_COUNT);
+  assert(result.pppGrammarFrame.grammarRefreshFrames ==
+         DNXR_PPP_GRAMMAR_REFRESH_FRAMES);
+  assert(result.pppGrammarFrame.expiresAtFrame == 61);
+  assert(result.pppGrammarFrame.feedbackOnly);
+  assert(!result.pppGrammarFrame.stimulusCandidateAllowed);
+  assert(result.pppGrammarFrame.blockedDangerSymbols);
+  assert(result.pppGrammarFrame.rawSensoryPayloadBlocked);
+  assert(result.pppGrammarFrame.modalities[0].modalityId == 0x01);
+  assert(result.pppGrammarFrame.modalities[0].requiresAck);
+  assert(result.pppGrammarFrame.modalities[0].requiresClinicalGate);
+  assert(result.pppGrammarFrame.modalities[0].maxActiveIntensity01 <=
+         DNXR_NEURAL_CHIP_ACTIVE_CEILING_01);
   assert(result.executedStageCount == DNXR_STIMULUS_BY_SPIKE_STAGE_COUNT);
+  assert(result.multiThinkingFrame.thinkingGroupCount ==
+         DNXR_SPIKE_BRIDGE_MODALITY_COUNT);
+  assert(result.multiThinkingFrame.safetyConsensus01 >= 0.0f);
   assert(result.stageCoverageComplete);
   assert(result.safetyPreflightAccepted);
   assert(!result.accepted);
@@ -41,6 +58,27 @@ int main() {
   assert(!unsafe.safetyPreflightAccepted);
   assert(std::strcmp(unsafe.reason,
                      "stimulus_by_spike_safety_preflight_hold") == 0);
+
+  StimulusBySpikeInput synchronized = input;
+  synchronized.safety.rawSensoryPayloadBlocked = true;
+  synchronized.lastAck.packetAccepted = true;
+  synchronized.lastAck.signalQuality = 1.0f;
+  synchronized.sessionState.realityAnchorStability01 = 1.0f;
+  synchronized.visual.depthNear01 = 0.82f;
+  synchronized.visual.contrast01 = 0.85f;
+  synchronized.visual.phospheneStability01 = 0.95f;
+  synchronized.touch.contactPressure01 = 0.25f;
+  synchronized.touch.somatosensoryConfidence01 = 0.95f;
+  synchronized.proprioception.handPoseConfidence01 = 0.95f;
+  synchronized.proprioception.footPoseConfidence01 = 0.95f;
+  synchronized.proprioception.avatarOwnership01 = 0.95f;
+  synchronized.motorIntent.confidence01 = 0.95f;
+  synchronized.motorIntent.stopIntent01 = 0.2f;
+  const auto unlocked = StimulusBySpikeRuntime{}.process(synchronized);
+  assert(!unlocked.pppGrammarFrame.feedbackOnly);
+  assert(unlocked.pppGrammarFrame.stimulusCandidateAllowed);
+  assert(unlocked.multiThinkingFrame.accepted);
+  assert(unlocked.multiThinkingFrame.candidateConfidence01 > 0.0f);
 
   StimulusFeedbackSynchronizer feedback;
   StimulusBySpikeFrame feedbackFrame;

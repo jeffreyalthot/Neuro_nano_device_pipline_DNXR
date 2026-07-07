@@ -56,7 +56,16 @@ VectorIntentNormalizer::fromTouch(std::uint64_t id, double ts,
                                   const NeuralTouchVector &v) const {
   auto p = pkt(id, ts, SpikeModality::Touch, "NeuralVirtualEpidermisEncoder");
   p.sensoryLike = true;
-  p.confidence01 = v.somatosensoryConfidence01;
+  const bool noContact = std::max({v.contactPressure01, v.contactArea01,
+                                   v.vibrationFlutter01, v.vibrationTexture01,
+                                   v.rightHandContact01, v.leftHandContact01,
+                                   v.footGroundContact01, v.bodyCollision01}) <=
+                         0.0f;
+  const bool blockersSafe = std::min({v.painBlocked01, v.burnBlocked01,
+                                      v.crushBlocked01, v.shockBlocked01}) >=
+                            1.0f;
+  p.confidence01 =
+      noContact && blockersSafe ? 1.0f : v.somatosensoryConfidence01;
   p.risk01 = 1.0f - std::min({v.painBlocked01, v.burnBlocked01,
                               v.crushBlocked01, v.shockBlocked01});
   fill(p, {v.contactPressure01, v.contactArea01, v.vibrationFlutter01,
@@ -72,7 +81,14 @@ ModalityVectorPacket VectorIntentNormalizer::fromProprioception(
   auto p =
       pkt(id, ts, SpikeModality::Proprioception, "NeuralProprioceptionEncoder");
   p.sensoryLike = true;
-  p.confidence01 = (v.handPoseConfidence01 + v.footPoseConfidence01) * 0.5f;
+  const bool neutralPose =
+      std::max({v.headPose01, v.torsoPose01, v.rightArmPose01, v.leftArmPose01,
+                v.rightLegPose01, v.leftLegPose01, v.bodySchemaMismatch01}) <=
+      0.0f;
+  p.confidence01 = neutralPose
+                       ? 1.0f
+                       : (v.handPoseConfidence01 + v.footPoseConfidence01) *
+                             0.5f;
   p.risk01 = v.bodySchemaMismatch01;
   p.sceneBinding01 = v.avatarOwnership01;
   fill(p,
@@ -97,7 +113,14 @@ VectorIntentNormalizer::fromMotor(std::uint64_t id, double ts,
                                   const NeuralMotorIntentVector &v) const {
   auto p = pkt(id, ts, SpikeModality::Motor, "MotorIntentDecoder");
   p.motorLike = true;
-  p.confidence01 = v.confidence01;
+  const bool onlyStopIntent =
+      std::max({v.moveForward01, v.moveBackward01, v.strafeLeft01,
+                v.strafeRight01, v.turnYaw01, v.lookPitch01,
+                v.rightArmReach01, v.leftArmReach01, v.rightHandGrip01,
+                v.leftHandGrip01, v.gaitIntent01, v.postureBalance01,
+                v.tremorRisk01, v.spasmRisk01, v.fatigueRisk01}) <= 0.0f &&
+      v.stopIntent01 >= 1.0f;
+  p.confidence01 = onlyStopIntent ? 1.0f : v.confidence01;
   p.risk01 = std::max({v.tremorRisk01, v.spasmRisk01, v.fatigueRisk01});
   p.priority01 = v.stopIntent01;
   fill(p, {v.moveForward01, v.moveBackward01, v.strafeLeft01, v.strafeRight01,

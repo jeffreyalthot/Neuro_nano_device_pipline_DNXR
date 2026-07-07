@@ -616,6 +616,8 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
     }
 
     RuntimeStageServices& services = *stageServices_;
+    const RuntimePathDecision pathDecision = runtimePathLock_.decide(
+        neuralChipHal_->status(), RuntimeDeploymentMode::SimulationOnly);
     RuntimePipelineRunner::RuntimePipelineRunInputRef input{
         RuntimeStageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds},
         tickReport,
@@ -624,7 +626,15 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
         fullDiveMetricsSnapshot,
         makeCycleFinalizerContext(fullDiveMetricsSnapshot)};
 
-    return pipelineRunner_->run(input);
+    RuntimePipelineFrame frame = pipelineRunner_->run(input);
+    frame.runtimePathDecision = pathDecision;
+    if (pathDecision.path == RuntimePathKind::PrimaryReal &&
+        pathDecision.secondaryRuntimeAllowed) {
+        frame.continueCycle = false;
+        frame.emergencyActive = true;
+        frame.stopReason = "runtime_path_lock_invalid_primary_real_state";
+    }
+    return frame;
 }
 
 void RuntimeController::runSingleCycle(double timestamp) {

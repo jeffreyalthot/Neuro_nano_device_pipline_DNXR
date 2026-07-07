@@ -155,6 +155,10 @@ bool SimulatedNeuralChipHAL::validateCommand(
         return false;
     }
 
+    if (command.boundedChannels.size() > channelCount_) {
+        return false;
+    }
+
     if (command.riskScore < 0.0f || command.riskScore >= 0.90f) {
         return false;
     }
@@ -220,6 +224,11 @@ bool SimulatedNeuralChipHAL::writeSafeStimulus(
         lastAck_.notApplied = true;
         lastAck_.hardwareCutoffActive = emergencyLatched_;
         lastAck_.rejectReason = "command_failed_hal_validation";
+        lastAck_.rejectedChannelCount =
+            command.boundedChannels.size() > channelCount_
+                ? static_cast<std::uint32_t>(command.boundedChannels.size() -
+                                             channelCount_)
+                : static_cast<std::uint32_t>(command.boundedChannels.size());
         return false;
     }
 
@@ -285,6 +294,11 @@ ChipCapabilities SimulatedNeuralChipHAL::capabilities() const {
     c.canGustatory = true;
     c.maxSafeRateHz = 120.0f;
     c.maxPacketSize = static_cast<int>(channelCount_ * sizeof(float));
+    c.electrodeCount = channelCount_;
+    c.wireCount = std::max<std::size_t>(
+        1, (channelCount_ + DNXR_NEURAL_CHIP_CHANNELS_PER_WIRE - 1) /
+               DNXR_NEURAL_CHIP_CHANNELS_PER_WIRE);
+    c.maxStimulusChannels = channelCount_;
     c.supportsHardwareCutoff = !emergencyLatched_;
     c.supportsClosedLoopFeedback = true;
     return c;

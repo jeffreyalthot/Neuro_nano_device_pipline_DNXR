@@ -8,7 +8,7 @@
 int main() {
     dnxr::TimeSync::reset();
 
-    dnxr::SimulatedNeuralChipHAL hal(8);
+    dnxr::SimulatedNeuralChipHAL hal(16);
     assert(!hal.status().connected);
 
     hal.connect("simulated_chip_unit_test");
@@ -17,7 +17,12 @@ int main() {
 
     const auto frame = hal.readFrame();
     assert(frame.sequenceId == 1U);
-    assert(frame.channels.size() == 8U);
+    assert(frame.channels.size() == 16U);
+    const auto capabilities = hal.capabilities();
+    assert(capabilities.electrodeCount == 16U);
+    assert(capabilities.wireCount == 1U);
+    assert(capabilities.maxStimulusChannels == 16U);
+    assert(capabilities.maxSafeRateHz >= dnxr::DNXR_NEURAL_CHIP_TARGET_FRAME_RATE_HZ);
     assert(frame.signalQuality > 0.0F);
     assert(frame.monotonicTimestampMs > 0);
 
@@ -46,6 +51,12 @@ int main() {
            dnxr::SensoryModality::Proprioceptive);
     assert(hal.writeSafeStimulus(command));
     assert(hal.lastAcceptedStimulus().sequenceId == frame.sequenceId);
+
+    dnxr::SimulatedNeuralChipHAL limitedHal(4);
+    limitedHal.connect("limited_topology_chip");
+    assert(!limitedHal.writeSafeStimulus(command));
+    assert(limitedHal.lastAck().packetRejected);
+    assert(limitedHal.lastAck().rejectedChannelCount > 0U);
 
     decision.riskScore = 0.95F;
     command = envelope.buildCommand(frame.sequenceId + 1U, {0.1F, 0.2F}, decision);
