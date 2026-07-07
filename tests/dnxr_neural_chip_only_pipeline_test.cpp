@@ -44,6 +44,8 @@ int main() {
             return event.stage == stage;
         });
     };
+    assert(hasTraceStage("PPPGrammarFrameBuilder"));
+    assert(hasTraceStage("MultiLayerSpikeThinkingEngine"));
     assert(hasTraceStage("StimulusBySpikeRuntimeStageCoverage"));
     assert(hasTraceStage("StimulusBySpikeRuntimeSafetyPreflight"));
 

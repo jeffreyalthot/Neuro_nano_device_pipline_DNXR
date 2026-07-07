@@ -29,6 +29,7 @@
 #include "../runtime/RuntimeCalibrationStage.h"
 #include "../runtime/RuntimeImmersionFrameStage.h"
 #include "../runtime/RuntimePipelineRunner.h"
+#include "../runtime/RuntimePathLock.h"
 #include "../runtime/RuntimeStageServices.h"
 #include "../runtime/RuntimePipelineSinks.h"
 
@@ -144,6 +145,7 @@ private:
     std::unique_ptr<dnxr::FullDiveSynchronizationEngine> fullDiveSynchronization_;
     std::unique_ptr<class FullDiveSafetyBridge> fullDiveBridge_;
     std::unique_ptr<RuntimePipelineRunner> pipelineRunner_;
+    RuntimePathLock runtimePathLock_;
     std::unique_ptr<RuntimeStageServices> stageServices_;
     std::unique_ptr<RuntimePipelineSinks> pipelineSinks_;
 

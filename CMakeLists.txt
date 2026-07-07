@@ -202,6 +202,8 @@ if(DNXR_BUILD_TESTS)
         dnxr_engine_spike_core_test
         dnxr_spike_to_stimulus_translator_test
         dnxr_stimulus_by_spike_runtime_test
+        dnxr_runtime_path_lock_test
+        dnxr_virtual_world_data_ingress_test
         dnxr_full_dive_environment_sync_graph_test
         dnxr_spike_bridge_replay_coverage_test
         runtime_mode_test

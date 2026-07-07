@@ -22,6 +22,11 @@ NeuralChipOnlyPipelineConfig::simulationSafeDefaults() {
   config.capabilities.canGustatory = false;
   config.capabilities.supportsHardwareCutoff = true;
   config.capabilities.supportsClosedLoopFeedback = true;
+  config.capabilities.maxSafeRateHz = DNXR_NEURAL_CHIP_TARGET_FRAME_RATE_HZ;
+  config.capabilities.electrodeCount = DNXR_SPIKE_BRIDGE_LANES;
+  config.capabilities.wireCount =
+      DNXR_SPIKE_BRIDGE_LANES / DNXR_NEURAL_CHIP_CHANNELS_PER_WIRE;
+  config.capabilities.maxStimulusChannels = DNXR_SPIKE_BRIDGE_LANES;
   return config;
 }
 
@@ -370,7 +375,7 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(
   MotorIntentConfidenceDecision motorDecision{};
   motor =
       motorConfidenceGate_.apply(motor, read.signalQuality01, &motorDecision);
-  lastRigCommand_ = avatarRig_.apply(motor);
+  lastRigCommand_ = avatarRig_.applyClosedLoop(motor, read);
   if (motorDecision.safetyPoseRequired || emergencyLatch_.latched()) {
     lastRigCommand_ =
         avatarSafetyPose_.apply(lastRigCommand_, config_.enableResearchVision);
@@ -453,12 +458,30 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(
                          spikeResult.vectorBundle.aggregateRisk01, 1.0f,
                          spikeResult.vectorBundle.globalCoherence01});
   decisionTrace_.record(
+      {world.frameId, "PPPGrammarFrameBuilder", "spike_bridge",
+       spikeResult.pppGrammarFrame.stimulusCandidateAllowed
+           ? "candidate_allowed"
+           : "feedback_only_or_hold",
+       spikeResult.pppGrammarFrame.feedbackOnly
+           ? "ppp_sync_below_0_80_feedback_only"
+           : "ppp_clinical_ack_grammar_active",
+       spikeResult.pppGrammarFrame.emergencyLatched ? 1.0f : 0.0f,
+       spikeResult.pppGrammarFrame.activeCeiling01,
+       spikeResult.pppGrammarFrame.globalSync01});
+  decisionTrace_.record(
       {world.frameId, "VectorToSpikeEngineFrameBuilder", "spike_bridge",
        spikeResult.spikeIntent.holdRequired ? "hold" : "build",
        spikeResult.spikeIntent.holdReason,
        spikeResult.spikeIntent.chemicalRisk01,
        spikeResult.spikeIntent.globalLoad01,
        spikeResult.spikeIntent.phaseLockQuality01});
+  decisionTrace_.record(
+      {world.frameId, "MultiLayerSpikeThinkingEngine", "spike_bridge",
+       spikeResult.multiThinkingFrame.accepted ? "think" : "hold",
+       spikeResult.multiThinkingFrame.reason,
+       1.0f - spikeResult.multiThinkingFrame.safetyConsensus01,
+       spikeResult.multiThinkingFrame.candidateConfidence01,
+       spikeResult.multiThinkingFrame.crossGroupCoherence01});
   decisionTrace_.record({world.frameId, "EngineSpikeCore", "spike_bridge",
                          spikeResult.engineSpike.accepted ? "process" : "hold",
                          spikeResult.engineSpike.reason,

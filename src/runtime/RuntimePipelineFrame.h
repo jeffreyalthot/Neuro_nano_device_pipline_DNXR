@@ -13,6 +13,8 @@
 #include "../neurotech/NeuralArtifactClassifier.h"
 #include "../neurotech/NeuralSignalQualityGate.h"
 #include "../full_dive/PerceptionDivergenceDetector.h"
+#include "../full_dive/spike_bridge/SpikeBridgeTypes.h"
+#include "RuntimePathLock.h"
 
 #include <cstdint>
 #include <string>
@@ -51,6 +53,8 @@ struct RuntimePipelineFrame {
     FullDiveRuntimeSnapshot fullDiveSnapshot;
     SafeNeuralStimulusCommandFixed stimulusCommand;
     FullDiveNeuralFrame fullDiveNeuralFrame;
+    PPPGrammarFrame neuralChipGrammarFrame;
+    RuntimePathDecision runtimePathDecision;
     FiveSenseCoherenceReport fiveSenseCoherenceReport;
     BodySchemaReport bodySchemaReport;
     BodyPoseState perceivedBodyPose;

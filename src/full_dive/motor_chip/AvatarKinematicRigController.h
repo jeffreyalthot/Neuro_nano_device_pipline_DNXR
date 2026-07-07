@@ -17,20 +17,44 @@ struct Quaternion {
 
 enum class BodyJoint {
     Root,
+    Pelvis,
     Spine,
+    Chest,
+    Neck,
     Head,
+    Jaw,
+    RightEye,
+    LeftEye,
+    RightClavicle,
     RightShoulder,
     RightElbow,
+    RightWrist,
     RightHand,
+    RightThumb,
+    RightIndex,
+    RightMiddle,
+    RightRing,
+    RightLittle,
+    LeftClavicle,
     LeftShoulder,
     LeftElbow,
+    LeftWrist,
     LeftHand,
+    LeftThumb,
+    LeftIndex,
+    LeftMiddle,
+    LeftRing,
+    LeftLittle,
     RightHip,
     RightKnee,
+    RightAnkle,
     RightFoot,
+    RightToe,
     LeftHip,
     LeftKnee,
-    LeftFoot
+    LeftAnkle,
+    LeftFoot,
+    LeftToe
 };
 
 struct AvatarJointCommand {
@@ -51,6 +75,8 @@ struct AvatarRigCommandFrame {
 class AvatarKinematicRigController {
 public:
     AvatarRigCommandFrame apply(const NeuralMotorIntentVector& intent) const;
+    AvatarRigCommandFrame applyClosedLoop(const NeuralMotorIntentVector& intent,
+                                          const ChipReadFrame& feedback) const;
 
 private:
     static float clamp01(float value);

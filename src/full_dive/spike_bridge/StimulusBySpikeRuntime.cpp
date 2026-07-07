@@ -67,8 +67,17 @@ StimulusBySpikeRuntime::process(const StimulusBySpikeInput &input) {
   result.vectorBundle = coherenceBinder_.bind(result.vectorBundle);
   markStage(result, "CrossModalCoherenceBinder");
 
+  result.pppGrammarFrame = grammarBuilder_.build(
+      result.vectorBundle, input.sessionState, input.lastAck);
+  markStage(result, "PPPGrammarFrameBuilder");
+
   result.spikeIntent = intentBuilder_.build(result.vectorBundle);
   markStage(result, "VectorToSpikeEngineFrameBuilder");
+
+  result.spikeIntent = thinkingEngine_.think(
+      result.spikeIntent, result.pppGrammarFrame,
+      &result.multiThinkingFrame);
+  markStage(result, "MultiLayerSpikeThinkingEngine");
 
   result.engineSpike = engine_.process(result.spikeIntent);
   markStage(result, "EngineSpikeCore");
