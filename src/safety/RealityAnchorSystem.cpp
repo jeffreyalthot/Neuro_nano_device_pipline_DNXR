@@ -7,7 +7,7 @@
 namespace dnxr {
 namespace {
 
-float clamp01(float value) {
+float realityAnchorClamp01(float value) {
     return std::max(0.0f, std::min(1.0f, value));
 }
 
@@ -83,7 +83,7 @@ RealityAnchorPlan RealityAnchorSystem::evaluate(
         plan.recoveryAction = "emergency_stop_and_reorient";
     } else if (safetyDecision.action == SafetyAction::RealityAnchor || plan.riskScore >= 0.65f) {
         plan.mode = RealityAnchorMode::RealityAnchor;
-        plan.intensityScale = std::min(clamp01(safetyDecision.intensityScale), 0.35f);
+        plan.intensityScale = std::min(realityAnchorClamp01(safetyDecision.intensityScale), 0.35f);
         plan.allowRender = safetyDecision.allowRender;
         plan.reason = "identity_or_orientation_anchor_required";
         plan.recoveryAction = "reality_anchor_sequence";
@@ -91,13 +91,13 @@ RealityAnchorPlan RealityAnchorSystem::evaluate(
                safetyDecision.action == SafetyAction::ReduceIntensity ||
                plan.riskScore >= 0.45f) {
         plan.mode = RealityAnchorMode::ReduceSensoryLoad;
-        plan.intensityScale = std::min(clamp01(safetyDecision.intensityScale), 0.55f);
+        plan.intensityScale = std::min(realityAnchorClamp01(safetyDecision.intensityScale), 0.55f);
         plan.allowRender = safetyDecision.allowRender;
         plan.reason = "sensory_decompression_required";
         plan.recoveryAction = "gradual_sensory_reduction";
     } else {
         plan.mode = RealityAnchorMode::Maintain;
-        plan.intensityScale = clamp01(safetyDecision.intensityScale);
+        plan.intensityScale = realityAnchorClamp01(safetyDecision.intensityScale);
         plan.allowRender = safetyDecision.allowRender;
         plan.reason = "anchor_nominal";
         plan.recoveryAction = "continue_session";
@@ -116,7 +116,7 @@ std::vector<float> RealityAnchorSystem::applyPlanToFrame(
         return std::vector<float>(frame.size(), 0.0f);
     }
 
-    const float scale = clamp01(plan.intensityScale);
+    const float scale = realityAnchorClamp01(plan.intensityScale);
     std::vector<float> anchored = frame;
     for (float& value : anchored) {
         const float finiteValue = finiteOrDefault(value, 0.0f);
@@ -134,15 +134,15 @@ float RealityAnchorSystem::computeAnchorRisk(
     const RealityAnchorContext& context,
     const SafetyDecision& safetyDecision) const {
 
-    const float identityRisk = 1.0f - clamp01(finiteOrDefault(context.identityContinuity, 1.0f));
-    const float temporalRisk = 1.0f - clamp01(finiteOrDefault(context.temporalOrientation, 1.0f));
-    const float environmentRisk = 1.0f - clamp01(finiteOrDefault(context.realWorldOrientation, 1.0f));
-    const float overloadRisk = clamp01(finiteOrDefault(context.sensoryOverload, 0.0f));
+    const float identityRisk = 1.0f - realityAnchorClamp01(finiteOrDefault(context.identityContinuity, 1.0f));
+    const float temporalRisk = 1.0f - realityAnchorClamp01(finiteOrDefault(context.temporalOrientation, 1.0f));
+    const float environmentRisk = 1.0f - realityAnchorClamp01(finiteOrDefault(context.realWorldOrientation, 1.0f));
+    const float overloadRisk = realityAnchorClamp01(finiteOrDefault(context.sensoryOverload, 0.0f));
     const float safetyRisk = std::max(
-        clamp01(finiteOrDefault(safetyDecision.riskScore, 0.0f)),
+        realityAnchorClamp01(finiteOrDefault(safetyDecision.riskScore, 0.0f)),
         actionFloorRisk(safetyDecision.action));
 
-    return clamp01(
+    return realityAnchorClamp01(
         (identityRisk * 0.25f) +
         (temporalRisk * 0.20f) +
         (environmentRisk * 0.20f) +

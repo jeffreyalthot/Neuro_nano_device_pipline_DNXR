@@ -3,18 +3,10 @@
 #include <string>
 #include <vector>
 
+#include "SafetyDecision.h"
 #include "../neurotech/DeepImmersionPlatform.h"
 
 namespace dnxr {
-
-enum class SafetyAction {
-    Continue,
-    ReduceIntensity,
-    Decompress,
-    RealityAnchor,
-    EmergencyStop,
-    Lockout
-};
 
 struct SafetyGovernorInput {
     std::vector<float> normalizedTelemetryRisk;
@@ -23,16 +15,6 @@ struct SafetyGovernorInput {
     CognitiveState cognitive;
     BiometricFrame biometrics;
     NeuroPipelineDiagnostics diagnostics;
-};
-
-struct SafetyDecision {
-    SafetyAction action = SafetyAction::Continue;
-    float riskScore = 0.0f;
-    float intensityScale = 1.0f;
-    bool allowRender = true;
-    bool requiresEmergencyStop = false;
-    std::string reason;
-    std::string auditRecord;
 };
 
 class SafetyGovernor {
