@@ -9,7 +9,7 @@
 namespace dnxr {
 namespace {
 
-float finiteOrZero(float value) {
+float stimulusEnvelopeFiniteOrZero(float value) {
     return std::isfinite(value) ? value : 0.0f;
 }
 
@@ -106,7 +106,7 @@ std::vector<float> NeuralStimulusSafetyEnvelope::applyEnvelope(
 
     for (std::size_t i = 0; i < sensoryFrame.size(); ++i) {
         const float limit = std::clamp(channelLimit(i) / frameSchema_.safetyWeightForChannel(i), 0.0f, 1.0f);
-        const float target = std::clamp(finiteOrZero(sensoryFrame[i]), -limit, limit);
+        const float target = std::clamp(stimulusEnvelopeFiniteOrZero(sensoryFrame[i]), -limit, limit);
         const float previous = lastBoundedChannels_[i];
         const float delta = std::clamp(target - previous, -maxDelta, maxDelta);
         bounded.push_back(std::clamp(previous + delta, -limit, limit));
@@ -125,7 +125,7 @@ void NeuralStimulusSafetyEnvelope::updateModalityBudget(
 
     for (std::size_t i = 0; i < boundedChannels.size(); ++i) {
         const auto modality = static_cast<std::size_t>(frameSchema_.modalityForChannel(i));
-        const float intensity = std::abs(finiteOrZero(boundedChannels[i]));
+        const float intensity = std::abs(stimulusEnvelopeFiniteOrZero(boundedChannels[i]));
         budget.peakIntensity[modality] = std::max(budget.peakIntensity[modality], intensity);
         ++budget.channelCount[modality];
         total += intensity;

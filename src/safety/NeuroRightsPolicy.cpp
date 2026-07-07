@@ -9,7 +9,7 @@
 namespace dnxr {
 namespace {
 
-float finiteOrZero(float value) {
+float neuroRightsFiniteOrZero(float value) {
     return std::isfinite(value) ? value : 0.0f;
 }
 
@@ -78,8 +78,8 @@ NeuroRightsDecision NeuroRightsPolicy::evaluate(const NeuroRightsRequest& reques
     }
 
     if (request.scope == NeuroPermissionScope::CognitiveInfluence) {
-        const float requestedNorm = finiteOrZero(request.requestedInfluenceNorm);
-        const float maxNorm = finiteOrZero(request.maxAllowedInfluenceNorm);
+        const float requestedNorm = neuroRightsFiniteOrZero(request.requestedInfluenceNorm);
+        const float maxNorm = neuroRightsFiniteOrZero(request.maxAllowedInfluenceNorm);
         if (!request.explicitConsent) {
             decision.reason = "cognitive_influence_requires_explicit_consent";
             decision.auditTag = buildAuditTag(request, decision.reason);

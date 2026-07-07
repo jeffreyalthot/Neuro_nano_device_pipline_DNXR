@@ -104,6 +104,11 @@ if(DNXR_ENABLE_RESEARCH_SPECULATION AND DNXR_RESEARCH_SPECULATION_SRC)
 endif()
 
 add_library(dnxr_core STATIC ${DNXR_CORE_SRC})
+if(CMAKE_UNITY_BUILD)
+    # Keep generated unity translation units to one source file so legacy internal-linkage
+    # helpers do not collide while the codebase is being made fully unity-clean.
+    set_target_properties(dnxr_core PROPERTIES UNITY_BUILD_BATCH_SIZE 1)
+endif()
 target_include_directories(dnxr_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if(DNXR_HUMAN_USE_BUILD)
     target_compile_definitions(dnxr_core PUBLIC DNXR_HUMAN_USE_BUILD=1)

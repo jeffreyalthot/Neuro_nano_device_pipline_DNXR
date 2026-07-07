@@ -9,7 +9,7 @@
 namespace dnxr {
 namespace {
 
-float clamp01(float value) {
+float safetyGovernorClamp01(float value) {
     return std::clamp(value, 0.0f, 1.0f);
 }
 
@@ -27,7 +27,7 @@ float SafetyGovernor::computeTelemetryRisk(
         normalizedTelemetryRisk.end(),
         0.0f);
 
-    return clamp01(total / static_cast<float>(normalizedTelemetryRisk.size()));
+    return safetyGovernorClamp01(total / static_cast<float>(normalizedTelemetryRisk.size()));
 }
 
 float SafetyGovernor::computeSensoryLoad(
@@ -42,7 +42,7 @@ float SafetyGovernor::computeSensoryLoad(
         load += std::abs(channel);
     }
 
-    return clamp01(load / static_cast<float>(sensoryFrame.size()));
+    return safetyGovernorClamp01(load / static_cast<float>(sensoryFrame.size()));
 }
 
 std::string SafetyGovernor::actionName(SafetyAction action) const {
@@ -70,16 +70,16 @@ SafetyDecision SafetyGovernor::evaluate(const SafetyGovernorInput& input) const 
 
     const float telemetryRisk = computeTelemetryRisk(input.normalizedTelemetryRisk);
     const float sensoryLoad = computeSensoryLoad(input.sensoryFrame);
-    const float signalRisk = clamp01(1.0f - input.diagnostics.neuralSignalQuality);
-    const float autonomyRisk = clamp01(1.0f - input.diagnostics.autonomyPreservation);
-    const float driftRisk = clamp01(input.diagnostics.decisionDrift);
-    const float addictionRisk = clamp01(input.diagnostics.addictionRisk);
-    const float cognitiveRisk = clamp01(
+    const float signalRisk = safetyGovernorClamp01(1.0f - input.diagnostics.neuralSignalQuality);
+    const float autonomyRisk = safetyGovernorClamp01(1.0f - input.diagnostics.autonomyPreservation);
+    const float driftRisk = safetyGovernorClamp01(input.diagnostics.decisionDrift);
+    const float addictionRisk = safetyGovernorClamp01(input.diagnostics.addictionRisk);
+    const float cognitiveRisk = safetyGovernorClamp01(
         (input.cognitive.stress * 0.45f) +
         (input.cognitive.fatigue * 0.30f) +
         ((1.0f - input.cognitive.attention) * 0.25f));
 
-    decision.riskScore = clamp01(
+    decision.riskScore = safetyGovernorClamp01(
         (telemetryRisk * 0.20f) +
         (cognitiveRisk * 0.20f) +
         (signalRisk * 0.15f) +

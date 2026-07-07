@@ -9,7 +9,7 @@
 namespace dnxr {
 namespace {
 
-float clamp01(float value) {
+float safetyPipelineClamp01(float value) {
     return std::max(0.0f, std::min(1.0f, value));
 }
 
@@ -17,7 +17,7 @@ float average(const std::vector<float>& values) {
     if (values.empty()) {
         return 0.0f;
     }
-    return clamp01(std::accumulate(values.begin(), values.end(), 0.0f) / static_cast<float>(values.size()));
+    return safetyPipelineClamp01(std::accumulate(values.begin(), values.end(), 0.0f) / static_cast<float>(values.size()));
 }
 
 float sensoryLoad(const std::vector<float>& frame) {
@@ -28,7 +28,7 @@ float sensoryLoad(const std::vector<float>& frame) {
     for (float value : frame) {
         total += std::abs(value);
     }
-    return clamp01(total / static_cast<float>(frame.size()));
+    return safetyPipelineClamp01(total / static_cast<float>(frame.size()));
 }
 
 int actionSeverity(SafetyAction action) {
@@ -64,7 +64,7 @@ SafetyLayerDecision makeDecision(
     SafetyLayerDecision decision;
     decision.layerName = layerName;
     decision.action = action;
-    decision.riskScore = clamp01(risk);
+    decision.riskScore = safetyPipelineClamp01(risk);
     decision.reason = reason;
 
     switch (action) {
@@ -102,7 +102,7 @@ public:
 
     SafetyLayerDecision evaluate(const SafetyGovernorInput& input) const override {
         if (layerName_ == "ConsentLayer") {
-            const float autonomyRisk = clamp01(1.0f - input.diagnostics.autonomyPreservation);
+            const float autonomyRisk = safetyPipelineClamp01(1.0f - input.diagnostics.autonomyPreservation);
             if (input.diagnostics.autonomyPreservation < 0.20f) {
                 return makeDecision(layerName_, SafetyAction::EmergencyStop, autonomyRisk, "autonomy_preservation_failed");
             }
@@ -110,7 +110,7 @@ public:
         }
 
         if (layerName_ == "SignalIntegrityLayer") {
-            const float signalRisk = clamp01(1.0f - input.diagnostics.neuralSignalQuality);
+            const float signalRisk = safetyPipelineClamp01(1.0f - input.diagnostics.neuralSignalQuality);
             if (input.diagnostics.neuralSignalQuality < 0.25f) {
                 return makeDecision(layerName_, SafetyAction::Decompress, signalRisk, "low_neural_signal_quality");
             }
@@ -129,7 +129,7 @@ public:
         }
 
         if (layerName_ == "CognitiveRiskLayer") {
-            const float risk = clamp01(
+            const float risk = safetyPipelineClamp01(
                 (input.cognitive.stress * 0.45f) +
                 (input.cognitive.fatigue * 0.30f) +
                 ((1.0f - input.cognitive.attention) * 0.25f));
@@ -151,7 +151,7 @@ public:
         }
 
         if (layerName_ == "AddictionRiskLayer") {
-            const float risk = clamp01(input.diagnostics.addictionRisk);
+            const float risk = safetyPipelineClamp01(input.diagnostics.addictionRisk);
             if (input.diagnostics.addictionMitigationActive || risk > 0.75f) {
                 return makeDecision(layerName_, SafetyAction::RealityAnchor, risk, "addiction_reality_anchor_required");
             }
@@ -159,7 +159,7 @@ public:
         }
 
         if (layerName_ == "RealityAnchorLayer") {
-            const float drift = clamp01(input.diagnostics.decisionDrift);
+            const float drift = safetyPipelineClamp01(input.diagnostics.decisionDrift);
             if (drift > 0.85f) {
                 return makeDecision(layerName_, SafetyAction::EmergencyStop, drift, "decision_drift_emergency");
             }
@@ -170,7 +170,7 @@ public:
         }
 
         if (layerName_ == "EmergencyLayer") {
-            const float risk = std::max(average(input.normalizedTelemetryRisk), clamp01(input.diagnostics.decisionDrift));
+            const float risk = std::max(average(input.normalizedTelemetryRisk), safetyPipelineClamp01(input.diagnostics.decisionDrift));
             if (input.diagnostics.safetyMode == "emergency_stop" || risk >= 0.95f) {
                 return makeDecision(layerName_, SafetyAction::EmergencyStop, risk, "emergency_layer_latched");
             }
