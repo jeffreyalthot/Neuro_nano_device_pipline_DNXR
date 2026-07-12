@@ -432,6 +432,11 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(
   spikeInput.sessionState = sessionState_;
   spikeInput.readFrame = read;
   spikeInput.safety.simulationOnly = config_.simulationOnly;
+  spikeInput.deploymentSafety = config_.deploymentSafety;
+  spikeInput.deploymentSafety.deploymentMode = config_.simulationOnly
+      ? RuntimeDeploymentMode::SimulationOnly
+      : config_.deploymentSafety.deploymentMode;
+  spikeInput.deploymentSafety.humanUseLocked = true;
   const auto& ackState = ackHandshake_.state();
   spikeInput.lastAck.packetAccepted = !ackState.hasPendingAck || ackState.ackReceived;
   spikeInput.lastAck.signalQuality = ackState.ackReceived

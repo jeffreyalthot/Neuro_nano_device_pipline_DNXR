@@ -65,6 +65,7 @@ struct NeuralChipOnlyPipelineConfig {
     bool experimentalAcknowledgement = false;
     bool researchModeAcknowledgement = false;
     bool strictConfig = false;
+    DeploymentSafetyEvidence deploymentSafety{};
 
     static NeuralChipOnlyPipelineConfig simulationSafeDefaults();
 };

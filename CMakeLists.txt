@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(DistributedNeuralXR LANGUAGES CXX)
+
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 set(CMAKE_CXX_STANDARD 17)
 
 option(DNXR_BUILD_TESTS "Build DNXR tests" ON)
@@ -63,11 +65,20 @@ endif()
 
 file(GLOB_RECURSE DNXR_CORE_SRC CONFIGURE_DEPENDS src/*.cpp)
 list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/main\\.cpp$")
+set(DNXR_SIMULATION_RUNTIME_REGEX "/(sim|simulation|hil|fault_injection)/|/(SimulatedSignalProvider|NeuralSignalSimulator|BiometricSimulator|ScenarioRunner|SimulationCryptoTransport)\.cpp$")
 set(DNXR_RESEARCH_SPECULATION_REGEX "/(runtime/FullDiveOrchestrator|network/DistributedConsciousnessNetwork|physics/NeuralQuantumEntanglementEngine|reality/SubjectiveTimeDilationEngine|memory/RecursiveMemoryReconstructionEngine|subconscious/SubconsciousSimulationEngine|emotion/AffectiveResonanceMatrix)\.cpp$")
 set(DNXR_RESEARCH_SPECULATION_SRC ${DNXR_CORE_SRC})
 list(FILTER DNXR_RESEARCH_SPECULATION_SRC INCLUDE REGEX "${DNXR_RESEARCH_SPECULATION_REGEX}")
 if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)
     list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "${DNXR_RESEARCH_SPECULATION_REGEX}")
+endif()
+
+set(DNXR_REAL_RUNTIME_SRC ${DNXR_CORE_SRC})
+list(FILTER DNXR_REAL_RUNTIME_SRC EXCLUDE REGEX "${DNXR_SIMULATION_RUNTIME_REGEX}")
+if(DNXR_SIMULATION_ONLY)
+    set(DNXR_SELECTED_CORE_SRC ${DNXR_CORE_SRC})
+else()
+    set(DNXR_SELECTED_CORE_SRC ${DNXR_REAL_RUNTIME_SRC})
 endif()
 
 function(dnxr_apply_sanitizers target)
@@ -103,13 +114,14 @@ if(DNXR_ENABLE_RESEARCH_SPECULATION AND DNXR_RESEARCH_SPECULATION_SRC)
     target_include_directories(dnxr_research_speculation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 endif()
 
-add_library(dnxr_core STATIC ${DNXR_CORE_SRC})
+add_library(dnxr_core STATIC ${DNXR_SELECTED_CORE_SRC})
 if(CMAKE_UNITY_BUILD)
     # Keep generated unity translation units to one source file so legacy internal-linkage
     # helpers do not collide while the codebase is being made fully unity-clean.
     set_target_properties(dnxr_core PROPERTIES UNITY_BUILD_BATCH_SIZE 1)
 endif()
 target_include_directories(dnxr_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(dnxr_core PUBLIC OpenSSL::Crypto)
 if(DNXR_HUMAN_USE_BUILD)
     target_compile_definitions(dnxr_core PUBLIC DNXR_HUMAN_USE_BUILD=1)
 else()
@@ -208,6 +220,8 @@ if(DNXR_BUILD_TESTS)
         dnxr_spike_to_stimulus_translator_test
         dnxr_stimulus_by_spike_runtime_test
         dnxr_runtime_path_lock_test
+        dnxr_spike_runtime_real_evidence_gate_test
+        dnxr_openssl_packet_protector_test
         dnxr_virtual_world_data_ingress_test
         dnxr_full_dive_environment_sync_graph_test
         dnxr_spike_bridge_replay_coverage_test

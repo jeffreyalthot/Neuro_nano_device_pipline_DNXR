@@ -17,7 +17,7 @@
 #include "../utils/DeterministicSessionReplay.h"
 #include "../utils/RuntimeMetrics.h"
 #include "../utils/RuntimeTraceRecorder.h"
-#include "../network/SimulationCryptoTransport.h"
+#include "RuntimeCompositionRoot.h"
 #include "../safety/NeuralIdentityVault.h"
 #include "../security/RuntimeSecret.h"
 #include "../runtime/FullDiveSynchronizationEngine.h"
@@ -120,7 +120,6 @@ private:
     mutable std::mutex traceMutex_;
     mutable std::mutex metricsMutex_;
     DeterministicSessionReplay replay_;
-    SimulationCryptoTransport crypto_;
     std::unique_ptr<class SessionSafetyJournal> safetyJournal_;
     std::string auditSessionPath_;
     std::unique_ptr<class RuntimeState> runtimeState_;
@@ -154,7 +153,12 @@ private:
     std::unique_ptr<class SafetyStateMachine> safetyStateMachine_;
     std::unique_ptr<class IndependentWatchdog> independentWatchdog_;
     std::unique_ptr<class NeuralStimulusSafetyEnvelope> stimulusEnvelope_;
-    std::unique_ptr<class SimulatedNeuralChipHAL> neuralChipHal_;
+    std::unique_ptr<INeuralChipHAL> neuralChipHal_;
+    std::unique_ptr<INeuralTransport> neuralTransport_;
+    std::unique_ptr<INeuralPacketProtector> packetProtector_;
+    std::unique_ptr<INeuralSignalSource> neuralSignalSource_;
+    std::unique_ptr<IBiometricSource> biometricSource_;
+    RuntimeDeploymentMode deploymentMode_ = RuntimeDeploymentMode::SimulationOnly;
     std::unique_ptr<class DeepImmersionPlatform> deepImmersion_;
     std::unique_ptr<dnxr::FullDiveSynchronizationEngine> fullDiveSynchronization_;
     std::unique_ptr<class FullDiveSafetyBridge> fullDiveBridge_;
