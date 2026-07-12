@@ -1,7 +1,7 @@
 #pragma once
 
 #include "FullDiveSynchronizationEngine.h"
-#include "../network/SimulationCryptoTransport.h"
+#include "../core/RuntimeCompositionRoot.h"
 #include "../hardware/NeuralChipHAL.h"
 #include "../safety/NeuralIdentityVault.h"
 #include "../security/RuntimeSecret.h"
@@ -60,7 +60,7 @@ struct RuntimeStageServices {
     FullDiveSynchronizationEngine& fullDiveSynchronization;
     FullDiveSafetyBridge& fullDiveBridge;
     SessionSafetyJournal& safetyJournal;
-    SimulationCryptoTransport& crypto;
+    INeuralPacketProtector& packetProtector;
     RuntimeSecret& neuralTransportSecret;
     NeuralIdentityVault& identityVault;
     PerceivedBodyPoseEstimator* perceivedBodyPoseEstimator = nullptr;

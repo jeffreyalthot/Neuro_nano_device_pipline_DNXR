@@ -15,6 +15,7 @@
 #include "full_dive/spike_bridge/VectorToSpikeEngineFrameBuilder.h"
 #include "neural_chip/NeuralChipSessionState.h"
 #include "neural_chip/PatientSpecificNeuralMap.h"
+#include "core/RuntimeDeploymentMode.h"
 
 #include <array>
 #include <cstddef>
@@ -37,6 +38,19 @@ inline constexpr std::array<std::string_view,
         "StimulusBySpikePacketAssembler",
         "StimulusFeedbackSynchronizer"};
 
+struct DeploymentSafetyEvidence {
+  RuntimeDeploymentMode deploymentMode = RuntimeDeploymentMode::SimulationOnly;
+  bool hardwareIdentityVerified = false;
+  bool firmwareVerified = false;
+  bool patientMapVerified = false;
+  bool calibrationVerified = false;
+  bool feedbackChannelVerified = false;
+  bool hardwareCutoffVerified = false;
+  bool operatorAuthorizationVerified = false;
+  bool sessionConsentVerified = false;
+  bool humanUseLocked = true;
+};
+
 struct StimulusBySpikeInput {
   std::uint64_t frameId = 0;
   double timestampMs = 0.0;
@@ -54,6 +68,7 @@ struct StimulusBySpikeInput {
   NeuralChipSessionState sessionState;
   ChipReadFrame readFrame;
   NeuralChipAck lastAck;
+  DeploymentSafetyEvidence deploymentSafety;
 };
 
 struct StimulusBySpikeResult {

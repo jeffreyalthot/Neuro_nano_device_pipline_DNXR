@@ -60,6 +60,7 @@ SafeNeuralStimulusCommand toLegacyCommand(const SafeNeuralStimulusCommandFixed& 
     return legacy;
 }
 
+#if DNXR_SIMULATION_ONLY
 SimulatedNeuralChipHAL::SimulatedNeuralChipHAL(
     std::size_t channelCount,
     NeuralChipRuntimeMode mode)
@@ -316,5 +317,7 @@ DeviceIdentity SimulatedNeuralChipHAL::deviceIdentity() const {
 
 bool SimulatedNeuralChipHAL::hardwareCutoffAvailable() const { return capabilities().supportsHardwareCutoff; }
 bool SimulatedNeuralChipHAL::closedLoopFeedbackAvailable() const { return capabilities().supportsClosedLoopFeedback; }
+
+#endif
 
 } // namespace dnxr

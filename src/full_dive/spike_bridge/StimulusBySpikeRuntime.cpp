@@ -28,7 +28,24 @@ bool StimulusBySpikeRuntime::stageCoverageComplete(
 
 bool StimulusBySpikeRuntime::safetyPreflightAccepted(
     const StimulusBySpikeInput &input) {
-  return input.safety.simulationOnly && input.safety.patientStopSignalAlive &&
+  const bool simulationHarness =
+      input.deploymentSafety.deploymentMode == RuntimeDeploymentMode::SimulationOnly &&
+      input.safety.simulationOnly;
+  const bool authorizedNoHumanMode =
+      (input.deploymentSafety.deploymentMode == RuntimeDeploymentMode::HardwareBenchNoHuman ||
+       input.deploymentSafety.deploymentMode == RuntimeDeploymentMode::PreclinicalPhantom ||
+       input.deploymentSafety.deploymentMode == RuntimeDeploymentMode::AuthorizedResearchOnly) &&
+      input.deploymentSafety.hardwareIdentityVerified &&
+      input.deploymentSafety.firmwareVerified &&
+      input.deploymentSafety.patientMapVerified &&
+      input.deploymentSafety.calibrationVerified &&
+      input.deploymentSafety.feedbackChannelVerified &&
+      input.deploymentSafety.hardwareCutoffVerified &&
+      input.deploymentSafety.operatorAuthorizationVerified &&
+      input.deploymentSafety.sessionConsentVerified &&
+      input.deploymentSafety.humanUseLocked;
+  return (simulationHarness || authorizedNoHumanMode) &&
+         input.safety.patientStopSignalAlive &&
          input.safety.emergencyCutoffAvailable &&
          input.safety.painMappingBlocked &&
          input.safety.rawSensoryPayloadBlocked;

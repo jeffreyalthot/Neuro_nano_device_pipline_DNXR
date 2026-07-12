@@ -222,8 +222,13 @@ void RuntimeController::initializeModules() {
             safetyProfile.maxVestibularIntensity,
             safetyProfile.maxProprioceptiveIntensity});
     neuralTransportSecret_ = SecretProvider::resolve("neural_transport_session", "DNXR_NEURAL_TRANSPORT_KEY");
-    neuralChipHal_ = std::make_unique<SimulatedNeuralChipHAL>(64);
-    neuralChipHal_->connect("runtime_simulated_neural_chip");
+    RuntimeComposition composition = RuntimeCompositionRoot{}.compose(config_);
+    deploymentMode_ = composition.deploymentMode;
+    neuralChipHal_ = std::move(composition.neuralChipHal);
+    neuralTransport_ = std::move(composition.neuralTransport);
+    packetProtector_ = std::move(composition.packetProtector);
+    neuralSignalSource_ = std::move(composition.neuralSignalSource);
+    biometricSource_ = std::move(composition.biometricSource);
     deepImmersion_= std::make_unique<DeepImmersionPlatform>();
     fullDiveSynchronization_ = std::make_unique<dnxr::FullDiveSynchronizationEngine>();
     fullDiveBridge_ = std::make_unique<FullDiveSafetyBridge>();
@@ -366,8 +371,8 @@ RuntimeAcquisitionStage::Input RuntimeController::makeAcquisitionStageInput() {
 
 RuntimeSignalStage::Input RuntimeController::makeSignalStageInput() {
     return RuntimeSignalStage::Input{
-        [this](const std::vector<float>& raw) { return crypto_.encrypt(raw, neuralTransportSecret_.value); },
-        [this](const std::vector<std::uint8_t>& encrypted) { return crypto_.decrypt(encrypted, neuralTransportSecret_.value); },
+        [this](const std::vector<float>& raw) { return packetProtector_->protect(raw, neuralTransportSecret_.value); },
+        [this](const std::vector<std::uint8_t>& encrypted) { return packetProtector_->unprotect(encrypted, neuralTransportSecret_.value); },
         [this](const std::vector<float>& decrypted) { return bridge_->uplink(decrypted); },
         [this](const std::vector<float>& uplinked) { return dsp_->denoise(uplinked); },
         [this](const std::vector<float>& clean) { return vec_->vectorize(clean); },
@@ -661,7 +666,7 @@ RuntimeStageServices RuntimeController::makeRuntimeStageServices() {
         *fullDiveSynchronization_,
         *fullDiveBridge_,
         *safetyJournal_,
-        crypto_,
+        *packetProtector_,
         neuralTransportSecret_,
         identityVault_};
 }
@@ -703,7 +708,7 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
 
     RuntimeStageServices& services = *stageServices_;
     const RuntimePathDecision pathDecision = runtimePathLock_.decide(
-        neuralChipHal_->status(), RuntimeDeploymentMode::SimulationOnly);
+        neuralChipHal_->status(), deploymentMode_);
     RuntimePipelineRunner::RuntimePipelineRunInputRef input{
         RuntimeStageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds},
         tickReport,

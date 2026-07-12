@@ -3,14 +3,12 @@
 #include "TimeSync.h"
 
 #include <chrono>
-#include <mutex>
 #include <atomic>
 
 namespace dnxr {
 
 namespace {
 
-std::mutex g_timeMutex;
 std::atomic<std::int64_t> g_lastTimestamp{0};
 
 std::int64_t monotonicNowMs() {
@@ -24,26 +22,17 @@ std::int64_t monotonicNowMs() {
 
 std::int64_t TimeSync::nowMs() {
 
-    std::lock_guard<std::mutex> lock(g_timeMutex);
-
-    std::int64_t t = monotonicNowMs();
-
-    // Garantit une monotonie stricte même en cas de collisions
+    const std::int64_t t = monotonicNowMs();
     std::int64_t last = g_lastTimestamp.load(std::memory_order_relaxed);
-
-    if (t <= last) {
-        t = last + 1;
+    while (t > last && !g_lastTimestamp.compare_exchange_weak(
+                         last, t, std::memory_order_relaxed)) {
     }
-
-    g_lastTimestamp.store(t, std::memory_order_relaxed);
-
-    return t;
+    return t > last ? t : last;
 }
 
 
 void TimeSync::reset() {
 
-    std::lock_guard<std::mutex> lock(g_timeMutex);
     g_lastTimestamp.store(0, std::memory_order_relaxed);
 }
 
