@@ -18,7 +18,12 @@ int main(int argc, char** argv) {
         const auto cycles = readValue("--cycles");
         if (!cycles.empty()) config.maxRuntimeCycles = std::stoi(cycles);
         if (arg == "--headless") { config.headless = true; config.dashboardEnabled = false; }
-        if (arg == "--full-unlocked") { config.runtimeMode = "full_unlocked_mode"; config.fullUnlockedDiagnostics = true; config.replayEnabled = true; config.benchmarkEnabled = true; }
+        if (arg == "--full-unlocked") {
+            // The locked runtime must not expose a CLI switch that expands safety capabilities.
+            // Keep this argument as a diagnostics alias only, without enabling replay or benchmark paths.
+            config.runtimeMode = "diagnostic_mode";
+            config.fullUnlockedDiagnostics = true;
+        }
         if (arg == "--benchmark") { config.runtimeMode = "benchmark_mode"; config.benchmarkEnabled = true; }
         if (arg == "--replay") { config.runtimeMode = "replay_mode"; config.replayEnabled = true; }
         if (arg == "--diagnostic") { config.runtimeMode = "diagnostic_mode"; config.fullUnlockedDiagnostics = true; }

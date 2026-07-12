@@ -14,6 +14,7 @@
 // =============================================================================
 
 #include "RuntimeController.h"
+#include "../app/CliDashboard.h"
 
 #include "../devices/NanoNodeInterface.h"
 #include "../devices/HostComputerBridge.h"
@@ -52,10 +53,17 @@
 #include "../runtime/RuntimeFullDiveStage.h"
 #include "../runtime/RuntimeRenderStage.h"
 #include "../runtime/RuntimeStimulusStage.h"
+#include "../runtime/RuntimeState.h"
+#include "../runtime/RuntimeFrame.h"
+#include "../runtime/RuntimeTypes.h"
 #include "../runtime/RuntimePipelineRunner.h"
 #include "../utils/Logger.h"
 #include "../utils/SessionSafetyJournal.h"
 #include "../utils/TimeSync.h"
+#include "../utils/AuditFileWriter.h"
+#include "../performance/HotPathDiagnostics.h"
+#include "../performance/PipelineBenchmark.h"
+#include "../config/FullUnlockedConfig.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -112,14 +120,25 @@ std::string auditHash(const std::vector<float>& v) {
 } // namespace
 
 RuntimeController::RuntimeController()
-    : runtimeRunning_(false),
-      frameBudgetMs_(11),   // ~90 Hz
+    : RuntimeController(RuntimeConfig{}) {}
+
+RuntimeController::RuntimeController(RuntimeConfig config)
+    : config_(std::move(config)),
+      runtimeMode_(runtimeModeFromString(config_.runtimeMode)),
+      frameBudgetMonitor_(static_cast<double>(std::max(1, config_.targetLoopMs))),
+      runtimeRunning_(false),
+      frameBudgetMs_(std::max(1, config_.targetLoopMs)),
       droppedFrames_(0),
       scheduler_(20.0),
       runtimeMetrics_(static_cast<double>(frameBudgetMs_), 256),
       cycleCounter_(0),
       lastState_("init") {
     safetyJournal_ = std::make_unique<SessionSafetyJournal>();
+    auditSessionPath_ = AuditFileWriter::makeTimestampedSessionPath();
+    runtimeState_ = std::make_unique<RuntimeState>();
+    if (config_.dashboardEnabled && !config_.headless) {
+        dashboard_ = std::make_unique<CliDashboard>(config_);
+    }
     pipelineRunner_ = std::make_unique<RuntimePipelineRunner>();
     initializeModules();
 }
@@ -155,10 +174,13 @@ void RuntimeController::initializeModules() {
     });
 
     headset_ = std::make_unique<XRHeadsetInterface>(XRHeadsetRuntimeConfig{
-        envOrDefault("DNXR_XR_ENDPOINT",    "wss://xr-headset.local:8443"),
-        envOrDefault("DNXR_XR_DEVICE_ID",   "headset-placeholder"),
-        SecretProvider::resolve("xr_auth_token", "DNXR_XR_AUTH_TOKEN").value,
-        true
+        envOrDefault("DNXR_XR_ENDPOINT", config_.xrEndpoint),
+        envOrDefault("DNXR_XR_DEVICE_ID", config_.xrDeviceId),
+        SecretProvider::resolve("xr_auth_token", config_.xrAuthTokenEnv).value,
+        true,
+        config_.xrTargetFramerate,
+        120.0f,
+        config_.xrAsyncTelemetry
     });
 
     dsp_          = std::make_unique<SignalStreamProcessor>();
@@ -267,13 +289,28 @@ void RuntimeController::initializeModules() {
     const std::string sessionIdentityToken = identityVault_.tokenizeIdentity("runtime_user");
     Logger::info("identity_token_initialized=" + sessionIdentityToken);
 
+    if (runtimeMode_ == RuntimeMode::FullUnlocked) {
+        const auto unlocked = FullUnlockedConfig::defaults();
+        Logger::warn("[FullUnlocked] diagnostics-only mode requested; no safety capabilities are expanded. " + unlocked.describe());
+    }
+    if (config_.benchmarkEnabled || runtimeMode_ == RuntimeMode::Benchmark) {
+        PipelineBenchmark benchmark;
+        Logger::info("[PipelineBenchmark] " + benchmark.run(config_.benchmarkCycles, [](std::uint64_t) noexcept {}));
+    }
+
     stageServices_ = std::make_unique<RuntimeStageServices>(makeRuntimeStageServices());
     pipelineSinks_ = std::make_unique<RuntimePipelineSinks>(makeRuntimePipelineSinks());
 }
 
 void RuntimeController::shutdownModules() {
+    if (safetyJournal_ && !auditSessionPath_.empty() &&
+        !safetyJournal_->saveToFile(auditSessionPath_, "logs/safety/latest.audit")) {
+        Logger::warn("[RuntimeController] Failed to persist safety audit journal.");
+    }
     pipelineSinks_.reset();
     stageServices_.reset();
+    dashboard_.reset();
+    runtimeState_.reset();
     safetyJournal_.reset();
     nodes_.reset();
     bridge_.reset();
@@ -379,6 +416,55 @@ void RuntimeController::publishPipelineState(const RuntimePipelineFrame& pipelin
     }
     publishRuntimeEvent("state:" + statePayload);
     Logger::info("🧠 State -> " + statePayload);
+}
+
+
+void RuntimeController::publishRuntimeArtifacts(const RuntimePipelineFrame& pipeline) {
+    RuntimeMetricsSnapshot metricsSnapshot;
+    {
+        std::lock_guard<std::mutex> lock(metricsMutex_);
+        metricsSnapshot = runtimeMetrics_.snapshot();
+    }
+
+    RuntimeFrame runtimeFrame;
+    runtimeFrame.cycleId = pipeline.cycleId;
+    runtimeFrame.timestampMs = TimeSync::nowMs();
+    runtimeFrame.rawSignal = pipeline.rawNeuralSignals;
+    runtimeFrame.cleanSignal = pipeline.cleanSignals;
+    runtimeFrame.features = pipeline.features;
+    runtimeFrame.cognitiveState = pipeline.symbolicState;
+    runtimeFrame.biometrics = pipeline.telemetry;
+    runtimeFrame.xrAction = toString(IntentAction::Navigate);
+    runtimeFrame.xrFrame = pipeline.sensoryFrame;
+    runtimeFrame.safetyDecision = pipeline.safetyDecision.allowRender && !pipeline.safetyDecision.requiresEmergencyStop
+        ? toString(RuntimeSafetyAction::AllowRender)
+        : toString(RuntimeSafetyAction::EmergencyStop);
+    runtimeFrame.metricsSnapshot = metricsSnapshot;
+    if (runtimeState_) {
+        runtimeState_->commitFrame(runtimeFrame);
+    }
+
+    if (dashboard_ && config_.dashboardEnabled && !config_.headless) {
+        const auto renderTelemetry = renderer_ ? renderer_->getTelemetrySnapshot() : XRRenderTelemetrySnapshot{};
+        CliDashboardSnapshot snapshot;
+        snapshot.cycle = static_cast<int>(pipeline.cycleId);
+        snapshot.cognitiveState = pipeline.symbolicState;
+        snapshot.safetyOk = !pipeline.emergencyActive && pipeline.safetyDecision.allowRender;
+        snapshot.features = pipeline.features;
+        snapshot.frame = pipeline.sensoryFrame;
+        snapshot.telemetry = pipeline.telemetry;
+        snapshot.calibratedIntensity = pipeline.calibratedFeatures.empty() ? 0.0f : pipeline.calibratedFeatures[0];
+        snapshot.avatarPose = immersion_ ? immersion_->getAvatarPoseSummary() : "unavailable";
+        snapshot.signalSource = config_.signalSource;
+        snapshot.renderQualityMode = renderTelemetry.quality.qualityMode;
+        snapshot.auditHash = safetyJournal_ ? safetyJournal_->latestHash() : "genesis";
+        snapshot.lastLatencyMs = metricsSnapshot.lastLatencyMs;
+        snapshot.avgLatencyMs = metricsSnapshot.avgLatencyMs;
+        snapshot.jitterMs = metricsSnapshot.jitterMs;
+        snapshot.maxLatencyMs = metricsSnapshot.maxLatencyMs;
+        snapshot.safetyEvents = metricsSnapshot.safetyEventCount;
+        dashboard_->render(snapshot);
+    }
 }
 
 RuntimeCalibrationStage::Input RuntimeController::makeCalibrationStageInput() {
@@ -634,6 +720,7 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
         frame.emergencyActive = true;
         frame.stopReason = "runtime_path_lock_invalid_primary_real_state";
     }
+    publishRuntimeArtifacts(frame);
     return frame;
 }
 
@@ -650,10 +737,29 @@ void RuntimeController::run() {
         const auto start = clock::now();
         const double timestamp = std::chrono::duration<double>(start.time_since_epoch()).count();
         runSingleCycle(timestamp);
+        const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - start).count();
+        frameBudgetMonitor_.observe(static_cast<double>(elapsedMs));
+        if (shouldStopAfterCycle()) {
+            stop();
+            break;
+        }
         throttle(start);
     }
 
+    emitShutdownDiagnostics();
     Logger::info("🛑 [Runtime] Execution stopped.");
+}
+
+bool RuntimeController::shouldStopAfterCycle() const {
+    return config_.maxRuntimeCycles > 0 && cycleCounter_.load() >= static_cast<std::uint64_t>(config_.maxRuntimeCycles);
+}
+
+void RuntimeController::emitShutdownDiagnostics() const {
+    if (isInspectionEnabled(runtimeMode_) || config_.fullUnlockedDiagnostics) {
+        HotPathDiagnostics hotPath;
+        Logger::info("[FrameBudget] " + frameBudgetMonitor_.report());
+        Logger::info("[HotPathDiagnostics] " + hotPath.summary());
+    }
 }
 
 void RuntimeController::stop() noexcept {

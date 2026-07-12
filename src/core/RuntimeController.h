@@ -9,6 +9,10 @@
 #include <functional>
 #include <vector>
 
+#include "../config/RuntimeConfig.h"
+#include "../config/RuntimeMode.h"
+#include "../performance/FrameBudgetMonitor.h"
+
 #include "NeuroRealtimeScheduler.h"
 #include "../utils/DeterministicSessionReplay.h"
 #include "../utils/RuntimeMetrics.h"
@@ -40,6 +44,7 @@ namespace dnxr {
 class RuntimeController {
 public:
     RuntimeController();
+    explicit RuntimeController(RuntimeConfig config);
     ~RuntimeController();
 
     /// Effectue un cycle complet de traitement (1 frame).
@@ -81,6 +86,7 @@ private:
     RuntimeCycleFinalizer::Input makeCycleFinalizerInput();
     RuntimeCycleFinalizer::Context makeCycleFinalizerContext(const RuntimeMetricsSnapshot& previousMetricsSnapshot);
     void publishPipelineState(const RuntimePipelineFrame& pipeline);
+    void publishRuntimeArtifacts(const RuntimePipelineFrame& pipeline);
     RuntimeAcquisitionStage::Input makeAcquisitionStageInput();
     RuntimeSignalStage::Input makeSignalStageInput();
     RuntimeInferenceStage::Input makeInferenceStageInput();
@@ -94,12 +100,17 @@ private:
     RuntimeStimulusStage::Input makeStimulusStageInput();
     RuntimeStageServices makeRuntimeStageServices();
     RuntimePipelineSinks makeRuntimePipelineSinks();
+    bool shouldStopAfterCycle() const;
+    void emitShutdownDiagnostics() const;
 
     // Initialisation centralisée des modules
     void initializeModules();
     void shutdownModules();
 
 private:
+    RuntimeConfig config_;
+    RuntimeMode runtimeMode_;
+    mutable FrameBudgetMonitor frameBudgetMonitor_;
     std::atomic<bool> runtimeRunning_;
     int frameBudgetMs_;
     std::atomic<uint64_t> droppedFrames_;
@@ -111,6 +122,9 @@ private:
     DeterministicSessionReplay replay_;
     SimulationCryptoTransport crypto_;
     std::unique_ptr<class SessionSafetyJournal> safetyJournal_;
+    std::string auditSessionPath_;
+    std::unique_ptr<class RuntimeState> runtimeState_;
+    std::unique_ptr<class CliDashboard> dashboard_;
     NeuralIdentityVault identityVault_;
     std::atomic<uint64_t> cycleCounter_;
     std::chrono::steady_clock::time_point lastCycleStart_{};
