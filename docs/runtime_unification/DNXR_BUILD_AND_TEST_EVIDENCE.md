@@ -138,3 +138,72 @@ Result: PASS. 3/3 selected tests passed.
 - `cmake --build build_real --target distributed_neural_xr dnxr_runtime_single_pipeline_structure_test -j2` passed after excluding simulation crypto/observer renderer from the real source graph and guarding real-runtime observer renderer members.
 - `ctest --test-dir build_real --output-on-failure -R 'dnxr_runtime_single_pipeline_structure_test'` passed: 1/1 test.
 - `if nm -C build_real/distributed_neural_xr | rg 'XRHeadsetInterface|XRRenderer|SimulatedSignalProvider|NeuralSignalSimulator|BiometricSimulator|ScenarioRunner|SimulationCryptoTransport|NeuralCryptoTransport|HILController|runLegacy|LegacyRunInput|SecondarySimulation|PrimaryReal|autoAck'; then echo 'Forbidden runtime symbol found' >&2; exit 1; fi` passed with no forbidden symbols.
+
+## Prompt 15 CMake/configuration/deployment profiles — 2026-07-13
+
+- `git status --short` was executed before modifications; no conflicting working-tree output was present in the terminal capture.
+- Replaced the previous recursive CMake source glob with `cmake/dnxr_sources.cmake`, a controlled source manifest split into `dnxr_runtime_core`, `dnxr_real_adapters`, `dnxr_observer`, `dnxr_test_adapters`, `dnxr_hil`, `dnxr_tools`, and optional `dnxr_research_speculation`.
+- Added reproducible presets: `development-safe`, `deterministic-test`, `HIL-nonhuman`, `hardware-bench-nonhuman`, and `real-backend-compile-check`. The legacy preset names now inherit from the explicit non-human profiles.
+- Added unified runtime profile schema and development-safe profile under `config/`, with headset endpoints forbidden in the world ingress object, secrets externalized, mTLS/pinning/anti-replay requirements, immutable deployment, and human-use authorization fixed false.
+- Generated `qms/generated/DNXR_BUILD_SOURCE_CONFIG_BINARY_MANIFEST.sha256` with hashes for the modified build/config inputs and the development-safe binary.
+
+Commands:
+
+```bash
+cmake --preset development-safe
+```
+
+Result: PASS.
+
+```bash
+cmake --build build/development-safe --target distributed_neural_xr dnxr_canonical_runtime_architecture_test dnxr_config_loader_test -j2
+```
+
+Result: PASS after moving simulation crypto transport sources out of the real runtime core and into test adapters. Warnings are still emitted when `DNXR_WARNINGS_AS_ERRORS=OFF`; the strict lane remains available through `DNXR_WARNINGS_AS_ERRORS=ON` and currently exposes legacy unused/shadow warnings that need focused cleanup before enabling globally in all presets.
+
+```bash
+ctest --test-dir build/development-safe -R 'dnxr_canonical_runtime_architecture_test|dnxr_config_loader_test' --output-on-failure
+```
+
+Result: PASS. 2/2 selected tests passed.
+
+```bash
+cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target distributed_neural_xr -j2
+```
+
+Result: PASS. The real-backend compile-check profile compiled without simulation crypto transport in `dnxr_runtime_core`; it links core, real adapters, and the read-only observer support currently required by `RuntimeController` symbols.
+
+## Prompt 16 realtime performance/60 Hz/memory/concurrency — 2026-07-13
+
+- `git status --short` was executed before modifications; the only existing repository change was the latest Prompt 15 commit in history and no uncommitted conflicts were present.
+- Added bounded realtime telemetry for the canonical pipeline: 60 Hz default target, negotiated hardware-compatible rate, 16.666 ms default frame budget, monotonic-clock cycle timing, per-stage rolling p50/p95/p99/max/WCET, jitter, queue depths, dropped world frames and held chip-frame causes.
+- Added a fixed-capacity `RuntimeBoundedLatestQueue` helper for keep-latest backpressure semantics; it drops oldest/overwritten stale entries instead of accumulating obsolete world/chip frames.
+- Integrated telemetry into `CanonicalNeuralBciPipeline::runCycle` without synchronous per-frame logging in the realtime path.
+- Added `dnxr_runtime_realtime_60hz_telemetry_test` and linked it directly to `dnxr_runtime_core` so the real-backend compile-check does not compile simulation/test adapters.
+- Generated `qms/generated/DNXR_PROMPT16_REALTIME_BUILD_MANIFEST.sha256` for modified realtime/build/test files and the development-safe binary.
+
+Commands:
+
+```bash
+cmake --preset development-safe && cmake --build build/development-safe --target distributed_neural_xr dnxr_runtime_realtime_60hz_telemetry_test -j2
+```
+
+Result: PASS.
+
+```bash
+ctest --test-dir build/development-safe -R 'dnxr_runtime_realtime_60hz_telemetry_test' --output-on-failure
+```
+
+Result: PASS. 1/1 selected realtime test passed.
+
+```bash
+cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target distributed_neural_xr dnxr_runtime_realtime_60hz_telemetry_test -j2
+```
+
+Result: PASS after making the realtime test link only `dnxr_runtime_core`, avoiding test-adapter simulation crypto compilation in the real-backend profile.
+
+```bash
+ctest --test-dir build/real-backend-compile-check -R 'dnxr_runtime_realtime_60hz_telemetry_test' --output-on-failure
+```
+
+Result: PASS. 1/1 selected realtime test passed.

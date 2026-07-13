@@ -217,6 +217,8 @@ void PersistentNeuroCognitiveTwin::
 simulateNeuralAdaptation(
     float deltaTime) {
 
+    (void)deltaTime;
+
     computeNeuralCoherence();
 
     computeMemoryIntegrity();

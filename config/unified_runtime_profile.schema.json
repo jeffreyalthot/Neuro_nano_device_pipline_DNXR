@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "dnxr.unified-runtime-profile.v1",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "profile", "runtime", "safety", "deployment", "network", "neural_chip", "build_profile"],
+  "properties": {
+    "schemaVersion": {"const": "dnxr.unified-runtime-profile.v1"},
+    "profile": {"enum": ["development-safe", "deterministic-test", "HIL-nonhuman", "hardware-bench-nonhuman", "real-backend-compile-check"]},
+    "runtime": {"additionalProperties": false, "required": ["worldIngress", "observer", "frameBudgetMs", "capabilitiesExpected"], "properties": {"worldIngress": {"type": "object"}, "observer": {"type": "object"}, "frameBudgetMs": {"type": "number"}, "capabilitiesExpected": {"type": "array"}}},
+    "safety": {"additionalProperties": false, "required": ["notForHumanUse", "signedEvidenceRequired", "chemicalChannelsDefaultDisabled", "closedLoopRequired", "realityAnchorRequired", "patientMapReference"], "properties": {"notForHumanUse": {"const": true}, "signedEvidenceRequired": {"const": true}, "chemicalChannelsDefaultDisabled": {"const": true}, "closedLoopRequired": {"const": true}, "realityAnchorRequired": {"const": true}, "patientMapReference": {"type": "string"}}},
+    "deployment": {"additionalProperties": false, "required": ["immutableAfterStartup", "humanUseAuthorized"], "properties": {"immutableAfterStartup": {"const": true}, "humanUseAuthorized": {"const": false}}},
+    "network": {"additionalProperties": false, "required": ["tlsRequired", "mtlsRequired", "pinningRequired", "antiReplayRequired", "timeoutMs", "maxPacketBytes", "secrets"], "properties": {"tlsRequired": {"const": true}, "mtlsRequired": {"const": true}, "pinningRequired": {"const": true}, "antiReplayRequired": {"const": true}, "timeoutMs": {"type": "integer"}, "maxPacketBytes": {"type": "integer"}, "secrets": {"const": "external-provider-only"}}},
+    "neural_chip": {"additionalProperties": false, "required": ["transport", "protocol", "biometricSource", "ackRequired", "rawNeuralPayloadLogging"], "properties": {"transport": {"type": "string"}, "protocol": {"type": "string"}, "biometricSource": {"type": "string"}, "ackRequired": {"const": true}, "rawNeuralPayloadLogging": {"const": false}}},
+    "build_profile": {"additionalProperties": false, "required": ["cmakePreset", "backendCompiled"], "properties": {"cmakePreset": {"type": "string"}, "backendCompiled": {"type": "string"}}}
+  }
+}

@@ -1,9 +1,14 @@
 {
   "version": 3,
   "configurePresets": [
-    {"name":"simulation","generator":"Ninja","binaryDir":"build/simulation","cacheVariables":{"DNXR_SIMULATION_ONLY":"ON","DNXR_ENABLE_HARDWARE_BENCH":"OFF","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF"}},
-    {"name":"hardware-bench-dry-run","generator":"Ninja","binaryDir":"build/hardware-bench-dry-run","cacheVariables":{"DNXR_SIMULATION_ONLY":"OFF","DNXR_ENABLE_HARDWARE_BENCH":"ON","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF"}},
-    {"name":"hardware-bench-active-dummy","generator":"Ninja","binaryDir":"build/hardware-bench-active-dummy","cacheVariables":{"DNXR_SIMULATION_ONLY":"OFF","DNXR_ENABLE_HARDWARE_BENCH":"ON","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF"}},
-    {"name":"clinical-locked","generator":"Ninja","binaryDir":"build/clinical-locked","cacheVariables":{"DNXR_SIMULATION_ONLY":"OFF","DNXR_ENABLE_HARDWARE_BENCH":"ON","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF","DNXR_CLINICAL_TEST_BUILD":"ON"}}
+    {"name":"development-safe","generator":"Ninja","binaryDir":"build/development-safe","cacheVariables":{"DNXR_SIMULATION_ONLY":"ON","DNXR_ENABLE_SIMULATION":"ON","DNXR_ENABLE_HARDWARE_BENCH":"OFF","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF","DNXR_HUMAN_USE_BUILD":"OFF","DNXR_WARNINGS_AS_ERRORS":"OFF","DNXR_ENABLE_LONG_SIMULATED_TESTS":"OFF","DNXR_ENABLE_EXTENDED_VV_TESTS":"OFF"}},
+    {"name":"deterministic-test","generator":"Ninja","binaryDir":"build/deterministic-test","cacheVariables":{"DNXR_SIMULATION_ONLY":"ON","DNXR_ENABLE_SIMULATION":"ON","DNXR_ENABLE_HARDWARE_BENCH":"OFF","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF","DNXR_HUMAN_USE_BUILD":"OFF","DNXR_WARNINGS_AS_ERRORS":"OFF","DNXR_ENABLE_ASAN":"ON","DNXR_ENABLE_UBSAN":"ON","DNXR_ENABLE_LONG_SIMULATED_TESTS":"OFF","DNXR_ENABLE_EXTENDED_VV_TESTS":"OFF"}},
+    {"name":"HIL-nonhuman","generator":"Ninja","binaryDir":"build/HIL-nonhuman","cacheVariables":{"DNXR_SIMULATION_ONLY":"OFF","DNXR_ENABLE_SIMULATION":"ON","DNXR_ENABLE_HARDWARE_BENCH":"ON","DNXR_ENABLE_PRECLINICAL_PHANTOM":"ON","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF","DNXR_HUMAN_USE_BUILD":"OFF","DNXR_WARNINGS_AS_ERRORS":"OFF","DNXR_ENABLE_LONG_REAL_TESTS":"OFF"}},
+    {"name":"hardware-bench-nonhuman","generator":"Ninja","binaryDir":"build/hardware-bench-nonhuman","cacheVariables":{"DNXR_SIMULATION_ONLY":"OFF","DNXR_ENABLE_SIMULATION":"OFF","DNXR_ENABLE_HARDWARE_BENCH":"ON","DNXR_ENABLE_PRECLINICAL_PHANTOM":"OFF","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF","DNXR_HUMAN_USE_BUILD":"OFF","DNXR_WARNINGS_AS_ERRORS":"OFF"}},
+    {"name":"real-backend-compile-check","generator":"Ninja","binaryDir":"build/real-backend-compile-check","cacheVariables":{"DNXR_SIMULATION_ONLY":"OFF","DNXR_ENABLE_SIMULATION":"OFF","DNXR_ENABLE_HARDWARE_BENCH":"OFF","DNXR_ENABLE_HUMAN_CLINICAL_TRIAL":"OFF","DNXR_HUMAN_USE_BUILD":"OFF","DNXR_BUILD_TESTS":"ON","DNXR_WARNINGS_AS_ERRORS":"OFF"}},
+    {"name":"simulation","inherits":"development-safe","binaryDir":"build/simulation"},
+    {"name":"hardware-bench-dry-run","inherits":"hardware-bench-nonhuman","binaryDir":"build/hardware-bench-dry-run"},
+    {"name":"hardware-bench-active-dummy","inherits":"hardware-bench-nonhuman","binaryDir":"build/hardware-bench-active-dummy"},
+    {"name":"clinical-locked","inherits":"real-backend-compile-check","binaryDir":"build/clinical-locked","cacheVariables":{"DNXR_CLINICAL_TEST_BUILD":"ON"}}
   ]
 }

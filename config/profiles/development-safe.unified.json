@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "dnxr.unified-runtime-profile.v1",
+  "profile": "development-safe",
+  "runtime": {"worldIngress": {"kind": "structured-world-stream", "forbidHeadsetEndpoints": true}, "observer": {"enabled": false, "readOnly": true}, "frameBudgetMs": 16.6, "capabilitiesExpected": ["neural-read", "bounded-stimulus", "ack-telemetry"]},
+  "safety": {"notForHumanUse": true, "signedEvidenceRequired": true, "chemicalChannelsDefaultDisabled": true, "closedLoopRequired": true, "realityAnchorRequired": true, "patientMapReference": "external-evidence-root/patient-map.sha256"},
+  "deployment": {"immutableAfterStartup": true, "humanUseAuthorized": false},
+  "network": {"tlsRequired": true, "mtlsRequired": true, "pinningRequired": true, "antiReplayRequired": true, "timeoutMs": 250, "maxPacketBytes": 65536, "secrets": "external-provider-only"},
+  "neural_chip": {"transport": "compile-check-or-simulation-adapter", "protocol": "bounded-stimulus-ack-v1", "biometricSource": "neural-chip-telemetry", "ackRequired": true, "rawNeuralPayloadLogging": false},
+  "build_profile": {"cmakePreset": "development-safe", "backendCompiled": "dnxr_runtime_core+dnxr_real_adapters+dnxr_test_adapters"}
+}

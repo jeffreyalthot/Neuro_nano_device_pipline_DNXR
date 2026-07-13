@@ -304,3 +304,14 @@ The Prompt13 meta-audit covers every source/header under `src/`; renderer/headse
 ## Prompt 14 — real-runtime headset/observer source exclusion
 
 `DNXR_REAL_RUNTIME_SRC` now removes observer/headset implementation sources (`devices/XRHeadsetInterface.cpp`, `rendering/XRRenderer.cpp`) in addition to simulation/HIL sources. `RuntimeController` constructs and applies renderer QoS only under `DNXR_SIMULATION_ONLY`; `ObserverMirrorSink` exposes renderer attachment only under the same guard and otherwise records a renderer-excluded observer diagnostic. A real binary forbidden-symbol scan found no `XRHeadsetInterface` or `XRRenderer` symbols.
+
+## Prompt 15 update — 2026-07-13
+
+- The CMake source split isolates `src/devices/XRHeadsetInterface.cpp` and `src/rendering/XRRenderer.cpp` in `dnxr_observer` rather than `dnxr_runtime_core`.
+- The unified runtime profile forbids headset endpoints in `runtime.worldIngress.forbidHeadsetEndpoints` and models observer output as optional/read-only.
+- Remaining debt: `RuntimeController` and `ObserverMirrorSink` still reference `XRRenderer`, so the main executable temporarily links `dnxr_observer` for symbol resolution. This is retained as read-only observer disposition, not as neural acquisition or safety input.
+
+## Prompt 16 update — 2026-07-13
+
+- Realtime telemetry and 60 Hz negotiation are implemented in `src/runtime/RuntimeRealtimeTelemetry.*` and are independent of observer/display cadence.
+- The new realtime regression links directly to `dnxr_runtime_core` in real-backend compile-check to avoid pulling simulation/headset/test adapters into the performance path.

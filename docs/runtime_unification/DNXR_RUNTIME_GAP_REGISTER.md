@@ -61,3 +61,17 @@
 - Closed: `RuntimePipelineRunner::LegacyRunInput`/`runLegacy` were removed after migrated tests proved canonical `RuntimeController`/`CanonicalNeuralBciPipeline` coverage and negative source scans.
 - Closed: real-runtime source set no longer includes headset/observer renderer implementation sources; `DNXR_SIMULATION_ONLY=OFF` build plus forbidden-symbol scan passed.
 - Remaining: `NeuralChipOnlyFullDivePipeline` still exists as a compatibility/library class from Prompt 12 and must be converted to a stateless alias or fully absorbed into `CanonicalNeuralBciPipeline` in a follow-up once all direct tests are migrated.
+
+## Prompt 15 gaps added/updated — 2026-07-13
+
+| Gap | Severity | Evidence | Disposition |
+|---|---:|---|---|
+| Main binary still links read-only observer implementation because core controller symbols reference `XRRenderer`. | High | `CMakeLists.txt` target split links `dnxr_observer` to `distributed_neural_xr`. | Split observer interface from headset-named renderer and keep observer out-of-band. |
+| Warnings-as-errors lane exposes legacy unused/shadow/switch warnings. | Medium | `cmake --build` with `DNXR_WARNINGS_AS_ERRORS=ON` initially failed on unused parameters. | Continue targeted warning cleanup; keep option present and warnings enabled. |
+
+## Prompt 16 gaps added/updated — 2026-07-13
+
+| Gap | Severity | Evidence | Disposition |
+|---|---:|---|---|
+| Per-stage timings are currently recorded around the compatibility stage runner and apportioned across the canonical stage order. | Medium | `CanonicalNeuralBciPipeline::runCycle` records telemetry while the adapter still owns detailed stage execution. | Migrate each stage to direct canonical ownership and wrap each call with its own monotonic timer. |
+| No 100k/1M soak was executed in this prompt. | Medium | Only micro realtime telemetry tests and compile-check builds were run. | Enable long soak lanes after per-stage direct timers and no-allocation counters are connected. |

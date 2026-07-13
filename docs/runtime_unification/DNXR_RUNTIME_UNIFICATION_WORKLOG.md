@@ -91,3 +91,21 @@
 - Kept observer mirroring read-only: `XRRenderer` attachment/presentation is simulation-only, while real runtime publish attempts fail closed with an observer-specific diagnostic and cannot authorize neural dispatch.
 - Added `dnxr_runtime_single_pipeline_structure_test` to detect legacy runner APIs, secondary runtime path kinds, real-runtime observer/headset source inclusion, and production-scope references to obsolete legacy/fallback names.
 - Evidence: default build and targeted runtime tests passed; real (`DNXR_SIMULATION_ONLY=OFF`) build passed; real binary forbidden-symbol scan returned no matches.
+
+## Prompt 15 — CMake/config/deployment profile stabilization (2026-07-13)
+
+- Captured the pre-change Git state and continued from the existing runtime-unification artifacts.
+- Introduced a controlled CMake source manifest and target split for runtime core, real adapters, observer, test adapters, HIL, tools, and speculative modules.
+- Added non-human reproducible CMake presets and preserved signed evidence gates; no preset enables human use or invents authorization.
+- Added a strict unified runtime profile schema plus a development-safe profile with no headset ingress, external-only secrets, mTLS/pinning/anti-replay requirements, bounded packets/timeouts, immutable startup configuration, and raw neural payload logging disabled.
+- Generated a source/config/binary SHA-256 manifest for build evidence.
+- Open risk: `dnxr_observer` is still linked into the main binary because `RuntimeController`/`ObserverMirrorSink` retain `XRRenderer` symbols; it is documented as read-only observer support and must be split behind an observer interface in the next prompt to remove headset-named objects from the main link line.
+- Open risk: `DNXR_WARNINGS_AS_ERRORS=ON` works as a lane but exposes legacy warnings; default reproducible presets keep warnings visible while not failing until targeted cleanup is complete.
+
+## Prompt 16 — realtime performance, 60 Hz, memory and concurrency (2026-07-13)
+
+- Added canonical realtime telemetry with 60 Hz/16.666 ms default rate contract and hardware negotiation rather than tying observer/display cadence to the BCI/world cycle.
+- Instrumented the canonical owner (`CanonicalNeuralBciPipeline`) with monotonic-clock cycle timing and fixed-size per-stage windows for p50/p95/p99/max/WCET plus jitter, queue depth, dropped world-frame and held chip-frame cause counters.
+- Added a bounded keep-latest queue utility for world/transport backpressure so stale frames are not accumulated when producers outpace the chip cycle.
+- Kept observer/audit logging out of the hot telemetry path; the realtime telemetry records counters and const cause tokens without per-frame synchronous log calls.
+- Open risk: current stage durations are attributed across canonical stage order around the compatibility stage runner until each stage is migrated from the adapter into directly measured canonical stage calls.

@@ -63,25 +63,44 @@ if(WIN32 AND DNXR_WINDOWS_PORTABLE_RUNTIME)
     endif()
 endif()
 
-file(GLOB_RECURSE DNXR_CORE_SRC CONFIGURE_DEPENDS src/*.cpp)
-list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/main\\.cpp$")
-set(DNXR_SIMULATION_RUNTIME_REGEX "/(sim|simulation|hil|fault_injection)/|/(SimulatedSignalProvider|NeuralSignalSimulator|BiometricSimulator|ScenarioRunner|SimulationCryptoTransport|NeuralCryptoTransport)\.cpp$")
-set(DNXR_RESEARCH_SPECULATION_REGEX "/(runtime/FullDiveOrchestrator|network/DistributedConsciousnessNetwork|physics/NeuralQuantumEntanglementEngine|reality/SubjectiveTimeDilationEngine|memory/RecursiveMemoryReconstructionEngine|subconscious/SubconsciousSimulationEngine|emotion/AffectiveResonanceMatrix)\.cpp$")
-set(DNXR_RESEARCH_SPECULATION_SRC ${DNXR_CORE_SRC})
-list(FILTER DNXR_RESEARCH_SPECULATION_SRC INCLUDE REGEX "${DNXR_RESEARCH_SPECULATION_REGEX}")
-if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)
-    list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "${DNXR_RESEARCH_SPECULATION_REGEX}")
-endif()
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dnxr_sources.cmake)
 
-set(DNXR_OBSERVER_RUNTIME_REGEX "/(devices/XRHeadsetInterface|rendering/XRRenderer)\.cpp$")
-set(DNXR_REAL_RUNTIME_SRC ${DNXR_CORE_SRC})
-list(FILTER DNXR_REAL_RUNTIME_SRC EXCLUDE REGEX "${DNXR_SIMULATION_RUNTIME_REGEX}")
-list(FILTER DNXR_REAL_RUNTIME_SRC EXCLUDE REGEX "${DNXR_OBSERVER_RUNTIME_REGEX}")
-if(DNXR_SIMULATION_ONLY)
-    set(DNXR_SELECTED_CORE_SRC ${DNXR_CORE_SRC})
-else()
-    set(DNXR_SELECTED_CORE_SRC ${DNXR_REAL_RUNTIME_SRC})
-endif()
+option(DNXR_WARNINGS_AS_ERRORS "Treat compiler warnings as errors for DNXR targets" ON)
+option(DNXR_ENABLE_STATIC_ANALYSIS "Run clang-tidy when available" OFF)
+option(DNXR_ENABLE_IWYU "Run include-what-you-use when available" OFF)
+
+function(dnxr_configure_target target)
+    target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(${target} PUBLIC OpenSSL::Crypto)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4)
+        if(DNXR_WARNINGS_AS_ERRORS)
+            target_compile_options(${target} PRIVATE /WX)
+        endif()
+        target_compile_definitions(${target} PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX WIN32_LEAN_AND_MEAN)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wswitch-enum)
+        if(DNXR_WARNINGS_AS_ERRORS)
+            target_compile_options(${target} PRIVATE -Werror)
+        endif()
+    endif()
+    if(DNXR_ENABLE_STATIC_ANALYSIS)
+        find_program(DNXR_CLANG_TIDY_EXE NAMES clang-tidy)
+        if(DNXR_CLANG_TIDY_EXE)
+            set_target_properties(${target} PROPERTIES CXX_CLANG_TIDY "${DNXR_CLANG_TIDY_EXE}")
+        else()
+            message(WARNING "DNXR_ENABLE_STATIC_ANALYSIS=ON but clang-tidy was not found")
+        endif()
+    endif()
+    if(DNXR_ENABLE_IWYU)
+        find_program(DNXR_IWYU_EXE NAMES include-what-you-use iwyu)
+        if(DNXR_IWYU_EXE)
+            set_target_properties(${target} PROPERTIES CXX_INCLUDE_WHAT_YOU_USE "${DNXR_IWYU_EXE}")
+        else()
+            message(WARNING "DNXR_ENABLE_IWYU=ON but include-what-you-use was not found")
+        endif()
+    endif()
+endfunction()
 
 function(dnxr_apply_sanitizers target)
     if(DNXR_ENABLE_ASAN)
@@ -111,61 +130,77 @@ function(dnxr_apply_sanitizers target)
     endif()
 endfunction()
 
-if(DNXR_ENABLE_RESEARCH_SPECULATION AND DNXR_RESEARCH_SPECULATION_SRC)
-    add_library(dnxr_research_speculation STATIC ${DNXR_RESEARCH_SPECULATION_SRC})
-    target_include_directories(dnxr_research_speculation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-endif()
-
-add_library(dnxr_core STATIC ${DNXR_SELECTED_CORE_SRC})
+add_library(dnxr_runtime_core STATIC ${DNXR_RUNTIME_CORE_SRC})
 if(CMAKE_UNITY_BUILD)
-    # Keep generated unity translation units to one source file so legacy internal-linkage
-    # helpers do not collide while the codebase is being made fully unity-clean.
-    set_target_properties(dnxr_core PROPERTIES UNITY_BUILD_BATCH_SIZE 1)
+    set_target_properties(dnxr_runtime_core PROPERTIES UNITY_BUILD_BATCH_SIZE 1)
 endif()
-target_include_directories(dnxr_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(dnxr_core PUBLIC OpenSSL::Crypto)
-if(DNXR_HUMAN_USE_BUILD)
-    target_compile_definitions(dnxr_core PUBLIC DNXR_HUMAN_USE_BUILD=1)
-else()
-    target_compile_definitions(dnxr_core PUBLIC DNXR_HUMAN_USE_BUILD=0)
-endif()
-
-if(DNXR_CLINICAL_TEST_BUILD)
-    target_compile_definitions(dnxr_core PUBLIC DNXR_CLINICAL_TEST_BUILD=1)
-else()
-    target_compile_definitions(dnxr_core PUBLIC DNXR_CLINICAL_TEST_BUILD=0)
-endif()
-
-if(DNXR_ENABLE_RESEARCH_SPECULATION)
-    target_compile_definitions(dnxr_core PUBLIC DNXR_ENABLE_RESEARCH_SPECULATION=1)
-else()
-    target_compile_definitions(dnxr_core PUBLIC DNXR_ENABLE_RESEARCH_SPECULATION=0)
-endif()
-
-if(DNXR_SIMULATION_ONLY)
-    target_compile_definitions(dnxr_core PUBLIC DNXR_SIMULATION_ONLY=1)
-else()
-    target_compile_definitions(dnxr_core PUBLIC DNXR_SIMULATION_ONLY=0)
-endif()
-target_compile_definitions(dnxr_core PUBLIC
+dnxr_configure_target(dnxr_runtime_core)
+target_compile_definitions(dnxr_runtime_core PUBLIC
+    DNXR_HUMAN_USE_BUILD=$<BOOL:${DNXR_HUMAN_USE_BUILD}>
+    DNXR_CLINICAL_TEST_BUILD=$<BOOL:${DNXR_CLINICAL_TEST_BUILD}>
+    DNXR_ENABLE_RESEARCH_SPECULATION=$<BOOL:${DNXR_ENABLE_RESEARCH_SPECULATION}>
+    DNXR_SIMULATION_ONLY=$<BOOL:${DNXR_SIMULATION_ONLY}>
     DNXR_ENABLE_HARDWARE_BENCH=$<BOOL:${DNXR_ENABLE_HARDWARE_BENCH}>
     DNXR_ENABLE_PRECLINICAL_PHANTOM=$<BOOL:${DNXR_ENABLE_PRECLINICAL_PHANTOM}>
     DNXR_ENABLE_HUMAN_CLINICAL_TRIAL=$<BOOL:${DNXR_ENABLE_HUMAN_CLINICAL_TRIAL}>
 )
+dnxr_apply_sanitizers(dnxr_runtime_core)
 
-dnxr_apply_sanitizers(dnxr_core)
+add_library(dnxr_real_adapters STATIC ${DNXR_REAL_ADAPTER_SRC})
+dnxr_configure_target(dnxr_real_adapters)
+target_link_libraries(dnxr_real_adapters PUBLIC dnxr_runtime_core)
+dnxr_apply_sanitizers(dnxr_real_adapters)
+
+add_library(dnxr_observer STATIC ${DNXR_OBSERVER_SRC})
+dnxr_configure_target(dnxr_observer)
+target_link_libraries(dnxr_observer PUBLIC dnxr_runtime_core)
+dnxr_apply_sanitizers(dnxr_observer)
+
+add_library(dnxr_test_adapters STATIC ${DNXR_TEST_ADAPTER_SRC})
+dnxr_configure_target(dnxr_test_adapters)
+target_link_libraries(dnxr_test_adapters PUBLIC dnxr_runtime_core)
+dnxr_apply_sanitizers(dnxr_test_adapters)
+
+add_library(dnxr_hil STATIC ${DNXR_HIL_SRC})
+dnxr_configure_target(dnxr_hil)
+target_link_libraries(dnxr_hil PUBLIC dnxr_runtime_core dnxr_real_adapters dnxr_test_adapters)
+dnxr_apply_sanitizers(dnxr_hil)
+
+add_library(dnxr_tools STATIC ${DNXR_TOOL_SRC})
+dnxr_configure_target(dnxr_tools)
+target_link_libraries(dnxr_tools PUBLIC dnxr_runtime_core)
+dnxr_apply_sanitizers(dnxr_tools)
+
+if(DNXR_ENABLE_RESEARCH_SPECULATION AND DNXR_RESEARCH_SPECULATION_SRC)
+    add_library(dnxr_research_speculation STATIC ${DNXR_RESEARCH_SPECULATION_SRC})
+    dnxr_configure_target(dnxr_research_speculation)
+    target_link_libraries(dnxr_research_speculation PUBLIC dnxr_runtime_core)
+endif()
+
+# Compatibility aggregate for tests and legacy tools only. The production executable
+# below deliberately links the canonical runtime core plus selected real adapters,
+# not this broad aggregate.
+add_library(dnxr_core INTERFACE)
+target_link_libraries(dnxr_core INTERFACE dnxr_runtime_core dnxr_real_adapters dnxr_observer dnxr_test_adapters dnxr_hil dnxr_tools)
+if(DNXR_ENABLE_RESEARCH_SPECULATION)
+    target_link_libraries(dnxr_core INTERFACE dnxr_research_speculation)
+endif()
 
 # Cross-platform compile tags for Windows/Linux/macOS integration layers.
 if(WIN32)
-    target_compile_definitions(dnxr_core PUBLIC DNXR_TARGET_OS_WINDOWS=1)
+    target_compile_definitions(dnxr_runtime_core PUBLIC DNXR_TARGET_OS_WINDOWS=1)
 elseif(APPLE)
-    target_compile_definitions(dnxr_core PUBLIC DNXR_TARGET_OS_MACOS=1)
+    target_compile_definitions(dnxr_runtime_core PUBLIC DNXR_TARGET_OS_MACOS=1)
 elseif(UNIX)
-    target_compile_definitions(dnxr_core PUBLIC DNXR_TARGET_OS_LINUX=1)
+    target_compile_definitions(dnxr_runtime_core PUBLIC DNXR_TARGET_OS_LINUX=1)
 endif()
 
 add_executable(distributed_neural_xr src/main.cpp)
-target_link_libraries(distributed_neural_xr PRIVATE dnxr_core)
+if(DNXR_SIMULATION_ONLY)
+    target_link_libraries(distributed_neural_xr PRIVATE dnxr_runtime_core dnxr_real_adapters dnxr_test_adapters dnxr_observer)
+else()
+    target_link_libraries(distributed_neural_xr PRIVATE dnxr_runtime_core dnxr_real_adapters dnxr_observer)
+endif()
 dnxr_apply_sanitizers(distributed_neural_xr)
 
 if(DNXR_ENABLE_HARDWARE_BENCH)
@@ -205,7 +240,11 @@ if(DNXR_BUILD_TESTS)
             message(FATAL_ERROR "Missing test source for ${test_name}")
         endif()
         add_executable(${test_name} ${test_source})
-        target_link_libraries(${test_name} PRIVATE dnxr_core)
+        if(test_name STREQUAL "dnxr_runtime_realtime_60hz_telemetry_test")
+            target_link_libraries(${test_name} PRIVATE dnxr_runtime_core)
+        else()
+            target_link_libraries(${test_name} PRIVATE dnxr_core)
+        endif()
         dnxr_apply_sanitizers(${test_name})
         add_test(NAME ${test_name} COMMAND ${test_name})
         set_tests_properties(${test_name} PROPERTIES
@@ -359,6 +398,7 @@ if(DNXR_BUILD_TESTS)
         dnxr_runtime_controller_100k_cycles_test
         dnxr_runtime_no_allocation_zone_test
         dnxr_runtime_latency_profiler_test
+        dnxr_runtime_realtime_60hz_telemetry_test
         dnxr_runtime_jitter_analyzer_test
         dnxr_runtime_wcet_recorder_test
         dnxr_human_use_blocked_without_authorization_test

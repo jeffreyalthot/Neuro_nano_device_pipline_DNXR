@@ -66,6 +66,10 @@ struct RuntimePipelineFrame {
     NeuralArtifactReport artifactReport;
     NeuralSignalGateDecision signalGateDecision;
     int repeatedArtifactCount = 0;
+    std::size_t worldIngressQueueDepth = 0;
+    std::size_t chipTransportQueueDepth = 0;
+    bool worldFrameDropped = false;
+    std::string worldDropCause;
 
     RuntimeStageStatus acquisitionStatus = RuntimeStageStatus::ok("acquisition");
     RuntimeStageStatus signalStatus = RuntimeStageStatus::ok("signal");
