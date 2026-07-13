@@ -32,7 +32,7 @@
 #include "../runtime/RuntimeInferenceStage.h"
 #include "../runtime/RuntimeCalibrationStage.h"
 #include "../runtime/RuntimeImmersionFrameStage.h"
-#include "../runtime/RuntimePipelineRunner.h"
+#include "../runtime/CanonicalNeuralBciPipeline.h"
 #include "../runtime/RuntimePathLock.h"
 #include "../runtime/RuntimeStageServices.h"
 #include "../runtime/RuntimePipelineSinks.h"
@@ -69,6 +69,7 @@ public:
     uint64_t getDroppedFrames() const;
     RuntimeMetricsSnapshot getRuntimeMetricsSnapshot() const;
     RuntimeLatencyHealth getRuntimeLatencyHealth() const;
+    CanonicalPipelineMetrics getCanonicalPipelineMetrics() const;
     std::vector<RuntimeTraceEvent> getRuntimeTraceEvents() const;
     std::string getLatestRuntimeTraceId() const;
     bool saveRuntimeTraceJsonl(const std::string& path) const;
@@ -162,8 +163,8 @@ private:
     std::unique_ptr<class DeepImmersionPlatform> deepImmersion_;
     std::unique_ptr<dnxr::FullDiveSynchronizationEngine> fullDiveSynchronization_;
     std::unique_ptr<class FullDiveSafetyBridge> fullDiveBridge_;
-    std::unique_ptr<RuntimePipelineRunner> pipelineRunner_;
-    RuntimePathLock runtimePathLock_;
+    std::unique_ptr<CanonicalNeuralBciPipeline> canonicalPipeline_;
+    BackendAdapterLock backendAdapterLock_;
     std::unique_ptr<RuntimeStageServices> stageServices_;
     std::unique_ptr<RuntimePipelineSinks> pipelineSinks_;
 

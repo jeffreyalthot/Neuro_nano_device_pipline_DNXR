@@ -6,26 +6,30 @@
 namespace dnxr {
 
 enum class RuntimePathKind {
-  SecondarySimulation,
-  PrimaryReal
+  CanonicalAdapter,
+  RealHardware,
+  HILTestAdapter,
+  DeterministicReplayAdapter
 };
 
 struct RuntimePathDecision {
-  RuntimePathKind path = RuntimePathKind::SecondarySimulation;
-  bool lockedPrimaryReal = false;
-  bool secondaryRuntimeAllowed = true;
-  const char *reason = "secondary_simulation_runtime";
+  RuntimePathKind path = RuntimePathKind::CanonicalAdapter;
+  bool lockedRealHardware = false;
+  bool adapterFallbackAttempted = false;
+  const char *reason = "canonical_environment_adapter";
 };
 
-class RuntimePathLock {
+class BackendAdapterLock {
 public:
   RuntimePathDecision decide(const NeuralChipStatus &status,
                              RuntimeDeploymentMode deploymentMode);
   RuntimePathDecision current() const;
-  bool primaryRealLocked() const;
+  bool realHardwareLocked() const;
 
 private:
   RuntimePathDecision decision_{};
 };
+
+using RuntimePathLock [[deprecated("Use BackendAdapterLock; compatibility alias will be removed after canonical pipeline migration")]] = BackendAdapterLock;
 
 } // namespace dnxr
