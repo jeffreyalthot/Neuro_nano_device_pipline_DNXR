@@ -29,6 +29,8 @@ PipelineSafetyCaseReport PipelineSafetyCaseReportBuilder::build(const NeuralChip
             case PipelinePathKind::EmergencyLatchHold: ++r.emergencyLatches; break;
             case PipelinePathKind::ResumeHold:
             case PipelinePathKind::SessionSupervisorHold:
+            case PipelinePathKind::TraceCoverageReject:
+            case PipelinePathKind::ReentrantStepReject:
             case PipelinePathKind::ShutdownNoOp: break;
         }
     }

@@ -1,7 +1,67 @@
 #include "FiveSenseExposureLedger.h"
+
 #include <algorithm>
-namespace dnxr { namespace { std::size_t slot(FullDiveModality m){ switch(m){case FullDiveModality::Visual:return 0;case FullDiveModality::Auditory:return 1;case FullDiveModality::Somatosensory:return 2;case FullDiveModality::Vestibular:return 4;case FullDiveModality::Proprioceptive:return 5;case FullDiveModality::Olfactory:return 6;case FullDiveModality::Gustatory:return 7;case FullDiveModality::RealityAnchor:return 9;default:return 8;} } }
-FiveSenseExposureLedger::FiveSenseExposureLedger(){ limits_.perFrame.fill(1.0f); limits_.perMinute.fill(30.0f); limits_.perSession.fill(300.0f); }
-void FiveSenseExposureLedger::setLimits(const ExposureLimitSet& l){limits_=l;} void FiveSenseExposureLedger::resetSession(){sessionDose_.fill(0); minuteDose_.fill(0); minuteWindowSeconds_=0;}
-FiveSenseExposureReport FiveSenseExposureLedger::recordFrame(const FullDiveNeuralFrame& f,float dt){ FiveSenseExposureReport r; std::array<float,10> frameDose{}; f.forEachChannel([&](const NeuroChannelCommand& c){frameDose[slot(c.modality)]+=std::max(0.0f,c.intensity)*std::max(0.001f,dt);}); minuteWindowSeconds_+=dt; if(minuteWindowSeconds_>=60.0f){minuteDose_.fill(0); minuteWindowSeconds_=0;} for(std::size_t i=0;i<frameDose.size();++i){sessionDose_[i]+=frameDose[i]; minuteDose_[i]+=frameDose[i]; if(frameDose[i]>limits_.perFrame[i]||minuteDose_[i]>limits_.perMinute[i]||sessionDose_[i]>limits_.perSession[i]){r.withinLimits=false; r.cooldownRequired=true; r.reason="exposure_limit_exceeded";}} r.sessionDose=sessionDose_; return r; }
+
+namespace dnxr {
+namespace {
+
+std::size_t slot(FullDiveModality m) {
+    switch (m) {
+        case FullDiveModality::Visual: return 0;
+        case FullDiveModality::Auditory: return 1;
+        case FullDiveModality::Somatosensory: return 2;
+        case FullDiveModality::Vestibular: return 4;
+        case FullDiveModality::Proprioceptive: return 5;
+        case FullDiveModality::Olfactory: return 6;
+        case FullDiveModality::Gustatory: return 7;
+        case FullDiveModality::InteroceptiveSafety: return 8;
+        case FullDiveModality::RealityAnchor: return 9;
+    }
+    return 8;
 }
+
+} // namespace
+
+FiveSenseExposureLedger::FiveSenseExposureLedger() {
+    limits_.perFrame.fill(1.0f);
+    limits_.perMinute.fill(30.0f);
+    limits_.perSession.fill(300.0f);
+}
+
+void FiveSenseExposureLedger::setLimits(const ExposureLimitSet& l) {
+    limits_ = l;
+}
+
+void FiveSenseExposureLedger::resetSession() {
+    sessionDose_.fill(0);
+    minuteDose_.fill(0);
+    minuteWindowSeconds_ = 0;
+}
+
+FiveSenseExposureReport FiveSenseExposureLedger::recordFrame(const FullDiveNeuralFrame& f, float dt) {
+    FiveSenseExposureReport r;
+    std::array<float, 10> frameDose{};
+    f.forEachChannel([&](const NeuroChannelCommand& c) {
+        frameDose[slot(c.modality)] += std::max(0.0f, c.intensity) * std::max(0.001f, dt);
+    });
+    minuteWindowSeconds_ += dt;
+    if (minuteWindowSeconds_ >= 60.0f) {
+        minuteDose_.fill(0);
+        minuteWindowSeconds_ = 0;
+    }
+    for (std::size_t i = 0; i < frameDose.size(); ++i) {
+        sessionDose_[i] += frameDose[i];
+        minuteDose_[i] += frameDose[i];
+        if (frameDose[i] > limits_.perFrame[i] ||
+            minuteDose_[i] > limits_.perMinute[i] ||
+            sessionDose_[i] > limits_.perSession[i]) {
+            r.withinLimits = false;
+            r.cooldownRequired = true;
+            r.reason = "exposure_limit_exceeded";
+        }
+    }
+    r.sessionDose = sessionDose_;
+    return r;
+}
+
+} // namespace dnxr

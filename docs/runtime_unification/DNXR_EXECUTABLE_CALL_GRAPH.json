@@ -1,0 +1,28 @@
+{
+  "prompt": "01",
+  "date": "2026-07-13",
+  "entrypoints": [
+    {
+      "target": "distributed_neural_xr",
+      "path": [
+        "src/main.cpp:main",
+        "dnxr::RuntimeCli::parse",
+        "dnxr::RuntimeApplication::run",
+        "dnxr::RuntimeController::RuntimeController",
+        "dnxr::RuntimeController::initializeModules",
+        "dnxr::RuntimeController::run",
+        "dnxr::RuntimeController::runDeterministicCycle",
+        "dnxr::CanonicalNeuralBciPipeline::runCycle",
+        "dnxr::RuntimePipelineRunner::run",
+        "dnxr::RuntimeStimulusStage",
+        "INeuralChipHAL::writeSafeStimulus"
+      ],
+      "early_exit_commands": ["--help", "--version", "validate-config"],
+      "known_p0_gaps": [
+        "CanonicalNeuralBciPipeline still delegates to RuntimePipelineRunner",
+        "Simulation build still links dnxr_observer and dnxr_test_adapters",
+        "RuntimeController still owns observer renderer references in simulation builds"
+      ]
+    }
+  ]
+}

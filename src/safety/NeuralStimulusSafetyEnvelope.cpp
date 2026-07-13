@@ -80,6 +80,7 @@ float NeuralStimulusSafetyEnvelope::channelLimit(std::size_t index) const {
         case SensoryModality::HapticTouch:
             return profile_.maxHapticIntensity;
         case SensoryModality::ChemicalTasteSmell:
+        case SensoryModality::Gustatory:
             return profile_.maxChemicalIntensity;
         case SensoryModality::Proprioceptive:
             return profile_.maxProprioceptiveIntensity;

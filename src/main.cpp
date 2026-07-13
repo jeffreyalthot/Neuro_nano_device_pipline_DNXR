@@ -1,33 +1,21 @@
 #include "app/RuntimeApplication.h"
-#include "app/RuntimeBootstrap.h"
-#include "config/RuntimeMode.h"
+#include "app/RuntimeCli.h"
 
-#include <string>
+#include <iostream>
 
 int main(int argc, char** argv) {
-    dnxr::RuntimeConfig config = dnxr::RuntimeBootstrap::loadConfig();
-    for (int i = 1; i < argc; ++i) {
-        const std::string arg = argv[i];
-        auto readValue = [&](const std::string& prefix) -> std::string {
-            if (arg.rfind(prefix + "=", 0) == 0) return arg.substr(prefix.size() + 1);
-            if (arg == prefix && i + 1 < argc) return argv[++i];
-            return {};
-        };
-        const auto mode = readValue("--mode");
-        if (!mode.empty()) config.runtimeMode = dnxr::toString(dnxr::runtimeModeFromString(mode));
-        const auto cycles = readValue("--cycles");
-        if (!cycles.empty()) config.maxRuntimeCycles = std::stoi(cycles);
-        if (arg == "--headless") { config.headless = true; config.dashboardEnabled = false; }
-        if (arg == "--full-unlocked") {
-            // The locked runtime must not expose a CLI switch that expands safety capabilities.
-            // Keep this argument as a diagnostics alias only, without enabling replay or benchmark paths.
-            config.runtimeMode = "diagnostic_mode";
-            config.fullUnlockedDiagnostics = true;
-        }
-        if (arg == "--benchmark") { config.runtimeMode = "benchmark_mode"; config.benchmarkEnabled = true; }
-        if (arg == "--replay") { config.runtimeMode = "replay_mode"; config.replayEnabled = true; }
-        if (arg == "--diagnostic") { config.runtimeMode = "diagnostic_mode"; config.fullUnlockedDiagnostics = true; }
+    const dnxr::RuntimeCliResult cli = dnxr::RuntimeCli::parse(argc, argv);
+    if (cli.action == dnxr::RuntimeCliAction::Help ||
+        cli.action == dnxr::RuntimeCliAction::Version ||
+        cli.action == dnxr::RuntimeCliAction::ValidateConfig) {
+        std::cout << cli.message << '\n';
+        return cli.exitCode;
     }
-    dnxr::RuntimeApplication app(config);
+    if (cli.action == dnxr::RuntimeCliAction::Error) {
+        std::cerr << cli.message << "\n\n" << dnxr::RuntimeCli::helpText();
+        return cli.exitCode;
+    }
+
+    dnxr::RuntimeApplication app(cli.config);
     return app.run();
 }
