@@ -141,7 +141,6 @@ set(DNXR_RUNTIME_CORE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/immersion/GustatorySafetyEngine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/immersion/HapticTextureEngine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/immersion/IdentityContinuityMemory.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/immersion/ImmersionCore.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/immersion/MultiSenseOrchestrator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/immersion/MultisensoryClock.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/immersion/NeuralPerceptionSynthesizer.cpp
@@ -278,17 +277,17 @@ set(DNXR_RUNTIME_CORE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeFrame.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeFullDiveStage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeImmersionFrameStage.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/IBciAcquisitionSource.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeInferenceStage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeJitterAnalyzer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeLatencyProfiler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeModalityPhaseLockStage.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeMotorIntentStage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeNoAllocationZone.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimePathLock.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimePerceptionCorrectionStage.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimePipelineRunner.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeRealtimeTelemetry.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimePostCorrectionSafetyStage.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeRenderStage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeSafetyStage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeSignalStage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeStageServices.cpp

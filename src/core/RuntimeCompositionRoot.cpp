@@ -43,50 +43,77 @@ std::unique_ptr<INeuralPacketProtector> makePacketProtector(bool simulationMode)
     return std::make_unique<OpenSSLNeuralPacketProtector>();
 }
 
-class HalNeuralSignalSource final : public INeuralSignalSource {
-public:
-    HalNeuralSignalSource(INeuralChipHAL& hal, std::string provenance)
-        : hal_(hal), provenance_(std::move(provenance)) {}
 
-    NeuralSignalReadResult readCanonicalFrame(double) override {
-        NeuralSignalReadResult result;
-        result.provenance = provenance_;
-        const NeuralChipFrame frame = hal_.readFrame();
-        result.frame = frame;
-        if (frame.channels.empty()) {
-            result.valid = false;
-            result.failureReason = "empty_neural_signal_frame";
-            return result;
-        }
-        if (lastSequence_ != kNoSequence && frame.sequenceId <= lastSequence_) {
-            result.duplicateSequence = true;
-            result.failureReason = "duplicate_or_replayed_neural_frame_sequence";
-            return result;
-        }
-        if (lastTimestampMs_ != std::numeric_limits<std::int64_t>::min() &&
-            frame.monotonicTimestampMs <= lastTimestampMs_) {
-            result.staleTimestamp = true;
-            result.failureReason = "stale_neural_frame_timestamp";
-            return result;
-        }
-        if (frame.signalQuality <= 0.0f) {
-            result.failureReason = "invalid_neural_signal_quality";
-            return result;
-        }
-        lastSequence_ = frame.sequenceId;
-        lastTimestampMs_ = frame.monotonicTimestampMs;
-        result.valid = true;
-        result.failureReason.clear();
-        return result;
+class UnavailableWorldIngressSource final : public IWorldIngress {
+public:
+    VirtualWorldIngressResult readWorldFrame(const std::string&, double cycleTimestampMs) override {
+        return ingress_.disconnectHold(0, cycleTimestampMs);
+    }
+private:
+    VirtualWorldDataIngress ingress_{};
+};
+
+#if DNXR_SIMULATION_ONLY
+class DeterministicSimulationWorldIngressSource final : public IWorldIngress {
+public:
+    DeterministicSimulationWorldIngressSource() {
+        VirtualWorldIngressPolicy policy;
+        policy.requireAuthentication = true;
+        policy.requireMutualAuthentication = true;
+        policy.expectedSessionId = "runtime-simulation-session";
+        policy.maxFrameBytes = 16384;
+        policy.minFrameIntervalMs = 0.0;
+        ingress_ = std::make_unique<VirtualWorldDataIngress>(policy);
     }
 
+    VirtualWorldIngressResult readWorldFrame(const std::string& expectedSessionId, double cycleTimestampMs) override {
+        VirtualWorldIngressFrame raw;
+        raw.frameId = ++sequence_;
+        raw.timestampMs = cycleTimestampMs;
+        raw.view.exposure = 0.4f;
+        raw.view.contrast = 0.4f;
+        raw.visualField.retinalStability = 1.0f;
+        raw.audio.volume01 = 0.0f;
+        raw.body.avatarOwnership01 = 1.0f;
+        raw.body.handConfidence01 = 1.0f;
+        raw.body.footConfidence01 = 1.0f;
+        raw.realityAnchor.orientation01 = 1.0f;
+        raw.realityAnchor.identityContinuity01 = 1.0f;
+        raw.realityAnchor.sessionBoundary01 = 1.0f;
+        raw.realityAnchor.externalWorldRecall01 = 1.0f;
+        raw.scene.semanticSceneId = "deterministic_nonhuman_world_fixture";
+        raw.scene.coordinateFrame = "world_right_handed_y_up";
+        raw.scene.unitSystem = VirtualWorldUnitSystem::Normalized01;
+        raw.assets.push_back({"fixture:grid", "0123456789abcdef0123456789abcdef", 64, true});
+        auto frame = makeCanonicalVirtualWorldFrame(raw, "deterministic_simulation_world_ingress_source");
+        frame.metadata.sessionId = expectedSessionId.empty() ? "runtime-simulation-session" : expectedSessionId;
+        frame.metadata.sourceId = "local_ipc_fixture";
+        frame.metadata.peerCertificateDigest = "nonhuman_fixture_peer_certificate";
+        frame.metadata.authenticationTag = "signed-nonhuman-fixture";
+        frame.metadata.hostReceiptTimestampMs = cycleTimestampMs;
+        frame.metadata.deadlineTimestampMs = cycleTimestampMs + 100.0;
+        frame.metadata.messageDigest = canonicalVirtualWorldDigest(frame);
+        frame.bodyContract.avatarBodyProfileHash = 1;
+        frame.bodyContract.patientBodyProfileHash = 1;
+        return ingress_->ingestCanonical(frame, cycleTimestampMs);
+    }
 private:
-    static constexpr std::uint64_t kNoSequence = std::numeric_limits<std::uint64_t>::max();
-    INeuralChipHAL& hal_;
-    std::string provenance_;
-    std::uint64_t lastSequence_ = kNoSequence;
-    std::int64_t lastTimestampMs_ = std::numeric_limits<std::int64_t>::min();
+    std::uint64_t sequence_ = 0;
+    std::unique_ptr<VirtualWorldDataIngress> ingress_;
 };
+#endif
+
+
+class HoldOnlyMotorWorldEgress final : public IMotorWorldEgress {
+public:
+    bool publishMotorIntent(std::uint64_t, const std::string&, const VirtualWorldMotorIngress& intent) override {
+        lastIntent_ = intent;
+        return intent.stopIntent01 >= 1.0f || intent.confidence01 <= 0.0f;
+    }
+private:
+    VirtualWorldMotorIngress lastIntent_{};
+};
+
 class UnavailableBiometricSource final : public IBiometricSource {
 public:
     BiometricSample readBiometricSample(double timestampSeconds) override {
@@ -130,10 +157,14 @@ RuntimeComposition RuntimeCompositionRoot::compose(const RuntimeConfig& config) 
 #if DNXR_SIMULATION_ONLY
     if (config.simulationMode) {
         composition.biometricSource = std::make_unique<DeterministicSimulationBiometricSource>();
+        composition.worldIngress = std::make_unique<DeterministicSimulationWorldIngressSource>();
+        composition.motorWorldEgress = std::make_unique<HoldOnlyMotorWorldEgress>();
     } else
 #endif
     {
         composition.biometricSource = std::make_unique<UnavailableBiometricSource>();
+        composition.worldIngress = std::make_unique<UnavailableWorldIngressSource>();
+        composition.motorWorldEgress = std::make_unique<HoldOnlyMotorWorldEgress>();
     }
 
     if (config.simulationMode) {
@@ -141,7 +172,12 @@ RuntimeComposition RuntimeCompositionRoot::compose(const RuntimeConfig& config) 
         composition.deploymentMode = RuntimeDeploymentMode::SimulationOnly;
         composition.neuralChipHal = std::make_unique<SimulatedNeuralChipHAL>(64);
         composition.neuralChipHal->connect("runtime_simulated_neural_chip");
-        composition.neuralSignalSource = std::make_unique<HalNeuralSignalSource>(*composition.neuralChipHal, "simulated_neural_chip_hal");
+        BciAcquisitionValidationPolicy policy;
+        policy.requireExternal = true;
+        policy.requireAttested = true;
+        policy.requireAuthenticated = true;
+        policy.maxClockSkewNs = 1000000000000LL;
+        composition.bciAcquisitionSource = std::make_unique<ExternalHalBciAcquisitionSource>(*composition.neuralChipHal, "runtime-simulation-session", true, policy);
         return composition;
 #else
         throw std::runtime_error("SIMULATION_HAL_NOT_COMPILED_IN_REAL_BUILD");
@@ -190,12 +226,17 @@ RuntimeComposition RuntimeCompositionRoot::compose(const RuntimeConfig& config) 
         throw std::runtime_error("REAL_HARDWARE_STARTUP_EVIDENCE_INCOMPLETE");
     }
 
+    if (!hal || !hal->status().connected) {
+        throw std::runtime_error("REAL_BCI_ACQUISITION_SOURCE_UNAVAILABLE");
+    }
+    BciAcquisitionValidationPolicy policy;
+    policy.requireExternal = true;
+    policy.requireAttested = true;
+    policy.requireAuthenticated = true;
+    policy.maxClockSkewNs = 1000000000LL;
+    composition.bciAcquisitionSource = std::make_unique<ExternalHalBciAcquisitionSource>(*hal, "runtime-real-session", false, policy);
     composition.neuralTransport = std::move(transport);
     composition.neuralChipHal = std::move(hal);
-    if (!composition.neuralChipHal || !composition.neuralChipHal->status().connected) {
-        throw std::runtime_error("REAL_NEURAL_SIGNAL_SOURCE_UNAVAILABLE");
-    }
-    composition.neuralSignalSource = std::make_unique<HalNeuralSignalSource>(*composition.neuralChipHal, "real_neural_chip_hal");
     return composition;
 }
 

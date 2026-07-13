@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RuntimePathLock.h"
-#include "RuntimePipelineRunner.h"
+#include "RuntimePipelineRunInput.h"
 #include "RuntimeRealtimeTelemetry.h"
 #include "neural_chip/AckHoldFrameFactory.h"
 #include "neural_chip/EmergencyLatchController.h"
@@ -18,6 +18,7 @@
 #include "neural_chip/SafeChipFrameHoldBuffer.h"
 
 #include <array>
+#include <bitset>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
@@ -64,6 +65,7 @@ struct CanonicalWorldFrame {
     std::vector<float> audioEnvelope;
     std::vector<float> contactFields;
     std::vector<float> poseAndMotion;
+    std::string digest;
 };
 
 struct CanonicalBciAcquisitionFrame {
@@ -92,6 +94,14 @@ struct CanonicalBciFeedbackFrame {
     std::vector<float> closedLoopFeedback;
 };
 
+struct CanonicalBciStageTiming {
+    double queueWaitMs = 0.0;
+    double executionMs = 0.0;
+    double externalWaitMs = 0.0;
+    double deadlineSlackMs = 0.0;
+    double totalMs = 0.0;
+};
+
 struct CanonicalBciCycleTransaction {
     CanonicalBciFrameStamp stamp{};
     RuntimePathDecision pathDecision{};
@@ -99,6 +109,9 @@ struct CanonicalBciCycleTransaction {
     CanonicalBciAcquisitionFrame acquisition{};
     CanonicalBciCommandFrame command{};
     CanonicalBciFeedbackFrame feedback{};
+    std::array<CanonicalBciStageTiming, 22> stageTimings{};
+    std::uint64_t traceDigest = 1469598103934665603ULL;
+    bool preparedCommitOnly = false;
 };
 
 enum class CanonicalBciStage : std::uint8_t {
@@ -126,6 +139,15 @@ enum class CanonicalBciStage : std::uint8_t {
     FinalizeAudit
 };
 
+struct CanonicalBciStageDescriptor {
+    CanonicalBciStage id;
+    const char* inputs;
+    const char* outputs;
+    std::uint64_t budgetNs;
+    const char* errorDisposition;
+    const char* owner;
+};
+
 inline constexpr std::array<CanonicalBciStage, 22> kCanonicalBciStageOrder{
     CanonicalBciStage::BootAndAttestation,
     CanonicalBciStage::AcquireWorld,
@@ -149,6 +171,31 @@ inline constexpr std::array<CanonicalBciStage, 22> kCanonicalBciStageOrder{
     CanonicalBciStage::Correction,
     CanonicalBciStage::PostCorrectionSafety,
     CanonicalBciStage::FinalizeAudit};
+
+inline constexpr std::array<CanonicalBciStageDescriptor, 22> kCanonicalBciStageRegistry{{
+    {CanonicalBciStage::BootAndAttestation, "session evidence", "attested cycle", 250000ULL, "shutdown", "CanonicalNeuralBciPipeline"},
+    {CanonicalBciStage::AcquireWorld, "world source", "world frame", 700000ULL, "hold", "CanonicalNeuralBciPipeline"},
+    {CanonicalBciStage::SanitizeWorld, "world frame", "sanitized world", 500000ULL, "hold", "CanonicalNeuralBciPipeline"},
+    {CanonicalBciStage::AcquireBci, "chip acquisition", "neural acquisition", 1200000ULL, "hold", "RuntimeAcquisitionStageAdapter"},
+    {CanonicalBciStage::SignalProcessing, "neural acquisition", "conditioned signal", 1200000ULL, "hold", "RuntimeSignalStageAdapter"},
+    {CanonicalBciStage::DecodeIntentMotorCognition, "conditioned signal", "inference", 1200000ULL, "hold", "RuntimeInferenceStageAdapter"},
+    {CanonicalBciStage::UpdateAvatarWorld, "inference", "motor intent", 500000ULL, "hold", "RuntimeControllerMotorAdapter"},
+    {CanonicalBciStage::CalibrateAndBindPatient, "motor intent", "calibration", 1000000ULL, "hold", "RuntimeCalibrationStageAdapter"},
+    {CanonicalBciStage::SensoryEncoding, "calibration", "encoded modalities", 1200000ULL, "hold", "RuntimeImmersionFrameStageAdapter"},
+    {CanonicalBciStage::EncoderOutputContracts, "encoded modalities", "contracted modalities", 500000ULL, "hold", "CanonicalNeuralBciPipeline"},
+    {CanonicalBciStage::NormalizeAndAlign, "contracted modalities", "aligned modalities", 700000ULL, "hold", "RuntimeFullDiveStageAdapter"},
+    {CanonicalBciStage::SpikeMappingAndPpp, "aligned modalities", "spike plan", 1000000ULL, "hold", "RuntimeFullDiveStageAdapter"},
+    {CanonicalBciStage::IsolationPolicyCapabilityDose, "spike plan", "bounded dose plan", 900000ULL, "hold", "RuntimeSafetyStageAdapter"},
+    {CanonicalBciStage::PhaseLock, "bounded dose plan", "phase locked plan", 500000ULL, "hold", "RuntimeModalityPhaseLockStageAdapter"},
+    {CanonicalBciStage::GlobalSafety, "phase locked plan", "safety decision", 900000ULL, "emergency", "RuntimeSafetyStageAdapter"},
+    {CanonicalBciStage::PrepareCommit, "safety decision", "prepared commit", 300000ULL, "hold", "CanonicalNeuralBciPipeline"},
+    {CanonicalBciStage::DispatchTransport, "prepared commit", "closed transport gate", 100000ULL, "external_dependency_unavailable", "FutureCertifiedTransport"},
+    {CanonicalBciStage::Ack, "submit receipt", "external ack", 100000ULL, "external_dependency_unavailable", "FutureCertifiedTransport"},
+    {CanonicalBciStage::Feedback, "external ack", "external feedback", 100000ULL, "external_dependency_unavailable", "FutureCertifiedTransport"},
+    {CanonicalBciStage::Correction, "external feedback", "correction", 500000ULL, "hold", "RuntimePerceptionCorrectionStageAdapter"},
+    {CanonicalBciStage::PostCorrectionSafety, "correction", "post safety", 500000ULL, "emergency", "RuntimePostCorrectionSafetyStageAdapter"},
+    {CanonicalBciStage::FinalizeAudit, "closed or held tx", "audit record", 300000ULL, "shutdown", "CanonicalNeuralBciPipeline"}
+}};
 
 class IVirtualWorldFrameSource {
 public:
@@ -220,7 +267,7 @@ public:
     CanonicalNeuralBciPipeline(const CanonicalNeuralBciPipeline&) = delete;
     CanonicalNeuralBciPipeline& operator=(const CanonicalNeuralBciPipeline&) = delete;
 
-    RuntimePipelineFrame runCycle(RuntimePipelineRunner::RuntimePipelineRunInputRef input,
+    RuntimePipelineFrame runCycle(RuntimePipelineRunInputRef input,
                                   RuntimePathDecision pathDecision);
 
     const CanonicalPipelineMetrics& metrics() const;
@@ -241,6 +288,9 @@ public:
         }
         return true;
     }
+
+    static bool stageRegistryIsValid();
+    static bool stageCoverageAccepts(const std::vector<CanonicalBciStage>& observed);
 
     static bool dispatchPreconditionsSatisfied(const CanonicalBciCycleTransaction& transaction) {
         return transaction.world.stamp.validity == CanonicalBciSchemaValidity::Valid &&
@@ -263,7 +313,6 @@ private:
     void beginCycle(std::uint64_t frameId, std::uint64_t monotonicTimestampNs, RuntimePathDecision pathDecision);
     void finishCycle(const RuntimePipelineFrame& frame);
 
-    RuntimePipelineRunner compatibilityAdapter_{};
     CanonicalWorldIngressBundle worldIngress_{};
     CanonicalBciIngressBundle bciIngress_{};
     CanonicalSafetyLifecycleBundle safetyLifecycle_{};
@@ -272,6 +321,7 @@ private:
     RuntimeRealtimeTelemetry realtimeTelemetry_{};
     CanonicalBciCycleTransaction lastTransaction_{};
     bool cycleInProgress_ = false;
+    std::bitset<22> currentStageCoverage_{};
     bool hasLastFrameId_ = false;
     std::uint64_t lastFrameId_ = 0;
 };

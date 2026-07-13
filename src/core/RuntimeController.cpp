@@ -23,7 +23,6 @@
 #include "../cognition/StateInferenceEngine.h"
 #include "../calibration/NeuralCalibrationEngine.h"
 #include "../calibration/CalibrationDriftMonitor.h"
-#include "../immersion/ImmersionCore.h"
 #include "../immersion/MultisensoryClock.h"
 #if DNXR_SIMULATION_ONLY
 #include "../rendering/XRRenderer.h"
@@ -54,7 +53,6 @@
 #include "../runtime/RuntimeCycleFinalizer.h"
 #include "../runtime/RuntimeSafetyStage.h"
 #include "../runtime/RuntimeFullDiveStage.h"
-#include "../runtime/RuntimeRenderStage.h"
 #include "../runtime/RuntimeStimulusStage.h"
 #include "../runtime/RuntimeState.h"
 #include "../runtime/RuntimeFrame.h"
@@ -104,11 +102,6 @@ bool envFlagEnabled(const char* key) {
 // et constitue un risque pour l'autonomie cognitive (neurorights).
 // Valeur choisie : √(4 × 0.05²) ≈ 0.10 — permet des composantes ≤ 0.05.
 // ─────────────────────────────────────────────────────────────────────────────
-float computeL2Norm(const std::vector<float>& v) {
-    float sum = 0.0f;
-    for (float x : v) sum += x * x;
-    return std::sqrt(sum);
-}
 
 // Audit léger : produit une empreinte déterministe du vecteur pour le log.
 // Non cryptographique — sert uniquement à détecter un changement inattendu.
@@ -185,7 +178,6 @@ void RuntimeController::initializeModules() {
     brain_        = std::make_unique<StateInferenceEngine>();
     calib_        = std::make_unique<NeuralCalibrationEngine>();
     calibrationDriftMonitor_ = std::make_unique<CalibrationDriftMonitor>();
-    immersion_    = std::make_unique<ImmersionCore>();
     multisensoryClock_ = std::make_unique<MultisensoryClock>();
 #if DNXR_SIMULATION_ONLY
     observerRenderer_ = std::make_unique<XRRenderer>();
@@ -233,7 +225,9 @@ void RuntimeController::initializeModules() {
     neuralChipHal_ = std::move(composition.neuralChipHal);
     neuralTransport_ = std::move(composition.neuralTransport);
     packetProtector_ = std::move(composition.packetProtector);
-    neuralSignalSource_ = std::move(composition.neuralSignalSource);
+    bciAcquisitionSource_ = std::move(composition.bciAcquisitionSource);
+    worldIngress_ = std::move(composition.worldIngress);
+    motorWorldEgress_ = std::move(composition.motorWorldEgress);
     biometricSource_ = std::move(composition.biometricSource);
     deepImmersion_= std::make_unique<DeepImmersionPlatform>();
     fullDiveSynchronization_ = std::make_unique<dnxr::FullDiveSynchronizationEngine>();
@@ -244,46 +238,12 @@ void RuntimeController::initializeModules() {
     deepImmersion_->setConsentPolicy({true, true, false, "runtime_default"});
 
     // ─────────────────────────────────────────────────────────────────────
-    // [AMÉLIORATION 6] Vecteur d'induction : déclaration, validation, audit
-    //
-    // Ce vecteur module légèrement le flux neural avant inférence.
-    // Il représente un biais de calibration de départ (non nul mais infime).
-    // TOUTE modification doit :
-    //   1. Rester sous kMaxInducedVectorNorm (norme L2 ≤ 0.12)
-    //   2. Être loggée avec son hash pour traçabilité
-    //   3. Être couverte par la politique de consentement
+    // Prompt 08: cognitive influence is neutral by default.  No inducedVector
+    // may be active in the canonical runtime without a future signed profile,
+    // explicit consent proof, and non-human/hardware-bench gating.
     // ─────────────────────────────────────────────────────────────────────
-    const std::vector<float> inducedVector = {0.05f, -0.02f, 0.03f, 0.01f};
-
-    const float ivNorm = computeL2Norm(inducedVector);
-    if (ivNorm > safetyProfile.maxInducedVectorNorm) {
-        throw std::runtime_error(
-            "inducedVector L2 norm exceeds allowed threshold ("
-            + std::to_string(ivNorm) + " > "
-            + std::to_string(safetyProfile.maxInducedVectorNorm)
-            + "). Adjust the vector or update kMaxInducedVectorNorm "
-            "with documented justification.");
-    }
-
-    const NeuroRightsDecision influenceRights = NeuroRightsPolicy::simulationDefault().evaluate(
-        NeuroRightsRequest{
-            NeuroPermissionScope::CognitiveInfluence,
-            "RuntimeController",
-            "runtime_induced_vector",
-            true,
-            true,
-            false,
-            ivNorm,
-            safetyProfile.maxInducedVectorNorm});
-    if (!influenceRights.allowed) {
-        throw std::runtime_error("inducedVector denied by NeuroRightsPolicy: " + influenceRights.reason);
-    }
-
-    Logger::info("inducedVector validated: norm=" + std::to_string(ivNorm)
-                 + " threshold=" + std::to_string(safetyProfile.maxInducedVectorNorm)
-                 + " " + auditHash(inducedVector)
-                 + " " + influenceRights.auditTag);
-
+    const std::vector<float> inducedVector;
+    Logger::info("inducedVector neutralized by canonical runtime policy: " + auditHash(inducedVector));
     deepImmersion_->setInducedVector(inducedVector);
 
     // ─────────────────────────────────────────────────────────────────────
@@ -331,7 +291,6 @@ void RuntimeController::shutdownModules() {
     brain_.reset();
     calib_.reset();
     calibrationDriftMonitor_.reset();
-    immersion_.reset();
     multisensoryClock_.reset();
     observerMirror_.reset();
 #if DNXR_SIMULATION_ONLY
@@ -373,7 +332,7 @@ RuntimeAcquisitionStage::Input RuntimeController::makeAcquisitionStageInput() {
         [this](const std::vector<float>& telemetry) { return guard_->enforce(telemetry); },
         [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("runtime_cycle"); },
         [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("acquisition"); },
-        [this](double timestamp) { return neuralSignalSource_->readCanonicalFrame(timestamp); }
+        [this](const RuntimeStageContext& context) { return bciAcquisitionSource_->readBciAcquisition(context); }
     };
 }
 
@@ -466,7 +425,7 @@ void RuntimeController::publishRuntimeArtifacts(const RuntimePipelineFrame& pipe
         snapshot.frame = pipeline.sensoryFrame;
         snapshot.telemetry = pipeline.telemetry;
         snapshot.calibratedIntensity = pipeline.calibratedFeatures.empty() ? 0.0f : pipeline.calibratedFeatures[0];
-        snapshot.avatarPose = immersion_ ? immersion_->getAvatarPoseSummary() : "unavailable";
+        snapshot.avatarPose = pipeline.worldIngressFrame.modalities.scene.semanticSceneId.empty() ? "canonical_world_ingress_unavailable" : pipeline.worldIngressFrame.modalities.scene.semanticSceneId;
         snapshot.signalSource = config_.signalSource;
 #if DNXR_SIMULATION_ONLY
         const auto renderTelemetry = observerRenderer_ ? observerRenderer_->getTelemetrySnapshot() : XRRenderTelemetrySnapshot{};
@@ -504,27 +463,6 @@ RuntimeCalibrationStage::Input RuntimeController::makeCalibrationStageInput() {
         [](const std::string& message) { Logger::warn(message); },
         1.05f,
         cycleCounter_ == 0U
-    };
-}
-
-RuntimeImmersionFrameStage::Input RuntimeController::makeImmersionFrameStageInput(double timestamp) {
-    return RuntimeImmersionFrameStage::Input{
-        [this](const std::vector<float>& cleanSignals, const CognitiveState& cognitiveState) {
-            return deepImmersion_->runFullBodyControlTick(cleanSignals, cognitiveState);
-        },
-        [this](const CognitiveState& cognitiveState, const XRFullBodyCommand& bodyCommand, const XRAdaptationFrame& xrAdaptation, const NeuroPipelineDiagnostics& diagnostics) {
-            return immersion_->buildImmersiveFrameFromChip(cognitiveState, bodyCommand, xrAdaptation, diagnostics);
-        },
-        [this](const std::vector<float>& sensoryFrame, std::uint64_t cycleId, double timestampMs, double toleranceMs) {
-            return multisensoryClock_->alignVector(sensoryFrame, cycleId, timestampMs, toleranceMs);
-        },
-        [this](std::uint64_t cycleId, const std::string& component, const std::string& event, double latencyMs, float riskScore, bool degraded, const std::string& reason) {
-            std::lock_guard<std::mutex> traceLock(traceMutex_);
-            traceRecorder_.record(cycleId, component, event, latencyMs, riskScore, degraded, reason);
-        },
-        [](const std::string& message) { Logger::warn(message); },
-        timestamp * 1000.0,
-        2.0
     };
 }
 
@@ -612,32 +550,6 @@ RuntimeFullDiveStage::Input RuntimeController::makeFullDiveStageInput(const Runt
     };
 }
 
-RuntimeRenderStage::Input RuntimeController::makeRenderStageInput(
-    const std::chrono::steady_clock::time_point& renderStart,
-    SchedulerTickReport& tickReport) {
-    return RuntimeRenderStage::Input{
-        [](const std::vector<float>& sensoryFrame) { return !sensoryFrame.empty(); },
-        [this](const std::vector<float>& sensoryFrame) { if (observerMirror_) observerMirror_->publishImmutableCopy(sensoryFrame); },
-        [this, &renderStart, &tickReport]() { return scheduler_.endTask(RuntimeRenderStage::name(), renderStart, tickReport); },
-        [this]() { ++droppedFrames_; },
-        [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("observer_mirror"); },
-        [this](double latencyMs, bool neuralSignalValid, float biometricRisk, float driftScore) {
-            return independentWatchdog_
-                ? independentWatchdog_->assess(latencyMs, neuralSignalValid, biometricRisk, driftScore)
-                : WatchdogAssessment{};
-        },
-        [this]() { emergency_->trigger(); },
-        [this](const std::string& reason) {
-            if (safetyStateMachine_) {
-                safetyStateMachine_->latchEmergency(reason);
-            }
-        },
-        [](const std::string& message) { Logger::warn(message); },
-        [](const std::string& message) { Logger::error(message); },
-        tickReport.totalMs
-    };
-}
-
 RuntimeStimulusStage::Input RuntimeController::makeStimulusStageInput() {
     return RuntimeStimulusStage::Input{
         [this](std::uint64_t cycleId, const std::vector<float>& sensoryFrame, const SafetyDecision& decision, double deltaSeconds) {
@@ -661,7 +573,6 @@ RuntimeStageServices RuntimeController::makeRuntimeStageServices() {
         *brain_,
         *calib_,
         *calibrationDriftMonitor_,
-        *immersion_,
         *multisensoryClock_,
         *observerMirror_,
         *guard_,
@@ -674,7 +585,9 @@ RuntimeStageServices RuntimeController::makeRuntimeStageServices() {
         *independentWatchdog_,
         *stimulusEnvelope_,
         *neuralChipHal_,
-        *neuralSignalSource_,
+        *worldIngress_,
+        *motorWorldEgress_,
+        *bciAcquisitionSource_,
         *deepImmersion_,
         *fullDiveSynchronization_,
         *fullDiveBridge_,
@@ -724,7 +637,7 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
     RuntimeStageServices& services = *stageServices_;
     const RuntimePathDecision pathDecision = backendAdapterLock_.decide(
         neuralChipHal_->status(), deploymentMode_);
-    RuntimePipelineRunner::RuntimePipelineRunInputRef input{
+    RuntimePipelineRunInputRef input{
         RuntimeStageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds},
         tickReport,
         services,

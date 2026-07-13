@@ -22,16 +22,26 @@ int main() {
         [](const std::vector<float>& telemetry) { return telemetry.size() == 2U; },
         [] {},
         [] {},
-        [&readCount](double) {
+        [&readCount](const dnxr::RuntimeStageContext&) {
             ++readCount;
-            dnxr::NeuralSignalReadResult result;
-            result.frame.sequenceId = 10;
-            result.frame.monotonicTimestampMs = 1000;
-            result.frame.signalQuality = 0.9f;
-            result.frame.channels = {0.1f, 0.2f, 0.3f};
-            result.provenance = "test_hal";
+            dnxr::BciAcquisitionReadResult result;
             result.valid = true;
-            result.failureReason.clear();
+            result.hold = false;
+            result.frame.deviceIdentity = "test_external_bci_device";
+            result.frame.sessionId = "unit-session";
+            result.frame.sequence = 10;
+            result.frame.hardwareTimestampNs = 1000000000LL;
+            result.frame.hostTimestampNs = 1000001000LL;
+            result.frame.clockDomain = dnxr::BciAcquisitionClockDomain::RecordedNonHumanFixture;
+            result.frame.sampleLayout.channelCount = 3U;
+            result.frame.channelTopologyDigest = 77U;
+            result.frame.external = true;
+            result.frame.attested = true;
+            result.frame.authenticated = true;
+            result.frame.recordedNonHumanFixture = true;
+            result.frame.samples = {0.1f, 0.2f, 0.3f};
+            result.frame.packetDigest = dnxr::bciAcquisitionDigest(result.frame);
+            result.frame.authenticationTag = 1U;
             return result;
         }});
     assert(frame.continueCycle);
@@ -45,28 +55,40 @@ int main() {
         {},
         {},
         {},
-        [](double) {
-            dnxr::NeuralSignalReadResult result;
+        [](const dnxr::RuntimeStageContext&) {
+            dnxr::BciAcquisitionReadResult result;
             result.valid = false;
-            result.duplicateSequence = true;
-            result.failureReason = "duplicate_or_replayed_neural_frame_sequence";
+            result.hold = true;
+            result.failureReason = "bci_acquisition_duplicate_sequence";
             return result;
         }});
     assert(!replayed.continueCycle);
-    assert(replayed.stopReason == "duplicate_or_replayed_neural_frame_sequence");
+    assert(replayed.stopReason == "bci_acquisition_duplicate_sequence");
 
     auto noBiometric = dnxr::RuntimeAcquisitionStage::execute(context, dnxr::RuntimeAcquisitionStage::Input{
         {},
         [](const std::vector<float>& telemetry) { return telemetry.empty(); },
         {},
         {},
-        [](double) {
-            dnxr::NeuralSignalReadResult result;
-            result.frame.sequenceId = 11;
-            result.frame.monotonicTimestampMs = 1100;
-            result.frame.signalQuality = 0.8f;
-            result.frame.channels = {0.4f};
+        [](const dnxr::RuntimeStageContext&) {
+            dnxr::BciAcquisitionReadResult result;
             result.valid = true;
+            result.hold = false;
+            result.frame.deviceIdentity = "test_external_bci_device";
+            result.frame.sessionId = "unit-session";
+            result.frame.sequence = 11;
+            result.frame.hardwareTimestampNs = 1100000000LL;
+            result.frame.hostTimestampNs = 1100001000LL;
+            result.frame.clockDomain = dnxr::BciAcquisitionClockDomain::RecordedNonHumanFixture;
+            result.frame.sampleLayout.channelCount = 1U;
+            result.frame.channelTopologyDigest = 77U;
+            result.frame.external = true;
+            result.frame.attested = true;
+            result.frame.authenticated = true;
+            result.frame.recordedNonHumanFixture = true;
+            result.frame.samples = {0.4f};
+            result.frame.packetDigest = dnxr::bciAcquisitionDigest(result.frame);
+            result.frame.authenticationTag = 1U;
             return result;
         }});
     assert(noBiometric.continueCycle);

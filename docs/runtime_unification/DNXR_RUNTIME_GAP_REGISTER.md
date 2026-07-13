@@ -122,3 +122,36 @@
 | P0 | `RuntimeController` still owns stage construction and compatibility execution after bootstrap validation. | Runtime architecture | `DNXR_SESSION_BOOTSTRAP_OWNERSHIP.md` records `RuntimeController` as temporary compatibility host. | Prompt 04/05 |
 | P0 | Broad `dnxr_core` aggregate still pulls observer/simulation/test-adapter libraries in real test contexts. | Build split | Prompt 03 real bootstrap target had to link directly to `dnxr_runtime_core` to avoid aggregate construction. | Prompt 22 |
 | P1 | `RuntimeCompositionRoot::compose` still constructs concrete profile adapters directly rather than returning all role bundles. | Composition root | `CanonicalRuntimeHost` exists, but `RuntimeCompositionRoot` role-bundle migration is partial. | Prompt 04 |
+
+## Prompt 04 gap update — 2026-07-13
+
+| Gap | Priority | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| Certified transport/ACK/feedback binding after `PreparedCommit` | P0 | Runtime transport owner | Open for next transport prompt | Canonical graph now holds at `DispatchTransport` with `certified_transport_not_bound_prepared_commit_held`. |
+| Replace remaining domain-stage adapter internals with pure immutable typed snapshots | P1 | Runtime stage owners | Open | Direct graph invokes existing stage algorithms locally; no whole-cycle runner delegation remains. |
+
+## Prompt 05 gap update — 2026-07-13
+
+| Gap | Priority | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| RuntimePipelineRunner facade in production runtime | P0 | Runtime architecture owner | Closed | Removed from runtime core manifest and no symbol in real-backend executable scan. |
+| RuntimeRenderStage execution linked into real runtime | P0 | Observer/runtime boundary owner | Closed for stage execution symbol | Removed from runtime core and compiled only into `dnxr_runtime_render_stage_test`; observer renderer libraries remain separate broader deployment topic. |
+| Certified transport/ACK/feedback after PreparedCommit | P0 | Runtime transport owner | Open | Prompt 05 intentionally preserves fail-closed transport hold. |
+
+## Prompt 06 gap update — 2026-07-13
+
+| Gap | Priority | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| Generic neural signal source owns acquisition | P0 | Runtime acquisition owner | Closed | `INeuralSignalSource`/`HalNeuralSignalSource` removed from composition and service ownership; `IBciAcquisitionSource` now owns acquisition. |
+| Certified vendor transport read payload semantics | P0 | Hardware/transport owner | Open | `ExternalHalBciAcquisitionSource` wraps current HAL frame pending vendor packet schema; validation contract is in place. |
+| Hardware callback lock-free SPSC implementation | P1 | Realtime acquisition owner | Open | Fixed-capacity ring buffer/drop counter added; vendor callback integration remains next hardware-driver task. |
+
+### Prompt 07 gap updates
+- CLOSED: canonical runtime world ingress was previously a stamp-only placeholder; it now calls `IWorldIngress` and records digest/provenance.
+- CLOSED: `ImmersionCore::buildImmersiveFrameFromChip` could remain linked into runtime core; it was removed from the core source manifest and critical services.
+- OPEN P1 / transport-owner: production `IWorldIngress` is still represented by a fail-closed unavailable source until certified IPC/network transport binding and mutual-auth key provisioning are supplied.
+
+### Prompt 08 gap updates
+- CLOSED: motor intent previously had reusable components but no canonical causal runtime stage; `RuntimeMotorIntentStage` now owns confidence-gated BCI-to-world intent.
+- CLOSED: runtime default non-zero `inducedVector` could activate influence; the canonical runtime now sets an empty vector.
+- OPEN P1 / model-owner: production motor intent model manifest loading remains static and must be replaced with immutable signed artifact loading before real hardware enablement.

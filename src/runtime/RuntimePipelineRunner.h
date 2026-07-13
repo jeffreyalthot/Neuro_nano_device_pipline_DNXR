@@ -1,26 +1,7 @@
 #pragma once
 
-#include "RuntimeAcquisitionStage.h"
-#include "RuntimeCalibrationStage.h"
-#include "RuntimeCycleFinalizer.h"
-#include "RuntimeFullDiveStage.h"
-#include "RuntimeFiveSenseCoherenceStage.h"
-#include "RuntimeBodySchemaStage.h"
-#include "RuntimeClosedLoopFeedbackStage.h"
-#include "RuntimePerceptionCorrectionStage.h"
-#include "RuntimeImmersionFrameStage.h"
-#include "RuntimeInferenceStage.h"
-#include "RuntimeRenderStage.h"
-#include "RuntimePipelineSinkRefs.h"
-#include "RuntimePipelineSinks.h"
-#include "RuntimeSafetyStage.h"
-#include "RuntimeSignalStage.h"
-#include "RuntimeStimulusStage.h"
-#include "../core/NeuroRealtimeScheduler.h"
-#include "../utils/RuntimeMetrics.h"
+#include "RuntimePipelineRunInput.h"
 
-#include <chrono>
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -30,35 +11,9 @@ struct RuntimeStageServices;
 
 class RuntimePipelineRunner {
 public:
-    struct StageInputs {
-        RuntimeAcquisitionStage::Input acquisition;
-        RuntimeSignalStage::Input signal;
-        RuntimeInferenceStage::Input inference;
-        RuntimeCalibrationStage::Input calibration;
-        RuntimeImmersionFrameStage::Input immersionFrame;
-        RuntimeSafetyStage::Input safety;
-        RuntimeFullDiveStage::Input fullDive;
-        RuntimeStimulusStage::Input stimulus;
-        RuntimeCycleFinalizer::Input finalizer;
-    };
-
-    struct RuntimePipelineRunInput {
-        RuntimeStageContext context;
-        SchedulerTickReport& tickReport;
-        RuntimeStageServices& services;
-        RuntimePipelineSinks& sinks;
-        RuntimeMetricsSnapshot runtimeMetricsSnapshot;
-        RuntimeCycleFinalizer::Context finalizer;
-    };
-
-    struct RuntimePipelineRunInputRef {
-        RuntimeStageContext context;
-        SchedulerTickReport& tickReport;
-        RuntimeStageServices& services;
-        RuntimePipelineSinkRefs sinks;
-        RuntimeMetricsSnapshot runtimeMetricsSnapshot;
-        RuntimeCycleFinalizer::Context finalizer;
-    };
+    using StageInputs = RuntimePipelineStageInputs;
+    using RuntimePipelineRunInput = dnxr::RuntimePipelineRunInput;
+    using RuntimePipelineRunInputRef = dnxr::RuntimePipelineRunInputRef;
 
     RuntimePipelineFrame run(const RuntimePipelineRunInput& input) const;
     RuntimePipelineFrame run(const RuntimePipelineRunInputRef& input) const;

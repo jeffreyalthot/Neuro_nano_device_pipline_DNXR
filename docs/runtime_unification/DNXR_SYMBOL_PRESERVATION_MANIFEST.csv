@@ -3609,3 +3609,27 @@ SessionBootstrapValidator,src/core/SessionBootstrapValidator.h,70,class/struct/e
 SessionBootstrapSnapshot,src/core/SessionBootstrapValidator.h,25,class/struct/enum/function,14,integrated au runtime canonique,Immutable session snapshot,Prompt03 ownership graph
 SessionBackendLock,src/core/SessionBootstrapValidator.h,60,class/struct/enum/function,4,integrated au runtime canonique,Irreversible backend lock,Prompt03 ownership graph
 CanonicalRuntimeHost,src/core/CanonicalRuntimeHost.h,14,class/struct/enum/function,8,integrated au runtime canonique,Single owner host boundary,Prompt03 ownership graph
+2026-07-13 Prompt 04,CanonicalNeuralBciPipeline::runCycle,src/runtime/CanonicalNeuralBciPipeline.cpp,intégré au runtime canonique,Now invokes stages directly and fails closed before uncertified transport
+2026-07-13 Prompt 04,kCanonicalBciStageRegistry,src/runtime/CanonicalNeuralBciPipeline.h,intégré au runtime canonique,Static executable graph contract with budgets/dispositions/owners
+2026-07-13 Prompt 04,CanonicalNeuralBciPipeline::stageCoverageAccepts,src/runtime/CanonicalNeuralBciPipeline.cpp,intégré au runtime canonique,Bitset/typestate coverage validation for reentrancy/order tests
+2026-07-13 Prompt 05,RuntimePipelineRunner::StageInputs,src/runtime/RuntimePipelineRunner.h,adaptateur temporaire,Aliased to RuntimePipelineStageInputs; canonical input lives in RuntimePipelineRunInput.h
+2026-07-13 Prompt 05,RuntimePipelineRunner::RuntimePipelineRunInputRef,src/runtime/RuntimePipelineRunner.h,adaptateur temporaire,Aliased to top-level RuntimePipelineRunInputRef; RuntimeController and CanonicalNeuralBciPipeline use top-level type
+2026-07-13 Prompt 05,RuntimePipelineRunner::run,src/runtime/RuntimePipelineRunner.cpp,bibliothèque hors chemin critique,No longer linked into runtime core or production executable; direct graph owns cycle execution
+2026-07-13 Prompt 05,RuntimeRenderStage::execute,src/runtime/RuntimeRenderStage.cpp,observer/test,No longer linked into runtime core; standalone render-stage test preserves behavior
+2026-07-13 Prompt 06,IBciAcquisitionSource,src/runtime/IBciAcquisitionSource.h,integrated au runtime canonique,New driver-owned external BCI acquisition interface
+2026-07-13 Prompt 06,BciAcquisitionValidator,src/runtime/IBciAcquisitionSource.cpp,integrated au runtime canonique,Stateful order/replay/skew/cadence/topology/session/quality validator
+2026-07-13 Prompt 06,ExternalHalBciAcquisitionSource,src/runtime/IBciAcquisitionSource.cpp,called as service,HAL-backed external acquisition adapter with real-mode attestation/authentication requirements
+2026-07-13 Prompt 06,INeuralSignalSource,src/core/RuntimeCompositionRoot.h,supprimé après preuve d'équivalence,Replaced by IBciAcquisitionSource in RuntimeComposition and RuntimeStageServices
+2026-07-13 Prompt 06,HalNeuralSignalSource,src/core/RuntimeCompositionRoot.cpp,supprimé après preuve d'équivalence,Replaced by ExternalHalBciAcquisitionSource
+Prompt07,IWorldIngress,integrated au runtime canonique,Authoritative world ingress interface for local IPC/network implementations
+Prompt07,IMotorWorldEgress,called as service,Separate motor-intent world egress; never neural feedback proof
+Prompt07,CanonicalVirtualWorldFrame,integrated au runtime canonique,Immutable transaction snapshot with schema/auth/provenance/assets/modalities
+Prompt07,VirtualWorldDataIngress::ingestCanonical,integrated au runtime canonique,Reject/hold validation for authenticated world frames
+Prompt07,RuntimeImmersionFrameStage::execute(RuntimePipelineFrame RuntimeStageServices&),integrated au runtime canonique,Uses canonicalWorldFrame instead of ImmersionCore construction
+Prompt07,ImmersionCore::buildImmersiveFrameFromChip,bibliothèque hors chemin critique,Preserved outside runtime-core critical path
+Prompt08,RuntimeMotorIntentStage,integrated au runtime canonique,Owns BCI-to-world motor intent decode and confidence gate
+Prompt08,CausalMotorIntentModelIdentity,integrated au runtime canonique,Static signed deterministic model identity until artifact loader prompt
+Prompt08,CausalMotorIntentStageResult,integrated au runtime canonique,Propagates confidence uncertainty provenance and neutral hold state
+Prompt08,MotorIntentDecoder,called as service,Local decode algorithm inside canonical stage
+Prompt08,MotorIntentConfidenceGate,called as service,Low-confidence/tremor/spasm/fatigue neutralization policy
+Prompt08,InducedVectorInfluenceEngine,bibliothèque hors chemin critique,Inactive by default; future activation requires signed profile and consent proof

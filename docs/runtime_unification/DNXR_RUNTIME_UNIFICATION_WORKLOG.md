@@ -147,3 +147,58 @@ No runtime business implementation was migrated in this prompt. P0 implementatio
 Starting state: branch `work`, HEAD `f4c2849`. Added `SessionBootstrapValidator`, immutable `SessionBootstrapSnapshot`, `SessionBackendLock`, and `CanonicalRuntimeHost`. `RuntimeApplication` now runs bootstrap validation before constructing the legacy `RuntimeController`, preventing known-invalid configs from partially initializing runtime state.
 
 The full stage logic is not yet moved out of `RuntimeController`; that remains an explicit P0 migration gap. The new bootstrap test validates unique ownership counters, immutable snapshots, backend lock irreversibility, real-profile fail-closed attestation, and destruction order.
+
+## 2026-07-13 — Prompt 04 canonical transaction direct stage graph
+
+Initial state recorded before edits:
+- Branch/status command: `git status --short --branch` returned `## work`.
+- Commit command: `git rev-parse HEAD` returned `ddfabaaa9389b0af374c052aff3ffdfd0bae043f`.
+- Runtime unification artifacts were read from `docs/runtime_unification/` before implementation.
+
+Implementation summary:
+- Replaced `CanonicalNeuralBciPipeline::runCycle` whole-cycle `RuntimePipelineRunner` delegation with explicit canonical stage invocations.
+- Added a constexpr stage registry carrying ID, inputs, outputs, nanosecond budget, error disposition, and ownership.
+- Added per-stage bitset coverage/order enforcement, real invocation timing records, and cumulative non-raw-neural trace digest mixing.
+- Kept dispatch closed at `DispatchTransport` with `certified_transport_not_bound_prepared_commit_held`; no HAL commit/ACK/feedback fabrication is introduced.
+
+## 2026-07-13 — Prompt 05 RuntimePipelineRunner facade removal
+
+Initial state recorded before edits:
+- `git status --short --branch` returned `## work`.
+- `git rev-parse HEAD` returned `60754350b4b843c43b804c518ac205e6d5318c3e`.
+- All files under `docs/runtime_unification/` were read into `/tmp/runtime_unification_all_prompt05.txt` before implementation.
+
+RuntimePipelineRunner disposition enumeration and migration proof:
+- `StageInputs` -> `RuntimePipelineStageInputs` in `RuntimePipelineRunInput.h`; canonical target is direct stage services/inputs, proof: header no longer depends on `RuntimePipelineRunner.h`.
+- `RuntimePipelineRunInput` -> top-level `RuntimePipelineRunInput`; canonical target is controller-to-canonical transaction input snapshot.
+- `RuntimePipelineRunInputRef` -> top-level `RuntimePipelineRunInputRef`; canonical target is direct `CanonicalNeuralBciPipeline::runCycle` input.
+- `run(const RuntimePipelineRunInput&)` and `run(const RuntimePipelineRunInputRef&)` -> not linked to runtime core; canonical target is `CanonicalNeuralBciPipeline::runCycle` direct graph.
+- `normalizedTelemetryRiskVector` -> absorbed by direct stage normalization metadata path; no production symbol remains.
+- `finishModernCycle` -> absorbed by direct canonical finalizer calls in `CanonicalNeuralBciPipeline::runCycle`.
+- Historical render stage call -> removed from runtime core and linked only into its standalone test target.
+
+## 2026-07-13 — Prompt 06 external BCI acquisition ingress
+
+Initial state recorded before edits:
+- `git status --short --branch` returned `## work`.
+- `git rev-parse HEAD` returned `1811d1f8809eac005bf37b9e1e4bd4cb064dacd5`.
+- All files under `docs/runtime_unification/` were read into `/tmp/runtime_unification_all_prompt06.txt` before implementation.
+
+Implementation summary:
+- Added `IBciAcquisitionSource` as the canonical chip/driver-owned neural acquisition boundary.
+- Replaced `INeuralSignalSource`/`HalNeuralSignalSource` service ownership with `IBciAcquisitionSource` in composition and stage services.
+- Added acquisition metadata: device identity, session, sequence, hardware/host timestamps, clock domain, sample layout, topology digest, quality flags, dropout/overflow counters, packet digest, authentication tag, external/attested/authenticated booleans, and fixture marking.
+- Added stateful validation for duplicate/replay/gap, stale/future/skew/cadence, topology/session mismatch, length mismatch, dropout/overflow, corrupt digest, unauthenticated/unattested/non-external frames.
+- Added a fixed-capacity ring buffer with explicit drop count for acquisition backpressure evidence.
+
+## Prompt 07 — Authenticated deterministic virtual world ingress (2026-07-13)
+- Initial state: branch `work`, commit `445f38632dbd82822183442b3034e4b637dc8906`; `docs/runtime_unification/*` read before code changes.
+- Implemented the virtual-world ingress boundary as the authoritative world source for the canonical cycle. `CanonicalNeuralBciPipeline::AcquireWorld` now reads `IWorldIngress`, stores an immutable `CanonicalVirtualWorldFrame` snapshot on the transaction frame, records a digest, and fail-closes on absent/rejected world ingress instead of constructing a world ad hoc.
+- Removed `ImmersionCore` from the runtime-core critical source list and from `RuntimeController`/`RuntimeStageServices`; sensory encoding now derives its vector from the authenticated canonical world snapshot.
+- Added deterministic/source provenance tests for version negotiation, replay, corruption, sequence gap, unresolved asset, invalid transform, finite/range validation, oversized payload, disconnect hold, and deterministic replay digest.
+
+## Prompt 08 — Causal signal conditioning and motor intent decoding (2026-07-13)
+- Initial state: branch `work`, commit `40c4d4d84bf7da6ae33a564fa0b8a268f9664de1`; `docs/runtime_unification/*` read before changes.
+- Added `RuntimeMotorIntentStage` to decode bounded motor intent only from validated external BCI acquisition plus canonical signal/inference snapshots. The stage carries a signed deterministic model identity, confidence/uncertainty/provenance, and neutral hold defaults.
+- Integrated motor decoding after signal conditioning/inference and before sensory encoding; motor intent is submitted only to `IMotorWorldEgress` and never to sensory electrode encoding.
+- Neutralized runtime `inducedVector` by default; future influence activation remains outside the canonical runtime and requires a distinct signed profile/consent gate.

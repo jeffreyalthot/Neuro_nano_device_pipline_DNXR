@@ -1,7 +1,6 @@
 #include "RuntimeAcquisitionStage.h"
 
 #include "RuntimeStageServices.h"
-#include "../hardware/NeuralChipHAL.h"
 #include "../safety/IndependentWatchdog.h"
 #include "../safety/PhysiologicalGuard.h"
 
@@ -45,20 +44,25 @@ RuntimePipelineFrame RuntimeAcquisitionStage::execute(const RuntimeStageContext&
         return frame;
     }
 
-    NeuralSignalReadResult neuralRead;
-    if (input.readCanonicalNeuralFrame) {
-        neuralRead = input.readCanonicalNeuralFrame(context.timestamp);
+    BciAcquisitionReadResult bciRead;
+    if (input.readCanonicalBciFrame) {
+        bciRead = input.readCanonicalBciFrame(context);
     }
-    if (!neuralRead.valid) {
+    if (!bciRead.valid) {
         frame.acquisitionStatus = RuntimeStageStatus::degraded(
-            neuralRead.failureReason.empty() ? "neural_signal_source_unavailable" : neuralRead.failureReason);
+            bciRead.failureReason.empty() ? "bci_acquisition_source_unavailable" : bciRead.failureReason);
         frame.continueCycle = false;
         frame.stopReason = frame.acquisitionStatus.reason;
         return frame;
     }
-    frame.chipFrame = neuralRead.frame;
-    frame.acquisitionChipFrame = neuralRead.frame;
-    frame.rawNeuralSignals = neuralRead.frame.channels;
+    frame.bciAcquisitionFrame = bciRead.frame;
+    frame.chipFrame.sequenceId = bciRead.frame.sequence;
+    frame.chipFrame.monotonicTimestampMs = bciRead.frame.hardwareTimestampNs / 1000000LL;
+    frame.chipFrame.channels = bciRead.frame.samples;
+    frame.chipFrame.signalQuality = 1.0f;
+    frame.chipFrame.simulation = bciRead.frame.recordedNonHumanFixture;
+    frame.acquisitionChipFrame = frame.chipFrame;
+    frame.rawNeuralSignals = bciRead.frame.samples;
 
     frame.acquisitionStatus = validate(!frame.rawNeuralSignals.empty(), "empty_neural_signal_frame");
     frame.continueCycle = frame.acquisitionStatus.continueCycle;
@@ -93,17 +97,22 @@ RuntimePipelineFrame RuntimeAcquisitionStage::execute(const RuntimeStageContext&
         return frame;
     }
 
-    const NeuralSignalReadResult neuralRead = services.neuralSignalSource.readCanonicalFrame(context.timestamp);
-    if (!neuralRead.valid) {
+    const BciAcquisitionReadResult bciRead = services.bciAcquisitionSource.readBciAcquisition(context);
+    if (!bciRead.valid) {
         frame.acquisitionStatus = RuntimeStageStatus::degraded(
-            neuralRead.failureReason.empty() ? "neural_signal_source_unavailable" : neuralRead.failureReason);
+            bciRead.failureReason.empty() ? "bci_acquisition_source_unavailable" : bciRead.failureReason);
         frame.continueCycle = false;
         frame.stopReason = frame.acquisitionStatus.reason;
         return frame;
     }
-    frame.chipFrame = neuralRead.frame;
-    frame.acquisitionChipFrame = neuralRead.frame;
-    frame.rawNeuralSignals = neuralRead.frame.channels;
+    frame.bciAcquisitionFrame = bciRead.frame;
+    frame.chipFrame.sequenceId = bciRead.frame.sequence;
+    frame.chipFrame.monotonicTimestampMs = bciRead.frame.hardwareTimestampNs / 1000000LL;
+    frame.chipFrame.channels = bciRead.frame.samples;
+    frame.chipFrame.signalQuality = 1.0f;
+    frame.chipFrame.simulation = bciRead.frame.recordedNonHumanFixture;
+    frame.acquisitionChipFrame = frame.chipFrame;
+    frame.rawNeuralSignals = bciRead.frame.samples;
 
     frame.acquisitionStatus = validate(!frame.rawNeuralSignals.empty(), "empty_neural_signal_frame");
     frame.continueCycle = frame.acquisitionStatus.continueCycle;

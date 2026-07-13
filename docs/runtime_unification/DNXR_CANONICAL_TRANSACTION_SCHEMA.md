@@ -41,3 +41,23 @@ Every phase returns `PhaseResult<T>` or a no-throw runtime error. `RuntimeErrorC
 ## Prompt 03 immutable session bootstrap snapshot
 
 `SessionBootstrapSnapshot` freezes profile kind, deployment mode, configuration/patient/topology/capability/safety digests, backend attestation status, secret readiness, ingress/egress readiness, unique-owner counters, and destruction order before any frame is allowed. It is intentionally not assignable after creation.
+
+## Prompt 04 transaction execution fields — 2026-07-13
+
+`CanonicalBciCycleTransaction` now carries per-stage timing (`queueWaitMs`, `executionMs`, `externalWaitMs`, `deadlineSlackMs`, `totalMs`), a cumulative `traceDigest`, and `preparedCommitOnly`. The digest is mixed from phase identity and bounded metadata; raw neural signal payloads are not serialized into the digest log. The transaction may reach `PreparedCommit` but the canonical transport stage intentionally returns a hold reason until a certified external transport is bound.
+
+## Prompt 05 input contract migration — 2026-07-13
+
+The controller-to-canonical transaction input types were moved out of `RuntimePipelineRunner` into `RuntimePipelineRunInput.h`. This keeps scheduler, services, sink refs, runtime metrics snapshot, and finalizer context available to the canonical graph without constructing or linking the legacy runner facade.
+
+## Prompt 06 BCI acquisition frame schema — 2026-07-13
+
+The canonical acquisition payload now includes device identity, session id, sequence, hardware timestamp, host timestamp, clock domain, sample layout, topology digest, quality flags, dropout/overflow counters, packet digest, authentication tag, and explicit `external`, `attested`, `authenticated`, and `recordedNonHumanFixture` flags. Invalid frames are not repaired; validation returns a hold/failure reason.
+
+### Prompt 07 world ingress schema
+- `CanonicalVirtualWorldFrame` now includes schema version, sequence, session/source identifiers, peer certificate digest, message digest, auth tag, host/engine/deadline timestamps, semantic scene, coordinate frame, units, environment, events, asset references, and explicit modality presence bits.
+- The world frame never carries electrode commands; decoded motor intent is separated behind `IMotorWorldEgress` and is not acceptable as neural feedback proof.
+
+### Prompt 08 motor intent schema
+- Motor intent transaction data includes model digest/version/signature status, BCI provenance, signal quality, confidence, uncertainty, bounded `MotorIntentCommand`, safety disposition, and command hash.
+- The default disposition is neutral hold; low confidence, stale/corrupt/non-external acquisition, non-finite input, or invalid model manifest never becomes an active avatar command.

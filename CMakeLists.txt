@@ -268,6 +268,10 @@ if(DNXR_BUILD_TESTS)
         dnxr_canonical_runtime_single_owner_test
         dnxr_canonical_runtime_headset_independence_test
         dnxr_canonical_runtime_architecture_guard_test
+        dnxr_canonical_stage_graph_transaction_test
+        dnxr_bci_acquisition_source_validation_test
+        dnxr_authenticated_virtual_world_ingress_test
+        dnxr_runtime_motor_intent_stage_test
         dnxr_canonical_transaction_contract_test
         dnxr_session_bootstrap_validator_test
         dnxr_spike_runtime_real_evidence_gate_test
@@ -586,7 +590,21 @@ if(DNXR_BUILD_TESTS)
         dnxr_add_test(${test_name})
     endforeach()
 
+    if(TARGET dnxr_runtime_render_stage_test)
+        target_sources(dnxr_runtime_render_stage_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/RuntimeRenderStage.cpp)
+    endif()
+
+    foreach(immersion_compat_test IN ITEMS dnxr_pipeline_integration_test dnxr_neural_chip_immersion_integration_test)
+        if(TARGET ${immersion_compat_test})
+            target_sources(${immersion_compat_test} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/immersion/ImmersionCore.cpp)
+        endif()
+    endforeach()
+
     set_tests_properties(dnxr_canonical_runtime_architecture_guard_test PROPERTIES LABELS "architecture;canonical;runtime")
+    set_tests_properties(dnxr_canonical_stage_graph_transaction_test PROPERTIES LABELS "architecture;canonical;runtime;transaction")
+    set_tests_properties(dnxr_bci_acquisition_source_validation_test PROPERTIES LABELS "unit;runtime;acquisition;bci")
+    set_tests_properties(dnxr_authenticated_virtual_world_ingress_test PROPERTIES LABELS "unit;runtime;world-ingress;canonical")
+    set_tests_properties(dnxr_runtime_motor_intent_stage_test PROPERTIES LABELS "unit;runtime;motor-intent;canonical")
     set_tests_properties(dnxr_safety_state_machine_concurrency_test PROPERTIES LABELS "concurrency;safety")
     set_tests_properties(dnxr_real_readiness_gate_allows_hardware_bench_no_human_test dnxr_real_readiness_gate_blocks_human_without_authorization_test PROPERTIES LABELS "real;clinical_blocker")
     set_tests_properties(dnxr_hardware_bench_requires_dummy_load_test dnxr_hardware_bench_requires_emergency_stop_test dnxr_hardware_bench_requires_trace_recorder_test dnxr_hardware_bench_dry_run_sends_no_active_output_test PROPERTIES LABELS "hardware_bench;hardware;real")

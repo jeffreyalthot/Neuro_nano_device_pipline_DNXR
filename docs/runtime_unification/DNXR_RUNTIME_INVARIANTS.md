@@ -145,3 +145,31 @@
 - `SessionBackendLock` cannot switch between simulation and real/hardware modes after session creation.
 - The canonical shutdown order is stop dispatch, hold/decompression, drain ACK/feedback, stop ingress, flush audit, then destroy transport.
 - A real-minimal profile without complete backend attestation evidence fails closed before session construction.
+
+## Prompt 04 executable invariants — 2026-07-13
+
+- Stage coverage is represented by a 22-bit per-cycle bitset and accepts only the canonical prefix order; duplicate, skipped, or backward stages fail closed.
+- The registry contains no render owner and is validated at construction and by `dnxr_canonical_stage_graph_transaction_test`.
+- Real dispatch remains closed at `DispatchTransport` with reason `certified_transport_not_bound_prepared_commit_held`; no ACK or feedback is inferred.
+
+## Prompt 05 executable invariant update — 2026-07-13
+
+- `RuntimePipelineRunner.cpp` must not appear in `cmake/dnxr_sources.cmake` runtime core source list.
+- `CanonicalNeuralBciPipeline.h` must not include `RuntimePipelineRunner.h` or declare `compatibilityAdapter_`.
+- The real-backend production executable must have no `RuntimePipelineRunner`, `RuntimeRenderStage::execute`, `runLegacy`, `LegacyRunInput`, `compatibilityAdapter_`, or `autoAck` symbol.
+
+## Prompt 06 executable acquisition invariants — 2026-07-13
+
+- Runtime acquisition must read through `IBciAcquisitionSource`, not headset telemetry, node simulation streams, or generic signal providers.
+- Frames with replay, duplicate, gap, stale/future/skew/cadence, session mismatch, topology mismatch, dropout/overflow, corrupt digest, missing authentication, missing attestation, non-external provenance, or length mismatch fail closed.
+- `IBiometricSource` remains separate from `IBciAcquisitionSource` and only contributes telemetry when valid; it is not a neural command/acquisition source.
+
+### Prompt 07 invariants
+- A canonical transaction cannot pass `AcquireWorld` without an authenticated, session-bound, monotonic, finite, size-bounded virtual-world snapshot.
+- Hold frames are neutral and explicit; rejected ingress never silently reuses the previous safe world to create a new active stimulation path.
+- Runtime sensory encoding derives from `canonicalWorldFrame`, not from `ImmersionCore` ad hoc construction.
+
+### Prompt 08 invariants
+- Motor intent is decoded only from external, attested, authenticated BCI acquisition and deterministic stage-local snapshots.
+- Motor egress is not sensory encoding and is not an ACK/feedback proof.
+- `inducedVector` is empty in the canonical runtime by default; cognitive influence modules are not active without future signed profile gates.

@@ -210,3 +210,24 @@ RuntimeCli
 ```
 
 The target ownership graph is `CanonicalRuntimeHost -> RuntimeComposition + SessionBootstrapSnapshot + SessionBackendLock`. The current `RuntimeController` remains a temporary lifecycle/compatibility host until stage logic is migrated out.
+
+## Prompt 04 executable stage registry update — 2026-07-13
+
+The runtime now exposes `kCanonicalBciStageRegistry` as the executable graph contract for the canonical path. Each entry records the stage id, typed input/output description, budget, error disposition, and owner. `CanonicalNeuralBciPipeline::stageRegistryIsValid()` rejects duplicate stage ids, non-canonical ordering, missing budgets, or render ownership. `runCycle()` invokes the graph directly and holds before transport submission until the certified transport/ACK prompt binds an external driver.
+
+## Prompt 05 graph correction — RuntimePipelineRunner out of runtime core
+
+`RuntimePipelineRunner.cpp` is no longer listed in `DNXR_RUNTIME_CORE_SRC`, and `CanonicalNeuralBciPipeline.h` consumes the neutral `RuntimePipelineRunInput.h` contract instead of including `RuntimePipelineRunner.h`. The production path is now `RuntimeApplication -> RuntimeController -> CanonicalNeuralBciPipeline::runCycle -> direct canonical stages -> fail-closed transport hold`. `RuntimeRenderStage.cpp` is also removed from runtime core and is compiled only as an explicit source of `dnxr_runtime_render_stage_test`, preserving observer/render behavior as a tested off-critical artifact without linking render stage execution into the production executable.
+
+## Prompt 06 acquisition ingress update — 2026-07-13
+
+`AcquireBci` now consumes `RuntimeStageServices::bciAcquisitionSource`, an `IBciAcquisitionSource` owned by the driver/transport composition boundary. It no longer consumes the previous `INeuralSignalSource` abstraction. The frame propagated by `RuntimePipelineFrame::bciAcquisitionFrame` carries external provenance/quality metadata into downstream safety/commit stages, while the legacy `NeuralChipFrame` alias is populated only from the validated BCI acquisition frame for compatibility during migration.
+
+### Prompt 07 graph update
+- `AcquireWorld` is now a concrete ingress stage owned by `IWorldIngress`; it produces `CanonicalVirtualWorldFrame` plus `NeuralChipOnlyWorldFrame` and rejects/holds when authentication, sequence, session binding, schema, size, deadline, asset, coordinate, unit, or finite-value checks fail.
+- `SensoryEncoding` consumes `RuntimePipelineFrame::canonicalWorldFrame`; `ImmersionCore` no longer constructs a critical-path frame for the runtime core.
+
+### Prompt 08 graph update
+- `SignalProcessing` continues to own `SignalStreamProcessor`, `FeatureVectorizer`, `NeuralArtifactClassifier`, and `NeuralSignalQualityGate`.
+- `DecodeIntentMotorCognition` now owns `StateInferenceEngine` plus `RuntimeMotorIntentStage`, which maps validated BCI-derived features to neutral/active world motor intent under confidence policy.
+- Motor intent exits via `IMotorWorldEgress`; sensory encoding remains a separate ingress-to-chip path and cannot consume motor egress as stimulation proof.
