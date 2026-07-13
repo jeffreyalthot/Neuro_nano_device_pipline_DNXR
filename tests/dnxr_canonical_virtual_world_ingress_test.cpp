@@ -57,28 +57,32 @@ int main() {
     assert(chemicalRejected.holdFrame);
     assert(chemicalRejected.reason == "canonical_world_chemical_channels_disabled");
 
-    auto unsafe = validFrame(3, 103.0);
+    dnxr::VirtualWorldDataIngress unsafeIngress(policy);
+    auto unsafe = validFrame(1, 103.0);
     unsafe.sceneRisk.seizureRisk = 0.9f;
-    auto unsafeRejected = ingress.ingestCanonical(unsafe, 103.0);
+    auto unsafeRejected = unsafeIngress.ingestCanonical(unsafe, 103.0);
     assert(!unsafeRejected.accepted);
     assert(unsafeRejected.reason == "canonical_world_scene_risk_rejected");
 
-    auto missingAudio = validFrame(4, 104.0);
+    dnxr::VirtualWorldDataIngress missingIngress(policy);
+    auto missingAudio = validFrame(1, 104.0);
     missingAudio.modalities.audio.volume01 = 1.0f;
     missingAudio.modalities.audioPresent = false;
-    auto missingAccepted = ingress.ingestCanonical(missingAudio, 104.0);
+    auto missingAccepted = missingIngress.ingestCanonical(missingAudio, 104.0);
     assert(missingAccepted.accepted);
     assert(missingAccepted.world.audio.loudness01 == 0.0f);
 
-    auto stale = validFrame(6, 105.0);
-    auto staleRejected = ingress.ingestCanonical(stale, 2000.0);
+    dnxr::VirtualWorldDataIngress staleIngress(policy);
+    auto stale = validFrame(1, 105.0);
+    auto staleRejected = staleIngress.ingestCanonical(stale, 2000.0);
     assert(!staleRejected.accepted);
     assert(staleRejected.stale);
     assert(staleRejected.reason == "canonical_world_late_for_bci_cycle");
 
-    auto unauthenticated = validFrame(7, 2001.0);
+    dnxr::VirtualWorldDataIngress authIngress(policy);
+    auto unauthenticated = validFrame(1, 2001.0);
     unauthenticated.metadata.authenticationTag.clear();
-    auto authRejected = ingress.ingestCanonical(unauthenticated, 2001.0);
+    auto authRejected = authIngress.ingestCanonical(unauthenticated, 2001.0);
     assert(!authRejected.accepted);
     assert(authRejected.reason == "canonical_world_authentication_failed");
     return 0;

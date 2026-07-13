@@ -3,6 +3,8 @@
 #include "../config/RuntimeConfig.h"
 #include "../hardware/NeuralChipHAL.h"
 #include "../hardware/INeuralChipTransport.h"
+#include "../runtime/IBciAcquisitionSource.h"
+#include "../immersion/VirtualWorldDataIngress.h"
 #include "RuntimeDeploymentMode.h"
 
 #include <cstdint>
@@ -23,21 +25,6 @@ public:
                                          const std::string& keyMaterial) const = 0;
     virtual bool cryptographicallySecure() const noexcept = 0;
     virtual bool simulationOnly() const noexcept = 0;
-};
-
-struct NeuralSignalReadResult {
-    NeuralChipFrame frame;
-    std::string provenance = "unavailable";
-    bool valid = false;
-    bool duplicateSequence = false;
-    bool staleTimestamp = false;
-    std::string failureReason = "not_read";
-};
-
-class INeuralSignalSource {
-public:
-    virtual ~INeuralSignalSource() = default;
-    virtual NeuralSignalReadResult readCanonicalFrame(double cycleTimestampSeconds) = 0;
 };
 
 enum class BiometricValidity {
@@ -83,7 +70,9 @@ struct RuntimeComposition {
     std::unique_ptr<INeuralChipHAL> neuralChipHal;
     std::unique_ptr<INeuralTransport> neuralTransport;
     std::unique_ptr<INeuralPacketProtector> packetProtector;
-    std::unique_ptr<INeuralSignalSource> neuralSignalSource;
+    std::unique_ptr<IBciAcquisitionSource> bciAcquisitionSource;
+    std::unique_ptr<IWorldIngress> worldIngress;
+    std::unique_ptr<IMotorWorldEgress> motorWorldEgress;
     std::unique_ptr<IBiometricSource> biometricSource;
 };
 

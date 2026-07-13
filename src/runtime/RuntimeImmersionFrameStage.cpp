@@ -1,7 +1,6 @@
 #include "RuntimeImmersionFrameStage.h"
 
 #include "RuntimeStageServices.h"
-#include "../immersion/ImmersionCore.h"
 #include "../immersion/MultisensoryClock.h"
 #include "../neurotech/DeepImmersionPlatform.h"
 
@@ -73,13 +72,23 @@ RuntimePipelineFrame RuntimeImmersionFrameStage::execute(RuntimePipelineFrame fr
     }
 
     frame.bodyCommand = services.deepImmersion.runFullBodyControlTick(frame.cleanSignals, frame.cognitive);
-    frame.neuralSensoryFrame = services.immersion.buildImmersiveFrameFromChip(
-        frame.cognitive,
-        frame.bodyCommand,
-        frame.adaptation,
-        frame.diagnostics);
 
-    std::vector<float> sensoryFrame = frame.neuralSensoryFrame.toVector();
+    const auto& world = frame.canonicalWorldFrame;
+    std::vector<float> sensoryFrame{
+        world.scene.luminance01,
+        world.scene.contrast01,
+        world.scene.nearObstacle01,
+        world.scene.horizonStability01,
+        world.audio.loudness01,
+        world.audio.leftRight01,
+        world.audio.frontBack01,
+        world.contacts.pressure01,
+        world.contacts.texture01,
+        world.pose.ownership01,
+        world.pose.handConfidence01,
+        world.motion.angularVelocity01,
+        world.motion.balanceError01
+    };
     if (!sensoryFrame.empty() && !frame.calibratedFeatures.empty()) {
         sensoryFrame[0] = (sensoryFrame[0] * 0.85f) + (frame.calibratedFeatures.front() * 0.15f);
     }

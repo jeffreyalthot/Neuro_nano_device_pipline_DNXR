@@ -15,6 +15,9 @@
 #include "../full_dive/PerceptionDivergenceDetector.h"
 #include "../full_dive/spike_bridge/SpikeBridgeTypes.h"
 #include "RuntimePathLock.h"
+#include "IBciAcquisitionSource.h"
+#include "../immersion/VirtualWorldDataIngress.h"
+#include "RuntimeMotorIntentTypes.h"
 
 #include <cstdint>
 #include <string>
@@ -36,6 +39,9 @@ struct RuntimePipelineFrame {
     std::vector<float> normalizedTelemetryRisk;
     NeuralChipFrame chipFrame; // legacy alias; prefer acquisitionChipFrame/feedbackChipFrame in modern runtime
     NeuralChipFrame acquisitionChipFrame;
+    BciAcquisitionFrame bciAcquisitionFrame;
+    CanonicalVirtualWorldFrame worldIngressFrame;
+    NeuralChipOnlyWorldFrame canonicalWorldFrame;
     NeuralChipFrame feedbackChipFrame;
 
     std::string symbolicState;
@@ -46,6 +52,8 @@ struct RuntimePipelineFrame {
     CalibrationDriftAssessment calibrationDrift;
     MultisensoryAlignmentReport sensorySync;
     XRFullBodyCommand bodyCommand;
+    CausalMotorIntentStageResult motorIntentResult;
+    MotorIntentCommand motorIntentCommand;
     NeuralSensoryFrame neuralSensoryFrame;
     SafetyDecision safetyDecision;
     SafetyDecision fusedSafetyDecision;

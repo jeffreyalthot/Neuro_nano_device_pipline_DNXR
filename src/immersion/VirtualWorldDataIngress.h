@@ -7,8 +7,11 @@
 #include "immersion/VirtualBodySafetyContract.h"
 #include "immersion/VirtualWorldState.h"
 
+#include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <vector>
 
 namespace dnxr {
 
@@ -88,6 +91,35 @@ struct VirtualWorldMotorIngress {
   float confidence01 = 0.0f;
 };
 
+enum class VirtualWorldIngressTransport { LocalIpc, Network };
+
+enum class VirtualWorldUnitSystem { Normalized01, MetersSeconds, Unspecified };
+
+struct VirtualWorldAssetReference {
+  std::string assetId;
+  std::string sha256Digest;
+  std::uint64_t byteSize = 0;
+  bool resolved = false;
+};
+
+struct VirtualWorldSceneSemantics {
+  std::string semanticSceneId;
+  std::string coordinateFrame = "world_right_handed_y_up";
+  VirtualWorldUnitSystem unitSystem = VirtualWorldUnitSystem::Normalized01;
+  float contentSafetyRisk01 = 0.0f;
+};
+
+struct VirtualWorldEnvironmentIngress {
+  float ambientLight01 = 0.0f;
+  float weatherIntensity01 = 0.0f;
+  float navigationRisk01 = 0.0f;
+};
+
+struct VirtualWorldEventIngress {
+  std::string eventType;
+  float priority01 = 0.0f;
+};
+
 struct VirtualWorldIngressFrame {
   std::uint64_t frameId = 0;
   double timestampMs = 0.0;
@@ -100,6 +132,10 @@ struct VirtualWorldIngressFrame {
   VirtualWorldChemicalIngress chemical;
   VirtualWorldMotorIngress motor;
   NeuralRealityAnchorVector realityAnchor;
+  VirtualWorldSceneSemantics scene;
+  VirtualWorldEnvironmentIngress environment;
+  std::vector<VirtualWorldEventIngress> events;
+  std::vector<VirtualWorldAssetReference> assets;
 };
 
 struct CanonicalVirtualWorldMetadata {
@@ -111,6 +147,13 @@ struct CanonicalVirtualWorldMetadata {
   std::string contextId;
   std::string authenticationTag;
   std::uint64_t declaredSizeBytes = 0;
+  std::string sessionId;
+  std::string sourceId;
+  std::string peerCertificateDigest;
+  std::string messageDigest;
+  double hostReceiptTimestampMs = 0.0;
+  double deadlineTimestampMs = 0.0;
+  VirtualWorldIngressTransport transport = VirtualWorldIngressTransport::LocalIpc;
 };
 
 struct CanonicalVirtualWorldModalities {
@@ -123,12 +166,17 @@ struct CanonicalVirtualWorldModalities {
   VirtualWorldChemicalIngress chemical;
   VirtualWorldMotorIngress motor;
   NeuralRealityAnchorVector realityAnchor;
+  VirtualWorldSceneSemantics scene;
+  VirtualWorldEnvironmentIngress environment;
+  std::vector<VirtualWorldEventIngress> events;
+  std::vector<VirtualWorldAssetReference> assets;
   bool visualPresent = true;
   bool audioPresent = true;
   bool touchPresent = true;
   bool bodyPresent = true;
   bool vestibularPresent = true;
   bool chemicalPresent = false;
+  bool motorPresent = true;
 };
 
 struct CanonicalVirtualWorldFrame {
@@ -145,6 +193,10 @@ struct VirtualWorldIngressPolicy {
   double maxFutureLeadMs = 250.0;
   double maxStaleLagMs = 1000.0;
   bool requireAuthentication = false;
+  bool requireMutualAuthentication = false;
+  std::string expectedSessionId;
+  double minFrameIntervalMs = 0.0;
+  double maxDeadlineLagMs = 0.0;
   bool chemicalChannelsEnabled = false;
   bool requireClinicalNeutralScene = true;
   bool requireBodySafety = true;
@@ -157,8 +209,27 @@ struct VirtualWorldIngressResult {
   bool duplicate = false;
   bool stale = false;
   bool future = false;
+  bool gap = false;
+  bool corrupted = false;
+  bool schemaIncompatible = false;
+  CanonicalVirtualWorldFrame snapshot;
   std::string reason = "not_evaluated";
   NeuralChipOnlyWorldFrame world{};
+};
+
+class IWorldIngress {
+public:
+  virtual ~IWorldIngress() = default;
+  virtual VirtualWorldIngressResult readWorldFrame(const std::string& expectedSessionId,
+                                                   double cycleTimestampMs) = 0;
+};
+
+class IMotorWorldEgress {
+public:
+  virtual ~IMotorWorldEgress() = default;
+  virtual bool publishMotorIntent(std::uint64_t frameId,
+                                  const std::string& sessionId,
+                                  const VirtualWorldMotorIngress& intent) = 0;
 };
 
 class VirtualWorldDataIngress {
@@ -167,6 +238,7 @@ public:
 
   VirtualWorldIngressResult ingestCanonical(const CanonicalVirtualWorldFrame& input,
                                             double cycleTimestampMs);
+  VirtualWorldIngressResult disconnectHold(std::uint64_t frameId, double cycleTimestampMs) const;
   NeuralChipOnlyWorldFrame ingest(const VirtualWorldIngressFrame &input) const;
 
 private:
@@ -174,6 +246,8 @@ private:
   NeuralChipOnlyWorldFrame holdWorld(std::uint64_t frameId, double timestampMs) const;
   VirtualWorldIngressResult rejectWithHold(std::string reason, std::uint64_t frameId, double timestampMs) const;
   bool authenticated(const CanonicalVirtualWorldFrame& input) const;
+  bool schemaAndContentValid(const CanonicalVirtualWorldFrame& input, std::string& reason) const;
+  std::uint64_t estimateSizeBytes(const CanonicalVirtualWorldFrame& input) const;
 
   VirtualWorldIngressPolicy policy_;
   std::uint64_t lastSequenceId_ = 0;
@@ -181,6 +255,8 @@ private:
   NeuralChipOnlyWorldFrame lastSafeWorld_{};
   bool hasLastSafeWorld_ = false;
 };
+
+std::string canonicalVirtualWorldDigest(const CanonicalVirtualWorldFrame& input);
 
 CanonicalVirtualWorldFrame makeCanonicalVirtualWorldFrame(const VirtualWorldIngressFrame& input,
                                                           std::string engineProvenance = "legacy_structured_ingress");

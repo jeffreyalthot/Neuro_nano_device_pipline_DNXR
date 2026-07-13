@@ -39,6 +39,10 @@ int main() {
     assert(cmake.find("rendering/XRRenderer") != std::string::npos);
     assert(cmake.find("Enable simulation adapters for tests/tools only") != std::string::npos);
 
+    const std::string sourceManifest = read("cmake/dnxr_sources.cmake");
+    assertAbsent(sourceManifest, "src/runtime/RuntimePipelineRunner.cpp");
+    assertAbsent(sourceManifest, "src/runtime/RuntimeRenderStage.cpp");
+
     const std::vector<const char*> productionScopes = {
         "src/app/RuntimeApplication.cpp",
         "src/main.cpp",
@@ -50,6 +54,8 @@ int main() {
         assertAbsent(text, "PrimaryReal");
         assertAbsent(text, "runLegacy");
         assertAbsent(text, "LegacyRunInput");
+        assertAbsent(text, "RuntimePipelineRunner");
+        assertAbsent(text, "RuntimeRenderStage");
     }
 
     return 0;

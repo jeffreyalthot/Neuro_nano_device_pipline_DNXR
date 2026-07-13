@@ -1,0 +1,5 @@
+PROMPT04-CANONICAL-STAGE-GRAPH,Direct canonical transaction graph without render or whole-cycle runner,PARTIAL PASS,Direct graph tested; certified transport remains intentionally blocked until next prompt
+PROMPT05-RUNNER-FACADE-REMOVAL,RuntimePipelineRunner and RuntimeRenderStage execution not linked into real production executable,PASS,development-safe focused CTest plus real-backend nm negative symbol scan
+PROMPT06-EXTERNAL-BCI-ACQUISITION,Canonical acquisition uses validated external BCI source and forbids headset/simulation acquisition in real binary,PARTIAL PASS,Validation and scans pass; vendor transport packet binding remains open
+Prompt07,Authenticated deterministic world ingress,PARTIAL,PASS tests; production IPC/network binding remains open fail-closed dependency
+Prompt08,Causal motor intent from external BCI,PARTIAL,PASS tests; signed model artifact loader remains open before real activation

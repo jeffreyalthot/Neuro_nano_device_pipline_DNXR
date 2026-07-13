@@ -25,7 +25,6 @@
 #include "../runtime/RuntimeCycleFinalizer.h"
 #include "../runtime/RuntimeSafetyStage.h"
 #include "../runtime/RuntimeFullDiveStage.h"
-#include "../runtime/RuntimeRenderStage.h"
 #include "../runtime/RuntimeStimulusStage.h"
 #include "../runtime/RuntimeAcquisitionStage.h"
 #include "../runtime/RuntimeSignalStage.h"
@@ -92,12 +91,8 @@ private:
     RuntimeSignalStage::Input makeSignalStageInput();
     RuntimeInferenceStage::Input makeInferenceStageInput();
     RuntimeCalibrationStage::Input makeCalibrationStageInput();
-    RuntimeImmersionFrameStage::Input makeImmersionFrameStageInput(double timestamp);
     RuntimeSafetyStage::Input makeSafetyStageInput(double timestamp);
     RuntimeFullDiveStage::Input makeFullDiveStageInput(const RuntimeMetricsSnapshot& snapshot);
-    RuntimeRenderStage::Input makeRenderStageInput(
-        const std::chrono::steady_clock::time_point& renderStart,
-        SchedulerTickReport& tickReport);
     RuntimeStimulusStage::Input makeStimulusStageInput();
     RuntimeStageServices makeRuntimeStageServices();
     RuntimePipelineSinks makeRuntimePipelineSinks();
@@ -141,7 +136,6 @@ private:
     std::unique_ptr<class StateInferenceEngine> brain_;
     std::unique_ptr<class NeuralCalibrationEngine> calib_;
     std::unique_ptr<class CalibrationDriftMonitor> calibrationDriftMonitor_;
-    std::unique_ptr<class ImmersionCore> immersion_;
     std::unique_ptr<class MultisensoryClock> multisensoryClock_;
 #if DNXR_SIMULATION_ONLY
     std::unique_ptr<class XRRenderer> observerRenderer_;
@@ -159,7 +153,9 @@ private:
     std::unique_ptr<INeuralChipHAL> neuralChipHal_;
     std::unique_ptr<INeuralTransport> neuralTransport_;
     std::unique_ptr<INeuralPacketProtector> packetProtector_;
-    std::unique_ptr<INeuralSignalSource> neuralSignalSource_;
+    std::unique_ptr<IBciAcquisitionSource> bciAcquisitionSource_;
+    std::unique_ptr<IWorldIngress> worldIngress_;
+    std::unique_ptr<IMotorWorldEgress> motorWorldEgress_;
     std::unique_ptr<IBiometricSource> biometricSource_;
     RuntimeDeploymentMode deploymentMode_ = RuntimeDeploymentMode::SimulationOnly;
     std::unique_ptr<class DeepImmersionPlatform> deepImmersion_;

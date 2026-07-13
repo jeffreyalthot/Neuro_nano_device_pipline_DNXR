@@ -3,6 +3,8 @@
 #include "FullDiveSynchronizationEngine.h"
 #include "../core/RuntimeCompositionRoot.h"
 #include "../hardware/NeuralChipHAL.h"
+#include "IBciAcquisitionSource.h"
+#include "../immersion/VirtualWorldDataIngress.h"
 #include "../safety/NeuralIdentityVault.h"
 #include "../security/RuntimeSecret.h"
 
@@ -16,7 +18,6 @@ class FeatureVectorizer;
 class StateInferenceEngine;
 class NeuralCalibrationEngine;
 class CalibrationDriftMonitor;
-class ImmersionCore;
 class MultisensoryClock;
 class ObserverMirrorSink;
 class PhysiologicalGuard;
@@ -43,7 +44,6 @@ struct RuntimeStageServices {
     StateInferenceEngine& brain;
     NeuralCalibrationEngine& calibration;
     CalibrationDriftMonitor& driftMonitor;
-    ImmersionCore& immersion;
     MultisensoryClock& multisensoryClock;
     ObserverMirrorSink& observerMirror;
     PhysiologicalGuard& guard;
@@ -56,7 +56,9 @@ struct RuntimeStageServices {
     IndependentWatchdog& watchdog;
     NeuralStimulusSafetyEnvelope& stimulusEnvelope;
     INeuralChipHAL& neuralChipHal;
-    INeuralSignalSource& neuralSignalSource;
+    IWorldIngress& worldIngress;
+    IMotorWorldEgress& motorWorldEgress;
+    IBciAcquisitionSource& bciAcquisitionSource;
     DeepImmersionPlatform& deepImmersion;
     FullDiveSynchronizationEngine& fullDiveSynchronization;
     FullDiveSafetyBridge& fullDiveBridge;

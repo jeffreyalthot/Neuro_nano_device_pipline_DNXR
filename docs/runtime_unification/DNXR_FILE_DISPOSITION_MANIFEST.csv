@@ -1324,3 +1324,26 @@ src/core/SessionBootstrapValidator.h,source,prompt03_new,83,string;optional;vect
 src/core/SessionBootstrapValidator.cpp,source,prompt03_new,184,array;cstdint,validate;uniqueOwnershipSatisfied;classifyProfile,runtime,integrated au runtime canonique,Pre-session immutable bootstrap validation implementation,Prompt03 ownership graph
 src/core/CanonicalRuntimeHost.h,source,prompt03_new,40,memory;optional,CanonicalRuntimeHost;CanonicalRuntimeHostGraph,runtime,integrated au runtime canonique,Single owner host boundary,Prompt03 ownership graph
 src/core/CanonicalRuntimeHost.cpp,source,prompt03_new,32,,validateSession;create;uniqueOwnershipSatisfied,runtime,integrated au runtime canonique,Single owner host boundary implementation,Prompt03 ownership graph
+2026-07-13 Prompt 04,src/runtime/CanonicalNeuralBciPipeline.cpp,integrated au runtime canonique,Direct stage orchestration owner; no whole-cycle RuntimePipelineRunner delegation
+2026-07-13 Prompt 04,src/runtime/CanonicalNeuralBciPipeline.h,integrated au runtime canonique,Stage registry/transaction timing/coverage contract
+2026-07-13 Prompt 04,tests/dnxr_canonical_stage_graph_transaction_test.cpp,test/simulation/HIL,Architecture and behavior guard for canonical graph
+2026-07-13 Prompt 05,src/runtime/RuntimePipelineRunInput.h,integrated au runtime canonique,Neutral input contract replacing RuntimePipelineRunner nested input types
+2026-07-13 Prompt 05,src/runtime/RuntimePipelineRunner.cpp,bibliothèque hors chemin critique,Removed from runtime core source manifest; retained as non-linked migration reference pending deletion or SDK compat split
+2026-07-13 Prompt 05,src/runtime/RuntimeRenderStage.cpp,observer/test,Removed from runtime core; explicitly compiled only into render-stage test target
+2026-07-13 Prompt 05,cmake/dnxr_sources.cmake,integrated au runtime canonique,Runtime core source list now excludes RuntimePipelineRunner.cpp and RuntimeRenderStage.cpp
+2026-07-13 Prompt 06,src/runtime/IBciAcquisitionSource.h,integrated au runtime canonique,Canonical external BCI acquisition source contract and validation/backpressure types
+2026-07-13 Prompt 06,src/runtime/IBciAcquisitionSource.cpp,integrated au runtime canonique,Stateful external acquisition validation and HAL adapter implementation
+2026-07-13 Prompt 06,tests/dnxr_bci_acquisition_source_validation_test.cpp,test/simulation/HIL,Recorded non-human acquisition adapter and validation coverage for dropout/corruption/replay/drift/topology/reconnect/session/race
+2026-07-13 Prompt 06,src/core/RuntimeCompositionRoot.cpp,integrated au runtime canonique,Composition now creates ExternalHalBciAcquisitionSource instead of HalNeuralSignalSource
+2026-07-13 Prompt 06,src/runtime/RuntimeAcquisitionStage.cpp,integrated au runtime canonique,AcquireBci consumes validated BciAcquisitionReadResult and propagates provenance/quality metadata
+Prompt07,src/immersion/VirtualWorldDataIngress.h,integrated au runtime canonique,Authoritative versioned authenticated world ingress schema and interfaces
+Prompt07,src/immersion/VirtualWorldDataIngress.cpp,integrated au runtime canonique,Validation/digest/hold policy for canonical world snapshots
+Prompt07,src/runtime/CanonicalNeuralBciPipeline.cpp,integrated au runtime canonique,AcquireWorld calls IWorldIngress and fail-closes on rejected snapshots
+Prompt07,src/runtime/RuntimeImmersionFrameStage.cpp,integrated au runtime canonique,Sensory encoding derives from canonicalWorldFrame
+Prompt07,tests/dnxr_authenticated_virtual_world_ingress_test.cpp,test/simulation/HIL,Executable provenance validation for world ingress
+Prompt07,src/immersion/ImmersionCore.cpp,bibliothèque hors chemin critique,Removed from runtime-core source manifest for real critical path
+Prompt08,src/runtime/RuntimeMotorIntentStage.h,integrated au runtime canonique,Causal BCI-only motor intent stage interface
+Prompt08,src/runtime/RuntimeMotorIntentStage.cpp,integrated au runtime canonique,Confidence-gated motor decode from external BCI features to world egress
+Prompt08,src/runtime/RuntimeMotorIntentTypes.h,integrated au runtime canonique,Typed motor model identity/result/uncertainty/provenance structures
+Prompt08,tests/dnxr_runtime_motor_intent_stage_test.cpp,test/simulation/HIL,Causality/determinism/confidence/nonfinite/stale/thread safety tests
+Prompt08,src/cognition/InducedVectorInfluenceEngine.cpp,bibliothèque hors chemin critique,Preserved but inactive by default; no canonical runtime non-zero induced vector

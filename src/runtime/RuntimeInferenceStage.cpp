@@ -1,6 +1,7 @@
 #include "RuntimeInferenceStage.h"
 
 #include "RuntimeStageServices.h"
+#include "RuntimeMotorIntentStage.h"
 #include "../cognition/StateInferenceEngine.h"
 #include "../neurotech/DeepImmersionPlatform.h"
 #include "../safety/IndependentWatchdog.h"
@@ -107,6 +108,7 @@ RuntimePipelineFrame RuntimeInferenceStage::execute(RuntimePipelineFrame frame, 
     frame.cognitive = services.deepImmersion.runInferenceTick(frame.cleanSignals, frame.biometric, "runtime_controller");
     frame.adaptation = services.deepImmersion.runAdaptationTick(frame.cognitive, frame.biometric);
     frame.diagnostics = services.deepImmersion.lastDiagnostics();
+    frame = RuntimeMotorIntentStage::execute(std::move(frame), &services.motorWorldEgress);
 
     const bool valid = !frame.symbolicState.empty() &&
         isValidCognitiveState(frame.cognitive) &&

@@ -1,6 +1,5 @@
 #include "../src/core/RuntimeController.h"
 #include "../src/runtime/CanonicalNeuralBciPipeline.h"
-#include "../src/runtime/RuntimePipelineRunner.h"
 #include "../src/utils/Logger.h"
 
 #include <cassert>
@@ -21,7 +20,7 @@ int main() {
     assert(!frame.stopReason.empty());
     assert(controller.getCanonicalPipelineMetrics().cyclesStarted == 1U);
     assert(controller.getCanonicalPipelineMetrics().cyclesCompleted == 1U);
-    assert(controller.getCanonicalPipelineMetrics().delegatedCompatibilityCycles == 1U);
+    assert(controller.getCanonicalPipelineMetrics().delegatedCompatibilityCycles == 0U);
     assert(dnxr::CanonicalNeuralBciPipeline::activeInstanceCount() >= activeBefore);
 
     controller.stop();

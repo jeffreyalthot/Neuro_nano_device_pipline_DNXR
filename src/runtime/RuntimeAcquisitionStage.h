@@ -20,7 +20,7 @@ public:
         RuntimeCallback<bool(const std::vector<float>&)> enforcePhysiologicalGuard;
         RuntimeCallback<void()> heartbeatRuntimeCycle;
         RuntimeCallback<void()> heartbeatAcquisition;
-        RuntimeCallback<NeuralSignalReadResult(double)> readCanonicalNeuralFrame;
+        RuntimeCallback<BciAcquisitionReadResult(const RuntimeStageContext&)> readCanonicalBciFrame;
     };
 
     static const char* name();
