@@ -81,3 +81,14 @@ RuntimeApplication::run
 ```
 
 `RuntimeController` no longer owns `RuntimePipelineRunner` directly. `RuntimePipelineRunner` remains compiled for compatibility tests and as a temporary adapter owned by `CanonicalNeuralBciPipeline`.
+
+## Prompt 04 graph update
+`RuntimeApplication -> RuntimeController -> RuntimeAcquisitionStage(IBiometricSource + neural chip frame) -> signal/inference/calibration/immersion/safety -> RuntimeRenderStage(neural sensory preparation) -> RuntimeStimulusStage(neural chip dispatch)`.
+
+Optional side branch after neural sensory preparation: immutable copy -> `ObserverMirrorSink` -> observer/diagnostic `XRRenderer`. This branch is non-blocking for chip command authorization and has no headset dependency.
+
+## Prompt 05 graph update
+Canonical incoming path: `INeuralSignalSource::readCanonicalFrame` -> packet/sequence/timestamp/quality validation -> immutable `RuntimePipelineFrame::acquisitionChipFrame` -> signal denoise/vectorize/artifact quality gate -> inference/motor/full-dive/safety stages. `NanoNodeInterface` and `HostComputerBridge` remain support transport/sink integrations, not additional acquisition readers in the canonical cycle.
+
+## Prompt 06 graph update
+Computer/world-engine path: `CanonicalVirtualWorldFrame` (versioned structured modalities + provenance/auth metadata) -> `VirtualWorldDataIngress::ingestCanonical` schema/size/sequence/timestamp/provenance/auth/backpressure checks -> clinical neutral scene + scene risk + body safety + chemical disable gates -> `WorldFrameSanitizer` -> encoder-facing `NeuralChipOnlyWorldFrame` synchronized to the BCI cycle. Rejected, duplicate, stale, future, unsafe, or chemical-injected frames produce a deterministic hold world with reality anchor retained and active risky modalities neutralized.

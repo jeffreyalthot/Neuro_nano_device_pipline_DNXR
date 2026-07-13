@@ -4,6 +4,7 @@
 #include "RuntimeCallback.h"
 #include "RuntimeStageContext.h"
 #include "RuntimeStageTypes.h"
+#include "IBiometricSource.h"
 
 #include <string>
 #include <vector>
@@ -15,12 +16,11 @@ class RuntimeStageServices;
 class RuntimeAcquisitionStage {
 public:
     struct Input {
-        RuntimeCallback<std::vector<float>()> pullBioTelemetry;
+        RuntimeCallback<BiometricSample(double)> readBiometricSample;
         RuntimeCallback<bool(const std::vector<float>&)> enforcePhysiologicalGuard;
         RuntimeCallback<void()> heartbeatRuntimeCycle;
         RuntimeCallback<void()> heartbeatAcquisition;
-        RuntimeCallback<std::vector<float>()> readNeuralNodeSignals;
-        RuntimeCallback<NeuralChipFrame()> readChipFrame;
+        RuntimeCallback<NeuralSignalReadResult(double)> readCanonicalNeuralFrame;
     };
 
     static const char* name();

@@ -257,3 +257,20 @@
 | documentation/historical | non-runtime | `tools/qms/generate_extended_vv_report.py:5` | `out = GENERATED / "ExtendedVVReport.md"` |
 | documentation/historical | non-runtime | `tools/qms/generate_extended_vv_report.py:6` | `out.write_text("# ExtendedVVReport\n\n## Clinical-readiness validation lane\n" + "\n".join(f"```bash\n{cmd}\n```" for cmd in READINESS_LANE_COMMANDS) + "\n\n## Critical tests covered by this lane\n" +` |
 | documentation/historical | non-runtime | `config/runtime_config.json:17` | `"xr_device_id": "headset-sim-001",` |
+
+## Prompt 04 resolution — canonical headset independence
+- `RuntimeStageServices` no longer exposes a headset or authoritative renderer. It exposes `IBiometricSource&` and `ObserverMirrorSink&` for the BCI cycle.
+- `RuntimeAcquisitionStage` no longer calls headset telemetry. It reads `BiometricSample` from `IBiometricSource`; unavailable sources return explicit unavailable provenance and do not populate synthetic telemetry channels.
+- `RuntimeRenderStage` no longer calls `pushSensoryFrame`. The stage validates/prepares the neural sensory frame and optionally publishes an immutable observer copy after safety-related checks.
+- `RuntimeController` no longer constructs `XRHeadsetInterface`. `XRRenderer` remains compiled as an observer/diagnostic renderer only and is attached through `ObserverMirrorSink` when `observer_mirror.enabled` is true.
+- `config/runtime_config.json` now describes neural-chip BCI middleware configuration, including structured world ingress, neural chip transport, optional observer mirror, and biometric source policy.
+
+## Prompt 05 acquisition confirmation
+- The inbound BCI read path now enters through `INeuralSignalSource::readCanonicalFrame` and the HAL-backed source, not a headset or HMD telemetry path.
+- `NanoNodeInterface::readNeuralNodeSignals` is no longer a second canonical acquisition read; host bridge uplink remains a post-read support transport stage.
+- Replay/duplicate/stale/empty neural read frames are rejected before signal processing and inference.
+
+## Prompt 06 world ingress confirmation
+- The computer/motor world path now accepts a structured `CanonicalVirtualWorldFrame` with engine provenance, not an HMD/OpenXR/SteamVR pose or raw renderer frame.
+- No raw pixel or audio payload is admitted by the canonical ingress contract; modalities remain semantic/scalar structures for sanitizer and neural encoders.
+- Observer rendering remains outside the canonical ingress and chip dispatch path.

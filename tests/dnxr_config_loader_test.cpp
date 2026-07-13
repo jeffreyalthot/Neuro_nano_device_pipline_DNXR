@@ -19,11 +19,10 @@ int main() {
         "simulation_channel_count": 2048,
         "simulation_noise_amplitude": 1.25e0,
         "simulation_dropout_every_cycles": 4294967297,
-        "xr_endpoint": "wss://xr.test",
-        "xr_device_id": "headset-test",
-        "xr_auth_token_env": "DNXR_TEST_XR_TOKEN",
-        "xr_target_framerate": 999,
-        "xr_async_telemetry": false,
+        "virtual_world_ingress": {"endpoint": "structured://world.test", "required": true},
+        "neural_chip_transport": {"transport": "bench_transport", "require_ack": true},
+        "observer_mirror": {"enabled": false, "endpoint": "observer://off", "fail_closed": false},
+        "biometric_source": {"source": "certified_monitor", "required": true, "minimum_quality": 1.25},
         "simulated_signal": [0.1, 0.2, 0.3]
     })json";
 
@@ -40,11 +39,12 @@ int main() {
     assert(config.simulationChannelCount == 1024U);
     assert(config.simulationNoiseAmplitude == 1.0f);
     assert(config.simulationDropoutEveryCycles == 4294967297ULL);
-    assert(config.xrEndpoint == "wss://xr.test");
-    assert(config.xrDeviceId == "headset-test");
-    assert(config.xrAuthTokenEnv == "DNXR_TEST_XR_TOKEN");
-    assert(config.xrTargetFramerate == 240U);
-    assert(!config.xrAsyncTelemetry);
+    assert(config.virtualWorldIngress.endpoint == "structured://world.test");
+    assert(config.neuralChipTransport.transport == "bench_transport");
+    assert(!config.observerMirror.enabled);
+    assert(config.biometricSource.source == "certified_monitor");
+    assert(config.biometricSource.required);
+    assert(config.biometricSource.minimumQuality == 1.0f);
     assert(config.simulatedSignal.size() == 3U);
     assert(config.simulatedSignal[2] == 0.3f);
 
@@ -54,13 +54,12 @@ int main() {
     base.maxCyclesPerSecond = 125;
     base.simulatedSignal = {0.9f};
     const dnxr::RuntimeConfig partial = dnxr::ConfigLoader::loadRuntimeConfigFromString(
-        R"json({"simulation_noise_amplitude": -0.5, "xr_target_framerate": 0})json",
+        R"json({"simulation_noise_amplitude": -0.5})json",
         base);
     assert(partial.profile == "developer_debug");
     assert(partial.targetLoopMs == 8);
     assert(partial.maxCyclesPerSecond == 125);
     assert(partial.simulationNoiseAmplitude == 0.0f);
-    assert(partial.xrTargetFramerate == 1U);
     assert(partial.simulatedSignal.size() == 1U);
     assert(partial.simulatedSignal[0] == 0.9f);
 

@@ -3257,3 +3257,19 @@ BackendAdapterLock,src/runtime/RuntimePathLock.h,22,canonical backend lock,1,int
 RuntimePathLock compatibility alias,src/runtime/RuntimePathLock.h,32,deprecated adapter alias,1,deprecated with adapter de migration,BackendAdapterLock,Prompt03 compile compatibility only; no parallel state
 RuntimeController::getCanonicalPipelineMetrics,src/core/RuntimeController.cpp,815,method,1,called by canonical runtime service,CanonicalNeuralBciPipeline metrics exposure,Prompt03 single-owner regression evidence
 dnxr_canonical_runtime_single_owner_test,tests/dnxr_canonical_runtime_single_owner_test.cpp,9,test,1,limited to tests/HIL,Canonical owner regression test,Prompt03 proves one instance and one cycle accounting
+Prompt04,XRHeadsetInterface,src/devices/XRHeadsetInterface.h,deprecated with adapter migration,Not constructed by RuntimeController and not present in RuntimeStageServices
+Prompt04,pullBioTelemetry,src/devices/XRHeadsetInterface.h,deprecated with adapter migration,Replaced in canonical path by IBiometricSource::readBiometricSample
+Prompt04,pushSensoryFrame,src/devices/XRHeadsetInterface.h,deprecated with adapter migration,Replaced in canonical path by ObserverMirrorSink immutable observer copy
+Prompt04,IBiometricSource::readBiometricSample,src/core/RuntimeCompositionRoot.h,integrated directly into canonical runtime,RuntimeAcquisitionStage consumes timestamped quality/provenance samples
+Prompt04,ObserverMirrorSink::publishImmutableCopy,src/runtime/ObserverMirrorSink.cpp,called by canonical runtime service,RuntimeRenderStage optional observer branch
+Prompt05,INeuralSignalSource::readCanonicalFrame,src/core/RuntimeCompositionRoot.h,integrated directly into canonical runtime,Single BCI acquisition read contract
+Prompt05,NullNeuralSignalSource,src/core/RuntimeCompositionRoot.cpp,suppressed after proof of unsafe fallback,Replaced by HalNeuralSignalSource; real missing source throws REAL_NEURAL_SIGNAL_SOURCE_UNAVAILABLE
+Prompt05,INeuralChipHAL::readFrame,src/hardware/NeuralChipHAL.h,called by canonical runtime service,Only HalNeuralSignalSource calls it for acquisition; RuntimePipelineRunner no longer rereads
+Prompt05,NanoNodeInterface::readNeuralNodeSignals,src/devices/NanoNodeInterface.h,deprecated with adapter migration,No longer used as canonical acquisition reader
+Prompt05,HostComputerBridge::uplink,src/devices/HostComputerBridge.h,conserved as support library,Signal support transport after canonical read; not an acquisition source
+Prompt06,CanonicalVirtualWorldFrame,src/immersion/VirtualWorldDataIngress.h,integrated directly into canonical runtime,Structured versioned world-engine ingress frame
+Prompt06,VirtualWorldDataIngress::ingestCanonical,src/immersion/VirtualWorldDataIngress.cpp,integrated directly into canonical runtime,Validates world frame before sanitizer/encoders
+Prompt06,VirtualWorldDataIngress::ingest,src/immersion/VirtualWorldDataIngress.cpp,deprecated with adapter migration,Legacy structured adapter preserved; canonical production should use ingestCanonical
+Prompt06,WorldFrameSanitizer::sanitize,src/full_dive/chip_pipeline/WorldFrameSanitizer.cpp,called by canonical runtime service,Canonical ingress invokes it before encoder-facing output
+Prompt06,SceneRiskAnnotator::allowed,src/immersion/SceneRiskAnnotator.cpp,called by canonical runtime service,Scene risk gate before world encoding
+Prompt06,VirtualBodySafetyContract::clinicalSafe,src/immersion/VirtualBodySafetyContract.cpp,called by canonical runtime service,Body safety gate before world encoding

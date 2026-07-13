@@ -6,6 +6,28 @@
 
 namespace dnxr {
 
+struct VirtualWorldIngressConfig {
+    std::string endpoint = "structured://local-world";
+    bool required = true;
+};
+
+struct NeuralChipTransportConfig {
+    std::string transport = "simulation_hal";
+    bool requireAck = true;
+};
+
+struct ObserverMirrorConfig {
+    bool enabled = false;
+    std::string endpoint;
+    bool failClosed = false;
+};
+
+struct BiometricSourceConfig {
+    std::string source = "none";
+    bool required = false;
+    float minimumQuality = 0.0f;
+};
+
 struct RuntimeConfig {
     std::string profile = "simulation_safe";
     std::string runtimeMode = "simulation_mode";
@@ -22,11 +44,10 @@ struct RuntimeConfig {
     float simulationNoiseAmplitude = 0.02f;
     std::uint64_t simulationDropoutEveryCycles = 0;
 
-    std::string xrEndpoint = "wss://xr.local";
-    std::string xrDeviceId = "demo-device";
-    std::string xrAuthTokenEnv = "DNXR_XR_AUTH_TOKEN";
-    std::uint32_t xrTargetFramerate = 90;
-    bool xrAsyncTelemetry = true;
+    VirtualWorldIngressConfig virtualWorldIngress;
+    NeuralChipTransportConfig neuralChipTransport;
+    ObserverMirrorConfig observerMirror;
+    BiometricSourceConfig biometricSource;
 
     bool fullUnlockedDiagnostics = false;
     bool replayEnabled = false;

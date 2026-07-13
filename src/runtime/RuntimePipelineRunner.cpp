@@ -131,8 +131,7 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
 
     if (input.sinks.recordReplayFrame) input.sinks.recordReplayFrame(pipeline.cleanSignals, input.context.timestamp);
 
-    pipeline.acquisitionChipFrame = input.services.neuralChipHal.readFrame();
-    pipeline.chipFrame = pipeline.acquisitionChipFrame;
+    pipeline.acquisitionChipFrame = pipeline.chipFrame;
 
     pipeline = RuntimeFullDiveStage::execute(std::move(pipeline), input.services, input.context, input.runtimeMetricsSnapshot);
     if (!pipeline.continueCycle) {
@@ -200,7 +199,7 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
         return pipeline;
     }
 
-    pipeline.feedbackChipFrame = input.services.neuralChipHal.readFrame();
+    pipeline.feedbackChipFrame = pipeline.chipFrame;
     pipeline.chipFrame = pipeline.feedbackChipFrame;
     pipeline = RuntimeClosedLoopFeedbackStage::execute(std::move(pipeline));
     const bool feedbackMissing = !pipeline.closedLoopFeedback.safetyVerified;

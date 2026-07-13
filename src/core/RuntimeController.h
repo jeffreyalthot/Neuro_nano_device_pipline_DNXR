@@ -136,7 +136,6 @@ private:
     // Pré-instanciations pour réutilisation inter-frames
     std::unique_ptr<class NanoNodeInterface> nodes_;
     std::unique_ptr<class HostComputerBridge> bridge_;
-    std::unique_ptr<class XRHeadsetInterface> headset_;
     std::unique_ptr<class SignalStreamProcessor> dsp_;
     std::unique_ptr<class FeatureVectorizer> vec_;
     std::unique_ptr<class StateInferenceEngine> brain_;
@@ -144,7 +143,8 @@ private:
     std::unique_ptr<class CalibrationDriftMonitor> calibrationDriftMonitor_;
     std::unique_ptr<class ImmersionCore> immersion_;
     std::unique_ptr<class MultisensoryClock> multisensoryClock_;
-    std::unique_ptr<class XRRenderer> renderer_;
+    std::unique_ptr<class XRRenderer> observerRenderer_;
+    std::unique_ptr<class ObserverMirrorSink> observerMirror_;
     std::unique_ptr<class PhysiologicalGuard> guard_;
     std::unique_ptr<class EmergencyShutdown> emergency_;
     std::unique_ptr<class CognitiveReversibilitySystem> reversibility_;

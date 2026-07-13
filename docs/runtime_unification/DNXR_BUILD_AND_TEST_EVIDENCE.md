@@ -60,3 +60,22 @@ ctest --test-dir build/simulation -R 'dnxr_canonical_runtime_architecture_test|d
 ```
 
 Result: PASS. 3/3 selected tests passed.
+
+## 2026-07-13 Prompt 04 evidence
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target distributed_neural_xr dnxr_runtime_render_stage_test dnxr_runtime_acquisition_stage_test dnxr_config_loader_test -j2` — passed after updating stage/config tests for the BCI contracts.
+- `cmake --build build --target dnxr_canonical_runtime_headset_independence_test -j2` — passed.
+- `ctest --test-dir build -R "dnxr_(canonical_runtime_headset_independence|runtime_render_stage|runtime_acquisition_stage|config_loader|runtime_pipeline_runner)_test" --output-on-failure` — passed, 5/5 tests.
+- Re-run after observer watchdog rename: `cmake --build build --target distributed_neural_xr dnxr_canonical_runtime_headset_independence_test -j2` — passed.
+- Re-run after observer watchdog rename: `ctest --test-dir build -R "dnxr_(canonical_runtime_headset_independence|runtime_render_stage|runtime_acquisition_stage|config_loader|runtime_pipeline_runner)_test" --output-on-failure` — passed, 5/5 tests.
+
+## 2026-07-13 Prompt 05 evidence
+- `cmake --build build --target distributed_neural_xr dnxr_runtime_acquisition_stage_test dnxr_runtime_pipeline_runner_test dnxr_runtime_render_stage_test dnxr_config_loader_test dnxr_canonical_runtime_headset_independence_test -j2` — passed.
+- `ctest --test-dir build -R "dnxr_(canonical_runtime_headset_independence|runtime_render_stage|runtime_acquisition_stage|config_loader|runtime_pipeline_runner)_test" --output-on-failure` — passed, 5/5 tests.
+- `rg -n "services\\.neuralChipHal\\.readFrame|nodes_->readNeuralNodeSignals|readNeuralNodeSignals\\(\\)|NullNeuralSignalSource|protect\\(frame.rawNeuralSignals|unprotect\\(encrypted" src/runtime src/core tests/dnxr_canonical_runtime_headset_independence_test.cpp tests/dnxr_runtime_acquisition_stage_test.cpp` — no canonical service double-read/null-source matches; remaining match is legacy callback wiring outside the service-only canonical path.
+
+## 2026-07-13 Prompt 06 evidence
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target distributed_neural_xr dnxr_canonical_virtual_world_ingress_test dnxr_virtual_world_data_ingress_test dnxr_world_frame_sanitizer_test dnxr_sensor_encoder_output_contract_test -j2` — passed.
+- `ctest --test-dir build -R "dnxr_(canonical_virtual_world_ingress|virtual_world_data_ingress|world_frame_sanitizer|sensor_encoder_output_contract)_test" --output-on-failure` — passed, 4/4 tests.
+- `rg -n "RawSensoryPayload|raw.*payload|pixel|pcm|OpenXR|SteamVR|XRHeadsetInterface" src/immersion/VirtualWorldDataIngress.* tests/dnxr_canonical_virtual_world_ingress_test.cpp` — no matches in canonical world ingress/test files.

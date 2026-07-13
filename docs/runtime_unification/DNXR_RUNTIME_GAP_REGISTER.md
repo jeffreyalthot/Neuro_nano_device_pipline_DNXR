@@ -14,3 +14,15 @@
 | P0 | Prompt 02 contract requires code migration to `CanonicalNeuralBciPipeline` | `RuntimeController`, `RuntimePipelineRunner`, `NeuralChipOnlyFullDivePipeline` | contracts exist but implementation still needs staged absorption | next prompt: first executable wiring step |
 | P1 | Compatibility adapter still contains old staged implementation | `CanonicalNeuralBciPipeline::runCycle`, `RuntimePipelineRunner::run` | single owner is established but business logic is not fully absorbed | migrate stages into canonical bundles one stage at a time |
 | P1 | Global state machine skeleton exists but not every legacy state transition is mapped | `CanonicalSafetyLifecycleBundle`, `NeuralChipPipelineStateMachine` | canonical bundle owns lifecycle components; stage transitions still delegated | prompt 04 map every transition and ACK/hold path |
+
+## Prompt 04 remaining gaps
+- Certified real biometric source adapters are not implemented in this prompt; the canonical default is explicit unavailable biometric provenance with no synthetic values.
+- `XRRenderer` class name remains for compatibility and existing diagnostics tests, but controller ownership and docs requalify it as observer-only.
+
+## Prompt 05 remaining gaps
+- The canonical neural source is HAL-backed and validates sequence/timestamp/quality, but a vendor-specific authenticated packet transport parser remains a future real-hardware integration item behind the existing real-evidence gate.
+- Motor intent decode components are preserved and still exercised by the chip/full-dive path; deeper trace fields for motor confidence decisions should be expanded in the next prompt without logging raw neural channels.
+
+## Prompt 06 remaining gaps
+- Canonical world ingress now validates structured frames and deterministic hold behavior, but a concrete network transport adapter with signed packet verification remains to be bound behind `VirtualWorldIngressConfig` in a later prompt.
+- Motor/avatar output remains separated conceptually; a dedicated causality-tested output adapter should be wired to the engine in the next stage without feeding back into the same cycle.

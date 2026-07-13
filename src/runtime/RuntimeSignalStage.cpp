@@ -72,9 +72,7 @@ RuntimePipelineFrame RuntimeSignalStage::execute(RuntimePipelineFrame frame, Run
         return frame;
     }
 
-    const auto encrypted = services.packetProtector.protect(frame.rawNeuralSignals, services.neuralTransportSecret.value);
-    const auto decrypted = services.packetProtector.unprotect(encrypted, services.neuralTransportSecret.value);
-    const auto uplinked = services.bridge.uplink(decrypted.empty() ? frame.rawNeuralSignals : decrypted);
+    const auto uplinked = services.bridge.uplink(frame.rawNeuralSignals);
     frame.cleanSignals = services.dsp.denoise(uplinked);
     frame.features = services.vectorizer.vectorize(frame.cleanSignals);
     NeuralArtifactClassifier artifactClassifier;

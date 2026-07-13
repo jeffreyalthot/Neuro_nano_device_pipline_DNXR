@@ -36,7 +36,13 @@ void normalize(RuntimeConfig& config) {
     }
     config.simulationChannelCount = std::min<std::uint32_t>(config.simulationChannelCount, 1024U);
     config.simulationNoiseAmplitude = std::clamp(config.simulationNoiseAmplitude, 0.0f, 1.0f);
-    config.xrTargetFramerate = std::clamp<std::uint32_t>(config.xrTargetFramerate, 1U, 240U);
+    config.biometricSource.minimumQuality = std::clamp(config.biometricSource.minimumQuality, 0.0f, 1.0f);
+    if (config.virtualWorldIngress.required && config.virtualWorldIngress.endpoint.empty()) {
+        config.virtualWorldIngress.endpoint = "invalid://missing_virtual_world_ingress";
+    }
+    if (config.neuralChipTransport.transport.empty()) {
+        config.neuralChipTransport.transport = "invalid_missing_neural_chip_transport";
+    }
     if (config.simulatedSignal.empty()) {
         config.simulatedSignal = {0.2f, 0.4f, 0.6f, 0.3f, 0.1f};
     }
@@ -81,16 +87,28 @@ RuntimeConfig ConfigLoader::loadRuntimeConfigFromString(const std::string& json,
         std::numeric_limits<std::uint32_t>::max()));
     config.simulationNoiseAmplitude = root.getFloat("simulation_noise_amplitude", config.simulationNoiseAmplitude);
     config.simulationDropoutEveryCycles = root.getUInt64("simulation_dropout_every_cycles", config.simulationDropoutEveryCycles);
-    config.xrEndpoint = root.getString("xr_endpoint", config.xrEndpoint);
-    config.xrDeviceId = root.getString("xr_device_id", config.xrDeviceId);
-    if (root.has("xr_auth_token")) {
-        Logger::warn("[ConfigLoader] direct xr_auth_token is refused; use xr_auth_token_env instead");
+    if (root.has("xr_endpoint") || root.has("xr_device_id") || root.has("xr_auth_token") ||
+        root.has("xr_auth_token_env") || root.has("xr_target_framerate")) {
+        Logger::warn("[ConfigLoader] legacy XR headset keys are ignored by the neural-chip BCI runtime; configure observer_mirror separately");
     }
-    config.xrAuthTokenEnv = root.getString("xr_auth_token_env", config.xrAuthTokenEnv);
-    config.xrTargetFramerate = static_cast<std::uint32_t>(std::min<std::uint64_t>(
-        root.getUInt64("xr_target_framerate", config.xrTargetFramerate),
-        std::numeric_limits<std::uint32_t>::max()));
-    config.xrAsyncTelemetry = root.getBool("xr_async_telemetry", config.xrAsyncTelemetry);
+    if (const JsonValue* ingress = root.find("virtual_world_ingress"); ingress && ingress->isObject()) {
+        config.virtualWorldIngress.endpoint = ingress->getString("endpoint", config.virtualWorldIngress.endpoint);
+        config.virtualWorldIngress.required = ingress->getBool("required", config.virtualWorldIngress.required);
+    }
+    if (const JsonValue* transport = root.find("neural_chip_transport"); transport && transport->isObject()) {
+        config.neuralChipTransport.transport = transport->getString("transport", config.neuralChipTransport.transport);
+        config.neuralChipTransport.requireAck = transport->getBool("require_ack", config.neuralChipTransport.requireAck);
+    }
+    if (const JsonValue* mirror = root.find("observer_mirror"); mirror && mirror->isObject()) {
+        config.observerMirror.enabled = mirror->getBool("enabled", config.observerMirror.enabled);
+        config.observerMirror.endpoint = mirror->getString("endpoint", config.observerMirror.endpoint);
+        config.observerMirror.failClosed = mirror->getBool("fail_closed", config.observerMirror.failClosed);
+    }
+    if (const JsonValue* bio = root.find("biometric_source"); bio && bio->isObject()) {
+        config.biometricSource.source = bio->getString("source", config.biometricSource.source);
+        config.biometricSource.required = bio->getBool("required", config.biometricSource.required);
+        config.biometricSource.minimumQuality = bio->getFloat("minimum_quality", config.biometricSource.minimumQuality);
+    }
     config.fullUnlockedDiagnostics = root.getBool("full_unlocked_diagnostics", config.fullUnlockedDiagnostics);
     config.replayEnabled = root.getBool("replay_enabled", config.replayEnabled);
     config.benchmarkEnabled = root.getBool("benchmark_enabled", config.benchmarkEnabled);

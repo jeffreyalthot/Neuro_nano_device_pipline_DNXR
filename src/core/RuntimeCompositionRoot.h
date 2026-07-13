@@ -27,14 +27,43 @@ public:
     virtual bool simulationOnly() const noexcept = 0;
 };
 
+struct NeuralSignalReadResult {
+    NeuralChipFrame frame;
+    std::string provenance = "unavailable";
+    bool valid = false;
+    bool duplicateSequence = false;
+    bool staleTimestamp = false;
+    std::string failureReason = "not_read";
+};
+
 class INeuralSignalSource {
 public:
     virtual ~INeuralSignalSource() = default;
+    virtual NeuralSignalReadResult readCanonicalFrame(double cycleTimestampSeconds) = 0;
+};
+
+enum class BiometricValidity {
+    Valid,
+    Unavailable,
+    Invalid
+};
+
+struct BiometricSample {
+    std::vector<float> channels;
+    double timestampSeconds = 0.0;
+    float quality = 0.0f;
+    std::string provenance = "unavailable";
+    BiometricValidity validity = BiometricValidity::Unavailable;
+
+    bool usable() const noexcept {
+        return validity == BiometricValidity::Valid && quality > 0.0f && !channels.empty();
+    }
 };
 
 class IBiometricSource {
 public:
     virtual ~IBiometricSource() = default;
+    virtual BiometricSample readBiometricSample(double timestampSeconds) = 0;
 };
 
 struct RuntimeHardwareEvidence {

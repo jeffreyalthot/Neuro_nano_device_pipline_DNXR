@@ -1,9 +1,9 @@
 {
-  "config_version": 1,
   "profile": "simulation_safe",
+  "runtime_mode": "simulation_mode",
   "target_loop_ms": 20,
   "max_cycles_per_second": 50,
-  "max_runtime_cycles": 0,
+  "max_runtime_cycles": 1,
   "headless": false,
   "dashboard_enabled": true,
   "simulation_mode": true,
@@ -12,23 +12,27 @@
   "simulation_channel_count": 5,
   "simulation_noise_amplitude": 0.02,
   "simulation_dropout_every_cycles": 0,
-  "replay_signal_path": "replays/session_001.dnxr_signal.csv",
-  "xr_endpoint": "wss://xr.local",
-  "xr_device_id": "headset-sim-001",
-  "xr_auth_token_env": "DNXR_XR_AUTH_TOKEN",
-  "xr_target_framerate": 90,
-  "xr_async_telemetry": true,
-  "simulated_signal": [
-    0.2,
-    0.4,
-    0.6,
-    0.3,
-    0.1
-  ],
-  "human_mode_config_unlock_allowed": false,
-  "clinical_mode_requires_signed_evidence_gate": true,
-  "human_use_allowed": false,
-  "stimulus_dispatch_allowed": false,
-  "clinical_domain_separated_from_experience_domain": true,
-  "locked_claim": "Plateforme logicielle de simulation et de pr\u00e9paration pr\u00e9clinique pour revue m\u00e9dicale; non autoris\u00e9e pour test humain."
+  "virtual_world_ingress": {
+    "endpoint": "structured://local-world",
+    "required": true
+  },
+  "neural_chip_transport": {
+    "transport": "simulation_hal",
+    "require_ack": true
+  },
+  "observer_mirror": {
+    "enabled": false,
+    "endpoint": "observer://disabled",
+    "fail_closed": false
+  },
+  "biometric_source": {
+    "source": "none",
+    "required": false,
+    "minimum_quality": 0.0
+  },
+  "full_unlocked_diagnostics": false,
+  "replay_enabled": false,
+  "benchmark_enabled": false,
+  "benchmark_cycles": 256,
+  "simulated_signal": [0.2, 0.4, 0.6, 0.3, 0.1]
 }

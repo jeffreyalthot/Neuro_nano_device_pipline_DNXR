@@ -303,3 +303,13 @@ tests/dnxr_chemical_channels_hold_test.cpp,safety/support,CMake dnxr_add_test ta
 tests/dnxr_hil_phantom_disconnect_test.cpp,safety/support,CMake dnxr_add_test target if listed,retain; migrate assertions to single canonical controller as stages merge,Prompt01 inventory
 tests/dnxr_save_asset_manager_test.cpp,safety/support,CMake dnxr_add_test target if listed,retain; migrate assertions to single canonical controller as stages merge,Prompt01 inventory
 tests/dnxr_emergency_reset_audit_trail_test.cpp,safety/support,CMake dnxr_add_test target if listed,retain; migrate assertions to single canonical controller as stages merge,Prompt01 inventory
+Prompt04,tests/dnxr_canonical_runtime_headset_independence_test.cpp,added,Verifies no canonical headset construction or headset telemetry/frame calls remain
+Prompt04,tests/dnxr_runtime_render_stage_test.cpp,updated,Validates neural sensory preparation plus observer mirror callback split
+Prompt04,tests/dnxr_config_loader_test.cpp,updated,Validates BCI config objects and clamps biometric quality
+Prompt04,tests/dnxr_runtime_pipeline_runner_test.cpp,updated,Uses BiometricSample source callback instead of headset-style telemetry callback
+Prompt05,tests/dnxr_runtime_acquisition_stage_test.cpp,updated,Proves exactly one canonical read per cycle; duplicate/replay fail-closed; missing biometrics do not synthesize telemetry
+Prompt05,tests/dnxr_runtime_pipeline_runner_test.cpp,updated,Injects canonical NeuralSignalReadResult instead of separate node/chip reads
+Prompt06,tests/dnxr_canonical_virtual_world_ingress_test.cpp,added,Validates schema/auth/sequence/stale/chemical/unsafe-scene/missing-modality hold and neutrality behavior
+Prompt06,tests/dnxr_virtual_world_data_ingress_test.cpp,retained,Legacy structured ingress adapter still maps modalities without raw payload dispatch
+Prompt06,tests/dnxr_world_frame_sanitizer_test.cpp,covered,Verifies sanitizer neutralization before encoder-facing frames
+Prompt06,tests/dnxr_sensor_encoder_output_contract_test.cpp,covered,Verifies encoder contract rejects invalid/disabled modality outputs
