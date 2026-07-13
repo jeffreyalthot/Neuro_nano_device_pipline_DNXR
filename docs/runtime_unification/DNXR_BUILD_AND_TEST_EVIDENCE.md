@@ -103,3 +103,38 @@ Result: PASS. 3/3 selected tests passed.
 - `cmake --build build --target distributed_neural_xr dnxr_neural_chip_transport_lifecycle_test dnxr_neural_chip_ack_required_test dnxr_runtime_path_lock_test -j2` — passed.
 - `ctest --test-dir build -R "dnxr_(neural_chip_transport_lifecycle|neural_chip_ack_required|runtime_path_lock)_test" --output-on-failure` — passed, 3/3 tests.
 - `rg -n "authorized_real_transport_dispatch|NullNeuralTransport|class INeuralTransport|autoAck" src/hardware src/core tests/dnxr_neural_chip_transport_lifecycle_test.cpp` — passed with no matches; real transport no longer fabricates authorized dispatch, the empty transport shim is removed, and no auto-ACK token appears in the touched transport scope.
+
+## Prompt 11 build and test evidence
+
+- `cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target distributed_neural_xr dnxr_safety_pipeline_test dnxr_safety_state_machine_test dnxr_integrated_safety_lifecycle_decision_test -j2` — passed.
+- `ctest --test-dir build --output-on-failure -R 'dnxr_(safety_pipeline|safety_state_machine|integrated_safety_lifecycle_decision)_test'` — initially failed because the legacy safety state-machine test still expected `bootSelfTestPassed()` to enter `Nominal`; test was migrated to the canonical EvidenceCheck/Connecting/Calibrating/Ready/Running gate sequence.
+- `ctest --test-dir build --output-on-failure -R 'dnxr_(safety_pipeline|safety_state_machine|integrated_safety_lifecycle_decision)_test'` — passed after migration; 3/3 tests passed.
+
+## Prompt 12 build and test evidence
+
+- `cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target distributed_neural_xr dnxr_canonical_closed_loop_motor_world_feedback_test dnxr_neural_chip_only_pipeline_test dnxr_closed_loop_pipeline_integration_test -j2` — passed.
+- `ctest --test-dir build --output-on-failure -R 'dnxr_(canonical_closed_loop_motor_world_feedback|neural_chip_only_pipeline|closed_loop_pipeline_integration)_test'` — initially failed because the new regression expected low-confidence motor intent to normal-dispatch; the assertion was corrected to require safety hold/safety pose.
+- `ctest --test-dir build --output-on-failure -R 'dnxr_(canonical_closed_loop_motor_world_feedback|neural_chip_only_pipeline|closed_loop_pipeline_integration)_test'` — passed after correction; 3/3 tests passed.
+- `rg -n "XRRenderer|XRHeadsetInterface|OpenXR|SteamVR|HMD|eye tracker|runFullBodyControlTick|ImmersionCore|XRFullBodyCommand" src/full_dive/chip_pipeline src/full_dive/motor_chip` — passed with no matches, confirming the touched canonical motor/feedback path has no renderer/headset/body-command fallback dependency.
+
+## Prompt 13 build and test evidence
+
+- `cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target distributed_neural_xr dnxr_runtime_disposition_manifest_audit_test -j2` — passed.
+- `ctest --test-dir build --output-on-failure -R 'dnxr_runtime_disposition_manifest_audit_test'` — initially failed because `ClinicalPacketSigner` had no pairwise public-type preservation row; 40 pairwise symbol rows were added and the test passed.
+- `./build/dnxr_runtime_disposition_manifest_audit_test` — passed and reported coverage for 920 source files, 477 headers, and 1168 public type declarations.
+- `cmake -S . -B build_research -DCMAKE_BUILD_TYPE=Debug -DDNXR_ENABLE_RESEARCH_SPECULATION=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build_research --target distributed_neural_xr dnxr_runtime_disposition_manifest_audit_test -j2` — passed with research/speculative modules enabled.
+- `ctest --test-dir build_research --output-on-failure -R 'dnxr_runtime_disposition_manifest_audit_test'` — passed in the research-enabled build.
+
+## Prompt 14 — legacy/concurrent runtime removal evidence
+
+- `cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` passed.
+- `cmake --build build --target distributed_neural_xr dnxr_runtime_pipeline_legacy_input_test dnxr_runtime_pipeline_runner_test dnxr_runtime_single_pipeline_structure_test dnxr_runtime_disposition_manifest_audit_test -j2` passed after migrating the runner test away from `LegacyRunInput` and correcting the structure test to use runtime assertions.
+- `ctest --test-dir build --output-on-failure -R 'dnxr_runtime_(pipeline_legacy_input|pipeline_runner|single_pipeline_structure|disposition_manifest_audit)_test'` passed: 4/4 tests.
+- `cmake -S . -B build_real -DCMAKE_BUILD_TYPE=Debug -DDNXR_SIMULATION_ONLY=OFF -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` passed.
+- `cmake --build build_real --target distributed_neural_xr dnxr_runtime_single_pipeline_structure_test -j2` passed after excluding simulation crypto/observer renderer from the real source graph and guarding real-runtime observer renderer members.
+- `ctest --test-dir build_real --output-on-failure -R 'dnxr_runtime_single_pipeline_structure_test'` passed: 1/1 test.
+- `if nm -C build_real/distributed_neural_xr | rg 'XRHeadsetInterface|XRRenderer|SimulatedSignalProvider|NeuralSignalSimulator|BiometricSimulator|ScenarioRunner|SimulationCryptoTransport|NeuralCryptoTransport|HILController|runLegacy|LegacyRunInput|SecondarySimulation|PrimaryReal|autoAck'; then echo 'Forbidden runtime symbol found' >&2; exit 1; fi` passed with no forbidden symbols.

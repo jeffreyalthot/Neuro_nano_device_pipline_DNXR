@@ -62,3 +62,32 @@
 - Expanded transport operations to model discovery, connection, attestation, negotiation, clock sync, authenticated session, read, prepare/submit, external ACK, feedback, emergency stop and close.
 - Removed the previous real transport fabricated success path; real transport now fails closed when no concrete protocol driver is available.
 - Added deterministic transport lifecycle coverage for attestation rejection, capability negotiation, anti-replay, ACK timeout, duplicate/late ACK, feedback, emergency cutoff, no double write, and real-backend fail-closed behavior.
+
+## Prompt 11 — Integrated safety lifecycle hierarchy
+
+- Extended the canonical safety pipeline trace with explicit decision levels: local encoder, modality, cross-modal, session, transport/hardware, and post-feedback. Aggregation remains monotonic: later `Continue` decisions cannot clear a prior hold/decompression/emergency, and the final audit record preserves the first highest-severity cause plus all merged layer decisions.
+- Expanded `SafetyStateMachine` to expose the canonical lifecycle states required for boot/evidence/connection/calibration/ready/running/ACK/hold/decompression/controlled-resume/emergency/shutdown while preserving legacy enum aliases for existing callers during migration.
+- Emergency reset semantics now resume into `ControlledResume` instead of direct `Running`; tests must explicitly pass through controlled resume before normal running resumes.
+- Added regression coverage for merged safety decisions, audited transition metadata, required lifecycle gates, and reset-through-controlled-resume behavior.
+
+## Prompt 12 — Closed-loop motor/world/feedback chain
+
+- Added a canonical `MotorIntentCommand` output contract carrying frame causality (`frameId`, `validFromFrameId`, `validUntilFrameId`), confidence, provenance, patient binding, safety disposition, rig command, reason, and a non-sensitive command hash.
+- Routed chip BCI acquisition through the existing motor cortex adapter, decoder, confidence gate, avatar rig/gait/balance/IK, and safety-pose controller before submitting the command to a world-engine sink; no renderer or headset interface is in this path.
+- Added a distinct feedback read on `NeuralChipBus` and changed closed-loop correction to use feedback for the previously submitted frame, not the current BCI acquisition read. Missing, stale, or low-quality feedback forces hold before the next normal dispatch.
+- Added multi-cycle coverage for frame N intent -> command N -> world N+1 -> feedback/correction N+1, feedback-absent hold, low-confidence safety pose, and renderer/headset non-authority.
+
+## Prompt 13 — Repository-wide transverse subsystem sweep
+
+- Added `dnxr_runtime_disposition_manifest_audit_test`, a meta-audit that walks `src/`, requires every source/header file to appear in `DNXR_FILE_DISPOSITION_MANIFEST.csv`, and requires every public class/struct/enum declaration found in headers to have a symbol-preservation entry.
+- Completed pairwise public type preservation additions for the remaining headers discovered by the meta-audit; the audit reports coverage for 920 source files, 477 headers, and 1168 public type declarations.
+- Classified transverse subsystems by runtime role: canonical per-frame services, off-frame support snapshots/tools, HIL/bench adapters, clinical/QMS/readiness gates, and gated research/speculative libraries.
+- Verified the normal build and a research-enabled optional build compile without creating a second production runtime entry point.
+
+## Prompt 14 — controlled removal of legacy/concurrent production runtime paths
+
+- Removed `RuntimePipelineRunner::LegacyRunInput`, `runLegacy`, and the private `finishLegacyCycle` path after migrating the runner coverage to canonical `RuntimePipelineRunInput`/`RuntimePipelineRunInputRef` and `RuntimeController`/`CanonicalNeuralBciPipeline` harnesses.
+- Clarified `DNXR_ENABLE_SIMULATION` as adapters/tools only and excluded simulation/HIL/headset/observer renderer sources from `DNXR_REAL_RUNTIME_SRC`; real builds no longer link `XRHeadsetInterface`, `XRRenderer`, simulation crypto transport, HIL controller, or secondary runtime symbols.
+- Kept observer mirroring read-only: `XRRenderer` attachment/presentation is simulation-only, while real runtime publish attempts fail closed with an observer-specific diagnostic and cannot authorize neural dispatch.
+- Added `dnxr_runtime_single_pipeline_structure_test` to detect legacy runner APIs, secondary runtime path kinds, real-runtime observer/headset source inclusion, and production-scope references to obsolete legacy/fallback names.
+- Evidence: default build and targeted runtime tests passed; real (`DNXR_SIMULATION_ONLY=OFF`) build passed; real binary forbidden-symbol scan returned no matches.

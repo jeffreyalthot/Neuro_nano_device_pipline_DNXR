@@ -47,3 +47,17 @@
 - Closed: real transport no longer returns fabricated `authorized_real_transport_dispatch` success.
 - Closed: transport lifecycle regression covers replay/duplicate ACK/timeout/emergency cutoff and no double write.
 - Open: a vendor-specific real protocol driver remains unavailable; real backend correctly blocks with an explicit unavailable result until implemented and attested.
+
+| P0 | Full safety hierarchy still partially split across specialized chip/full-dive services | PhysiologicalGuard, SafetyGovernor, SafetyPipeline, SafetyStateMachine, SafetyInvariantEngine, FullDiveSafetySupervisor, NeuralChipSafetySupervisor, NeuralStimulusSafetyEnvelope, per-modality safety, watchdog, emergency latch, decompression, neurorights/readiness/audit | Prompt11 added canonical decision levels, monotonic merging, canonical lifecycle states, controlled-resume reset tests | Next prompt should wire every specialized supervisor through a single canonical safety lifecycle bundle callsite and retire compatibility-only direct calls |
+
+| P0 | Canonical motor command sink still uses in-process recording implementation in tests | `ICanonicalMotorIntentSink`, `RecordingMotorIntentSink`, world-engine adapter | Prompt12 defines output interface and causal command horizon; test sink proves no renderer path | Bind production world-engine transport adapter with signed/authenticated structured world N+1 ingress |
+| P1 | Legacy `runFullBodyControlTick` and `ImmersionCore` remain support/adapter code | `DeepImmersionPlatform`, `ImmersionCore`, `VirtualWorldState` | Prompt12 classifies legacy full-body control and uses canonical motor chain in chip pipeline | Later prompt should replace remaining RuntimeImmersionFrameStage callbacks or mark them test-only after parity |
+
+| P1 | Transverse service wiring is now classified but not all off-frame snapshots are centralized in one composition object | config, secrets, QMS/evidence, readiness, plugin/assets, metrics/trace/replay/save | Prompt13 meta-audit enforces file/type disposition and documents subsystem placement | Next prompt should create immutable startup snapshot handoff where current direct service ownership still exists |
+| P1 | Speculative modules compile behind research flag but require stronger runtime-negative assertions | emotion, physics, reality, subconscious, memory, distributed consciousness | Prompt13 default/research builds verified; disposition marks research isolation | Add static tests proving these symbols cannot be referenced by canonical production stage files |
+
+## Prompt 14 updates
+
+- Closed: `RuntimePipelineRunner::LegacyRunInput`/`runLegacy` were removed after migrated tests proved canonical `RuntimeController`/`CanonicalNeuralBciPipeline` coverage and negative source scans.
+- Closed: real-runtime source set no longer includes headset/observer renderer implementation sources; `DNXR_SIMULATION_ONLY=OFF` build plus forbidden-symbol scan passed.
+- Remaining: `NeuralChipOnlyFullDivePipeline` still exists as a compatibility/library class from Prompt 12 and must be converted to a stateless alias or fully absorbed into `CanonicalNeuralBciPipeline` in a follow-up once all direct tests are migrated.

@@ -104,3 +104,44 @@ The pre-dispatch representation is now explicitly the validated spike/PPP bundle
 
 ## Prompt 10 graph update
 The chip boundary now exposes one bidirectional transport abstraction: discover/connect -> attest -> negotiate -> synchronizeClock -> openAuthenticatedSession -> read -> prepareCommand -> submitPreparedCommand -> receiveAck -> readFeedback -> emergencyStop -> close. `send` remains only a compatibility wrapper around prepare/submit/external ACK and does not manufacture ACK acceptance. Real transport fails closed with `real_transport_protocol_driver_unavailable` until a concrete protocol driver exists; simulation/HIL adapters implement the same lifecycle explicitly for tests and non-human profiles.
+
+## Prompt 11 safety hierarchy overlay
+
+Canonical safety decisions now flow through six ordered authority levels before commit: local encoder, modality, cross-modal, session, transport/hardware, and post-feedback. The merged decision is monotonic (`max` severity, `max` risk, `min` intensity, AND render permission, OR emergency), so an allow/continue result from a later layer cannot erase an earlier refusal. The lifecycle state machine exposes Booting → EvidenceCheck → Connecting → Calibrating → Ready → Running/AwaitingAck, plus HoldNeutral, HoldMinimal, Recalibrating, Decompressing, ControlledResume, EmergencyLatched, and Shutdown. Emergency reset remains an audited operator path and resumes only into ControlledResume.
+
+## Prompt 12 closed-loop motor/world/feedback graph
+
+```text
+chip read N
+  -> MotorCortexReadFrameAdapter
+  -> MotorIntentDecoder
+  -> MotorIntentConfidenceGate
+  -> AvatarGaitPhaseController / AvatarBalanceController / AvatarInverseKinematicsSolver
+  -> AvatarKinematicRigController
+  -> AvatarSafetyPoseController when low confidence, spasm, latch, or safety pose required
+  -> MotorIntentCommand(valid for world N+1)
+  -> ICanonicalMotorIntentSink(world engine boundary, not renderer)
+  -> world frame N+1
+  -> sensory encoders/spike runtime/commit N+1
+  -> ACK N+1
+  -> distinct feedbackChipFrame N+1
+  -> ClosedLoopPerceptionErrorController correction for candidate N+2
+```
+
+A feedback ACK is not treated as physiological/neural feedback. If the feedback frame for the previously submitted chip frame is absent, stale, or weak, the canonical path emits a hold and blocks normal dispatch.
+
+## Prompt 13 transverse subsystem placement
+
+The canonical runtime now treats repository subsystems as layers around one frame owner instead of alternative runtime owners:
+
+- **Per-frame canonical path:** runtime, full_dive, neural_chip, hardware, safety, and selected signal/neurotech services operate under `RuntimeController -> CanonicalNeuralBciPipeline` ownership.
+- **Pre-frame/off-frame configuration and evidence:** config, secrets, packet protection, identity, QMS, readiness, clinical evidence, revocation, assets, plugin registry, and signed manifests produce immutable snapshots or gates before frame execution.
+- **Observation and reporting:** logging, trace, metrics, latency, jitter, WCET, replay, save/session journal, dashboards, and file writers consume bounded records after frame decisions and do not authorize neural output.
+- **Adapters:** HIL, bench, real/hardware bench, input/replay and simulation modules are environment adapters feeding the same canonical interfaces; they are not production runtime owners.
+- **Research/speculative libraries:** emotion, physics/quantum, distributed consciousness, subjective time, subconscious, memory manipulation and social/MMORPG domain code are isolated as research/support libraries unless explicitly gated by CMake and clinical/research policies.
+
+## Prompt 14 — single production runtime boundary
+
+Production now has one business cycle owner: `RuntimeApplication` constructs `RuntimeController`, which owns `CanonicalNeuralBciPipeline::runCycle` and its canonical stage services/sinks. `RuntimePipelineRunner` no longer exposes `LegacyRunInput` or `runLegacy`; it remains only as a canonical stage runner utility for tests/adapters that use `RuntimePipelineRunInput` or immutable `RuntimePipelineRunInputRef`.
+
+Real-runtime source selection (`DNXR_SIMULATION_ONLY=OFF`) excludes simulation/HIL/headset/observer-renderer implementation sources. Observer mirroring remains out-of-band and read-only: renderer attachment is available only in simulation/observer builds, while real builds retain an observer sink that records a renderer-excluded diagnostic and cannot affect neural safety, frame commit, ACK, or feedback decisions.

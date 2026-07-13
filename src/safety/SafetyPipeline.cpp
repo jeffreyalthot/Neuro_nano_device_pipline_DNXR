@@ -55,6 +55,15 @@ std::string actionName(SafetyAction action) {
     return "unknown";
 }
 
+SafetyDecisionLevel decisionLevelForLayer(const std::string& layerName) {
+    if (layerName == "StimulusEnvelopeLayer") { return SafetyDecisionLevel::LocalEncoder; }
+    if (layerName == "PhysiologicalLayer") { return SafetyDecisionLevel::Modality; }
+    if (layerName == "CognitiveRiskLayer" || layerName == "RealityAnchorLayer") { return SafetyDecisionLevel::CrossModal; }
+    if (layerName == "ConsentLayer" || layerName == "AddictionRiskLayer") { return SafetyDecisionLevel::Session; }
+    if (layerName == "SignalIntegrityLayer") { return SafetyDecisionLevel::TransportHardware; }
+    return SafetyDecisionLevel::PostFeedback;
+}
+
 SafetyLayerDecision makeDecision(
     const std::string& layerName,
     SafetyAction action,
@@ -63,9 +72,11 @@ SafetyLayerDecision makeDecision(
 
     SafetyLayerDecision decision;
     decision.layerName = layerName;
+    decision.level = decisionLevelForLayer(layerName);
     decision.action = action;
     decision.riskScore = safetyPipelineClamp01(risk);
     decision.reason = reason;
+    decision.authority = "canonical:" + layerName;
 
     switch (action) {
         case SafetyAction::Continue:
@@ -204,7 +215,8 @@ std::string SafetyDecisionTrace::summarize() const {
         << "|risk=" << finalDecision.riskScore
         << "|layers=" << layerDecisions.size();
     for (const auto& decision : layerDecisions) {
-        out << '|' << decision.layerName << ':' << actionName(decision.action) << ':' << decision.reason;
+        out << '|' << decision.layerName << ':' << SafetyPipeline::decisionLevelName(decision.level)
+            << ':' << actionName(decision.action) << ':' << decision.reason;
     }
     return out.str();
 }
@@ -241,6 +253,18 @@ std::size_t SafetyPipeline::layerCount() const {
     return layers_.size();
 }
 
+std::string SafetyPipeline::decisionLevelName(SafetyDecisionLevel level) {
+    switch (level) {
+        case SafetyDecisionLevel::LocalEncoder: return "local_encoder";
+        case SafetyDecisionLevel::Modality: return "modality";
+        case SafetyDecisionLevel::CrossModal: return "cross_modal";
+        case SafetyDecisionLevel::Session: return "session";
+        case SafetyDecisionLevel::TransportHardware: return "transport_hardware";
+        case SafetyDecisionLevel::PostFeedback: return "post_feedback";
+    }
+    return "unknown";
+}
+
 SafetyDecision SafetyPipeline::aggregate(const std::vector<SafetyLayerDecision>& decisions) {
     SafetyDecision finalDecision;
     finalDecision.reason = decisions.empty() ? "no_layers_configured" : "aggregated_layer_decisions";
@@ -252,13 +276,17 @@ SafetyDecision SafetyPipeline::aggregate(const std::vector<SafetyLayerDecision>&
         finalDecision.requiresEmergencyStop = finalDecision.requiresEmergencyStop || decision.requiresEmergencyStop;
         if (actionSeverity(decision.action) > actionSeverity(finalDecision.action)) {
             finalDecision.action = decision.action;
-            finalDecision.reason = decision.layerName + ":" + decision.reason;
+            finalDecision.reason = SafetyPipeline::decisionLevelName(decision.level) + ":" + decision.layerName + ":" + decision.reason;
         }
     }
 
     std::ostringstream audit;
-    audit << "safety_pipeline:" << actionName(finalDecision.action) << ":" << finalDecision.reason
+    audit << "safety_pipeline:first_cause=" << finalDecision.reason << ":final=" << actionName(finalDecision.action)
           << ":layers=" << decisions.size();
+    for (const auto& decision : decisions) {
+        audit << "|" << SafetyPipeline::decisionLevelName(decision.level) << "/" << decision.layerName
+              << "=" << actionName(decision.action) << ":" << decision.reason;
+    }
     finalDecision.auditRecord = audit.str();
     return finalDecision;
 }

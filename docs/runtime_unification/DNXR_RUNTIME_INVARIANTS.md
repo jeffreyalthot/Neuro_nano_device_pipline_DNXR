@@ -68,3 +68,34 @@
 - The runtime sender may not auto-generate ACK acceptance; tests may only obtain ACK from explicit simulation/HIL transport adapters.
 - Real transport without a concrete protocol driver must fail closed and must not return an authorized dispatch success.
 - Empty transport interfaces and automatic production fallback to simulation/HIL are prohibited.
+
+## Prompt 11 safety lifecycle invariants
+
+1. Safety decisions are monotonic across levels: the final action is the highest-severity action observed; risk is max-merged; intensity is min-merged; render permission is AND-merged; emergency is OR-merged.
+2. Each safety layer decision carries a canonical decision level, authority, and reason so hold/emergency traces identify both the first highest-severity cause and all contributing decisions.
+3. Canonical lifecycle reset from emergency/post-incident review lands in `ControlledResume`, never directly in `Running`.
+4. Observer/render health is not a safety authority in this hierarchy; safety levels are encoder, modality, cross-modal, session, transport/hardware, and post-feedback.
+5. Hold states are represented as `HoldNeutral` and `HoldMinimal`; decompression is represented as `Decompressing`; all remain below `EmergencyLatched` and cannot clear a latch without explicit audited operator review.
+
+## Prompt 12 closed-loop motor/perception invariants
+
+1. BCI motor acquisition for frame N may produce a `MotorIntentCommand` valid only for world frame N+1; the command is not valid for retroactive mutation of frame N.
+2. Motor intent output is submitted through `ICanonicalMotorIntentSink` to the world-engine boundary and not to `XRRenderer`, `XRHeadsetInterface`, or any observer branch.
+3. Closed-loop perception correction uses a distinct feedback frame corresponding to the last submitted chip frame; ACK alone does not satisfy feedback.
+4. Missing, stale, or low-quality feedback after a submitted frame prevents the next normal dispatch and enters a safety hold path.
+5. Closed-loop corrections apply only to the next candidate frame under construction; already submitted frames remain immutable replay evidence.
+
+## Prompt 13 transverse subsystem invariants
+
+1. Every source/header file under `src/` must have a disposition entry before merge; missing files fail `dnxr_runtime_disposition_manifest_audit_test`.
+2. Every public class/struct/enum declaration found in headers must have a symbol-preservation entry before merge; missing public types fail the same audit.
+3. Heavy/non-real-time work (JSON/config loading, signatures, QMS/readiness report generation, disk writes, dashboards, plugin discovery, network management) must occur outside the per-frame hot path or via immutable snapshots/queues.
+4. Speculative/research modules remain disabled from the default canonical runtime and must not be represented as clinical or production capabilities.
+5. HIL/simulation/bench adapters may inject faults or fixtures only through canonical interfaces; they must not own an alternative production loop.
+
+## Prompt 14 invariants
+
+- The production runtime must not compile or expose `RuntimePipelineRunner::LegacyRunInput`, `runLegacy`, or `finishLegacyCycle`; canonical runner tests must prove these names are absent before merge.
+- `DNXR_ENABLE_SIMULATION` may enable adapters, fixtures, and tools only; it must not change the canonical business graph or introduce a secondary production runtime.
+- A real-runtime binary built with `DNXR_SIMULATION_ONLY=OFF` must not export forbidden headset, observer renderer, simulation, HIL, auto-ACK, legacy, or secondary path symbols.
+- Observer rendering is never authoritative. In real-runtime builds renderer attachment is unavailable and observer publish attempts fail closed as observer diagnostics only.

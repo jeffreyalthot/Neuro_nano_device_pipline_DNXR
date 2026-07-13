@@ -9,7 +9,7 @@ option(DNXR_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 option(DNXR_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 option(DNXR_ENABLE_TSAN "Enable ThreadSanitizer" OFF)
 option(DNXR_SIMULATION_ONLY "Force simulation-only runtime guardrails" ON)
-option(DNXR_ENABLE_SIMULATION "Enable simulation runtime" ON)
+option(DNXR_ENABLE_SIMULATION "Enable simulation adapters for tests/tools only; does not change the canonical business runtime graph" ON)
 option(DNXR_ENABLE_HARDWARE_BENCH "Enable real hardware bench runtime without human use" OFF)
 option(DNXR_ENABLE_PRECLINICAL_PHANTOM "Enable preclinical phantom mode" OFF)
 option(DNXR_ENABLE_HUMAN_CLINICAL_TRIAL "Enable authorized human clinical trial mode" OFF)
@@ -65,7 +65,7 @@ endif()
 
 file(GLOB_RECURSE DNXR_CORE_SRC CONFIGURE_DEPENDS src/*.cpp)
 list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "/main\\.cpp$")
-set(DNXR_SIMULATION_RUNTIME_REGEX "/(sim|simulation|hil|fault_injection)/|/(SimulatedSignalProvider|NeuralSignalSimulator|BiometricSimulator|ScenarioRunner|SimulationCryptoTransport)\.cpp$")
+set(DNXR_SIMULATION_RUNTIME_REGEX "/(sim|simulation|hil|fault_injection)/|/(SimulatedSignalProvider|NeuralSignalSimulator|BiometricSimulator|ScenarioRunner|SimulationCryptoTransport|NeuralCryptoTransport)\.cpp$")
 set(DNXR_RESEARCH_SPECULATION_REGEX "/(runtime/FullDiveOrchestrator|network/DistributedConsciousnessNetwork|physics/NeuralQuantumEntanglementEngine|reality/SubjectiveTimeDilationEngine|memory/RecursiveMemoryReconstructionEngine|subconscious/SubconsciousSimulationEngine|emotion/AffectiveResonanceMatrix)\.cpp$")
 set(DNXR_RESEARCH_SPECULATION_SRC ${DNXR_CORE_SRC})
 list(FILTER DNXR_RESEARCH_SPECULATION_SRC INCLUDE REGEX "${DNXR_RESEARCH_SPECULATION_REGEX}")
@@ -73,8 +73,10 @@ if(NOT DNXR_ENABLE_RESEARCH_SPECULATION)
     list(FILTER DNXR_CORE_SRC EXCLUDE REGEX "${DNXR_RESEARCH_SPECULATION_REGEX}")
 endif()
 
+set(DNXR_OBSERVER_RUNTIME_REGEX "/(devices/XRHeadsetInterface|rendering/XRRenderer)\.cpp$")
 set(DNXR_REAL_RUNTIME_SRC ${DNXR_CORE_SRC})
 list(FILTER DNXR_REAL_RUNTIME_SRC EXCLUDE REGEX "${DNXR_SIMULATION_RUNTIME_REGEX}")
+list(FILTER DNXR_REAL_RUNTIME_SRC EXCLUDE REGEX "${DNXR_OBSERVER_RUNTIME_REGEX}")
 if(DNXR_SIMULATION_ONLY)
     set(DNXR_SELECTED_CORE_SRC ${DNXR_CORE_SRC})
 else()
@@ -254,6 +256,10 @@ if(DNXR_BUILD_TESTS)
         dnxr_simulation_only_guard_test
         dnxr_secret_provider_test
         dnxr_safety_pipeline_test
+        dnxr_integrated_safety_lifecycle_decision_test
+        dnxr_canonical_closed_loop_motor_world_feedback_test
+        dnxr_runtime_disposition_manifest_audit_test
+        dnxr_runtime_single_pipeline_structure_test
         dnxr_reality_anchor_system_test
         dnxr_multisensory_clock_test
         dnxr_intent_risk_classifier_test

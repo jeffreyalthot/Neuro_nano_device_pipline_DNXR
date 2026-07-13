@@ -143,7 +143,9 @@ private:
     std::unique_ptr<class CalibrationDriftMonitor> calibrationDriftMonitor_;
     std::unique_ptr<class ImmersionCore> immersion_;
     std::unique_ptr<class MultisensoryClock> multisensoryClock_;
+#if DNXR_SIMULATION_ONLY
     std::unique_ptr<class XRRenderer> observerRenderer_;
+#endif
     std::unique_ptr<class ObserverMirrorSink> observerMirror_;
     std::unique_ptr<class PhysiologicalGuard> guard_;
     std::unique_ptr<class EmergencyShutdown> emergency_;

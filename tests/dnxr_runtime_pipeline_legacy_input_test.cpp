@@ -1,18 +1,24 @@
-#include "../src/runtime/RuntimePipelineRunner.h"
-
 #include <cassert>
-#include <type_traits>
+#include <fstream>
+#include <sstream>
+#include <string>
+
+namespace {
+std::string read(const char* path) {
+    std::ifstream input(path);
+    assert(input.good());
+    std::ostringstream buffer;
+    buffer << input.rdbuf();
+    return buffer.str();
+}
+}
 
 int main() {
-    static_assert(std::is_same<dnxr::RuntimePipelineRunner::LegacyRunInput,
-                               dnxr::RuntimePipelineRunner::LegacyRunInput>::value,
-                  "LegacyRunInput remains available explicitly");
-    static_assert(!std::is_same<dnxr::RuntimePipelineRunner::RuntimePipelineRunInput,
-                                dnxr::RuntimePipelineRunner::LegacyRunInput>::value,
-                  "The services-only input is intentionally separate from legacy StageInputs");
-
-    dnxr::RuntimePipelineRunner runner;
-    (void)runner;
-    assert(true);
+    const std::string header = read("src/runtime/RuntimePipelineRunner.h");
+    const std::string impl = read("src/runtime/RuntimePipelineRunner.cpp");
+    assert(header.find("LegacyRunInput") == std::string::npos);
+    assert(header.find("runLegacy") == std::string::npos);
+    assert(impl.find("runLegacy") == std::string::npos);
+    assert(impl.find("finishLegacyCycle") == std::string::npos);
     return 0;
 }
