@@ -128,3 +128,20 @@
 - Fixed the canonical runtime aggregate link closure using a CMake RESCAN link group.
 - Added final acceptance and external dependency reports.
 - Full CTest is not fully green; the final acceptance report records the remaining failing validation lanes without claiming clinical/hardware validation.
+
+## Prompt 02 compile-time contract invariants
+
+- `PreparedCommit` is move-only and cannot be copied or reused after submit.
+- `INeuralChipTransport::submit` accepts `PreparedCommit&&`; the type test rejects direct submission of `EncodedModalities`.
+- `SessionContext` contains const digest/id fields and is not assignable after creation.
+- Time unit wrappers reject implicit integer conversion.
+- `correlateAck` rejects ACKs whose session, frame, commit, or nonce differs from the submitted receipt.
+- `closeWithFeedback` rejects closure when required external feedback lacks a digest.
+
+## Prompt 03 bootstrap and ownership invariants
+
+- Bootstrap validation runs before `RuntimeController` construction in `RuntimeApplication`.
+- A valid `SessionBootstrapSnapshot` has exactly one owner, clock, committer, ACK handshake, emergency latch, and state machine.
+- `SessionBackendLock` cannot switch between simulation and real/hardware modes after session creation.
+- The canonical shutdown order is stop dispatch, hold/decompression, drain ACK/feedback, stop ingress, flush audit, then destroy transport.
+- A real-minimal profile without complete backend attestation evidence fails closed before session construction.

@@ -98,3 +98,27 @@
 - Status: OPEN.
 - Evidence: strict-warning build stops in `src/neural_chip/PipelineSafetyCaseReport.cpp` because new canonical path enum values `TraceCoverageReject` and `ReentrantStepReject` are not yet assigned explicit safety-case report handling.
 - Required follow-up: add explicit report disposition for those paths and rerun the `DNXR_WARNINGS_AS_ERRORS=ON` lane.
+
+## Prompt 01 executable-truth gaps — 2026-07-13
+
+| Priority | Gap | Owner | Evidence | Closure prompt |
+|---|---|---|---|---|
+| P0 | `CanonicalNeuralBciPipeline::runCycle` still delegates to `RuntimePipelineRunner` compatibility execution. | Runtime architecture | `DNXR_EXECUTABLE_CALL_GRAPH.json` records the live call path. | Prompt 04/05 |
+| P0 | Simulation build of `distributed_neural_xr` still links observer and test-adapter libraries. | Build/runtime boundary | `DNXR_BINARY_DEPENDENCY_SCAN.md` records the unresolved link dependency. | Prompt 21/22 |
+| P0 | Runtime active-default influence vector remains non-zero at controller initialization. | Safety/configuration | `DNXR_DEFAULT_ACTIVE_BEHAVIOR_REPORT.md` records the policy finding. | Prompt 24 |
+
+## Prompt 02 contract-only gaps — 2026-07-13
+
+| Priority | Gap | Owner | Evidence | Closure prompt |
+|---|---|---|---|---|
+| P0 | Final `CanonicalNeuralBciRuntime` contract is not yet wired into `RuntimeController` execution. | Runtime architecture | `DNXR_FINAL_TRANSACTION_COVERAGE_MATRIX.csv` marks `RuntimePipelineRunner::run` migration open. | Prompt 03/04 |
+| P0 | `RuntimeStimulusStage` still owns direct HAL write in implementation. | Transport/commit | Contract now requires `PreparedCommit -> INeuralChipTransport -> SubmitReceipt`. | Prompt 18 |
+| P0 | Closed-loop feedback implementation must be migrated to `IFeedbackReader` external ACK/feedback. | Feedback | Contract now requires `ExternalAck` and `ExternalFeedback` correlation. | Prompt 19 |
+
+## Prompt 03 ownership migration gaps — 2026-07-13
+
+| Priority | Gap | Owner | Evidence | Closure prompt |
+|---|---|---|---|---|
+| P0 | `RuntimeController` still owns stage construction and compatibility execution after bootstrap validation. | Runtime architecture | `DNXR_SESSION_BOOTSTRAP_OWNERSHIP.md` records `RuntimeController` as temporary compatibility host. | Prompt 04/05 |
+| P0 | Broad `dnxr_core` aggregate still pulls observer/simulation/test-adapter libraries in real test contexts. | Build split | Prompt 03 real bootstrap target had to link directly to `dnxr_runtime_core` to avoid aggregate construction. | Prompt 22 |
+| P1 | `RuntimeCompositionRoot::compose` still constructs concrete profile adapters directly rather than returning all role bundles. | Composition root | `CanonicalRuntimeHost` exists, but `RuntimeCompositionRoot` role-bundle migration is partial. | Prompt 04 |

@@ -169,3 +169,44 @@ The BCI/world rate contract defaults to 60 Hz with a 16.666 ms budget when compa
 - Fixed the canonical runtime aggregate link closure using a CMake RESCAN link group.
 - Added final acceptance and external dependency reports.
 - Full CTest is not fully green; the final acceptance report records the remaining failing validation lanes without claiming clinical/hardware validation.
+
+## Prompt 02 final contract graph
+
+```text
+CanonicalNeuralBciRuntime::openSession
+  -> SessionContext
+CanonicalNeuralBciRuntime::step
+  -> IWorldIngress -> WorldIngressFrame
+  -> IBciAcquisition -> BciAcquisitionFrame
+  -> signal conditioning -> ConditionedSignal
+  -> inference -> InferenceResult
+  -> IMotorWorldEgress -> MotorIntent
+  -> calibration binding -> CalibrationSnapshotRef
+  -> ISensoryEncoding -> EncodedModalities
+  -> ISpikeMapping -> AlignedSpikePlan
+  -> ISafetyAuthority -> SafetyDecision
+  -> prepareCommit -> PreparedCommit
+  -> INeuralChipTransport -> SubmitReceipt
+  -> IFeedbackReader::readAck -> ExternalAck
+  -> IFeedbackReader::readFeedback -> ExternalFeedback
+  -> correction -> CorrectionDecision
+  -> closeWithFeedback -> ClosedTransaction
+  -> IAuditSink and optional IObserverSnapshotSink
+```
+
+The graph is a contract freeze only; Prompt 03+ migrates the current compatibility adapter implementation onto this contract.
+
+## Prompt 03 bootstrap and ownership graph
+
+```text
+RuntimeCli
+  -> RuntimeApplication
+     -> CanonicalRuntimeHost::validateSession
+        -> SessionBootstrapValidator
+           -> immutable SessionBootstrapSnapshot
+           -> RuntimeInstanceCounters {owner=1, clock=1, committer=1, ack=1, emergency=1, stateMachine=1}
+           -> destruction order policy
+     -> RuntimeController compatibility host (temporary, after bootstrap validation)
+```
+
+The target ownership graph is `CanonicalRuntimeHost -> RuntimeComposition + SessionBootstrapSnapshot + SessionBackendLock`. The current `RuntimeController` remains a temporary lifecycle/compatibility host until stage logic is migrated out.

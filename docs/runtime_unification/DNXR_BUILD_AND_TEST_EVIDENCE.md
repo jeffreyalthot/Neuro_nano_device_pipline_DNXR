@@ -238,3 +238,28 @@ Result: PASS. 1/1 selected realtime test passed.
 - Command: `rm -rf build/final-strict && cmake -S . -B build/final-strict -DDNXR_BUILD_TESTS=ON -DDNXR_WARNINGS_AS_ERRORS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF && cmake --build build/final-strict --target distributed_neural_xr dnxr_runtime_realtime_test -j2`
 - Result: FAIL after fixing several touched/adjacent strict-warning issues. The remaining reproducible blocker is `src/neural_chip/PipelineSafetyCaseReport.cpp`, where `PipelinePathKind::TraceCoverageReject` and `PipelinePathKind::ReentrantStepReject` are not handled in a switch with `-Werror=switch`.
 - Disposition: open validation debt; not a hardware/environment limitation. It is intentionally recorded and not claimed as passing.
+
+## Prompt 01 executable-truth CLI update — 2026-07-13
+
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target distributed_neural_xr dnxr_cli_side_effect_contract_test -j2` — passed after fixing warning-as-error failures exposed by the clean rebuild.
+- `ctest --test-dir build -R 'dnxr_cli_side_effect_contract_test' --output-on-failure` — passed, 1/1 test.
+- `./build/distributed_neural_xr --help` — passed with return code 0 and usage-only output.
+
+## Prompt 02 final transaction contract — 2026-07-13
+
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- Initial `cmake --build build --target dnxr_canonical_transaction_contract_test -j2` — failed because `PhaseResult<T>` default-initialized non-default phase types; fixed by storing phase values in `std::optional<T>`.
+- `cmake --build build --target dnxr_canonical_transaction_contract_test -j2` — passed.
+- `ctest --test-dir build -R 'dnxr_canonical_transaction_contract_test|dnxr_cli_side_effect_contract_test' --output-on-failure` — passed, 2/2 tests.
+
+## Prompt 03 session bootstrap ownership — 2026-07-13
+
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target dnxr_session_bootstrap_validator_test -j2` — passed after keeping the test linked to `dnxr_runtime_core` only.
+- `cmake -S . -B build/prompt03-real -DDNXR_SIMULATION_ONLY=OFF -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- Initial real-build attempt through the broad aggregate exposed existing `dnxr_test_adapters`/simulation crypto and `dnxr_real_adapters` strict-warning linkage; Prompt 03 changed the bootstrap test to link directly to `dnxr_runtime_core` so the real-build contract target does not construct observer/simulation adapter libraries.
+- `cmake --build build/prompt03-real --target dnxr_session_bootstrap_validator_test -j2` — passed.
+- `ctest --test-dir build/prompt03-real -R 'dnxr_session_bootstrap_validator_test' --output-on-failure` — passed, 1/1 test.
+- `ctest --test-dir build -R 'dnxr_session_bootstrap_validator_test|dnxr_canonical_transaction_contract_test|dnxr_cli_side_effect_contract_test' --output-on-failure` — passed, 3/3 tests.
+- `cmake --build build --target distributed_neural_xr -j2` — passed.

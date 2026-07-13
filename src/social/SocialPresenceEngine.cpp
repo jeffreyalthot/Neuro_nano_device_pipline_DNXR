@@ -191,6 +191,8 @@ SocialPresenceEngine::
 update(
     float deltaTime) {
 
+    (void)deltaTime;
+
     computeGlobalPresence();
 
     computeCollectiveResonance();

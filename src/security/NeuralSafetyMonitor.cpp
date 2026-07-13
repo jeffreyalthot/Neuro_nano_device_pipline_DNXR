@@ -220,6 +220,8 @@ void NeuralSafetyMonitor::
 update(
     float deltaTime) {
 
+    (void)deltaTime;
+
     computeThreatLevel();
 
     computeOverallSafety();

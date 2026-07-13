@@ -3601,3 +3601,11 @@ RuntimeStageRealtimeStats,src/runtime/RuntimeRealtimeTelemetry.h,9,class/struct/
 RollingWindow,src/runtime/RuntimeRealtimeTelemetry.h,9,nested struct,1,called by canonical runtime service,RuntimeRealtimeTelemetry private rolling window,Prompt18 disposition audit preservation entry
 RuntimeRealtimeSnapshot,src/runtime/RuntimeRealtimeTelemetry.h,9,class/struct/enum/function,1,called by canonical runtime telemetry,RuntimeRealtimeTelemetry::snapshot,Prompt18 final audit preservation entry
 RuntimeBoundedLatestQueue,src/runtime/RuntimeRealtimeTelemetry.h,9,class/struct/enum/function,1,conservé comme bibliothèque de support,RuntimeRealtimeTelemetry bounded queue support,Prompt18 final audit preservation entry
+CanonicalNeuralBciRuntime,src/runtime/CanonicalBciRuntimeContract.h,233,class/struct/enum/function,5,integrated au runtime canonique,Final production API,Prompt02 contract freeze
+PreparedCommit,src/runtime/CanonicalBciRuntimeContract.h,167,class/struct/enum/function,14,integrated au runtime canonique,Single-use transport commit token,Prompt02 contract freeze
+INeuralChipTransport,src/runtime/CanonicalBciRuntimeContract.h,217,class/struct/enum/function,1,integrated au runtime canonique,Transport interface owns submit,Prompt02 contract freeze
+IFeedbackReader,src/runtime/CanonicalBciRuntimeContract.h,218,class/struct/enum/function,2,integrated au runtime canonique,External ACK and feedback interface,Prompt02 contract freeze
+SessionBootstrapValidator,src/core/SessionBootstrapValidator.h,70,class/struct/enum/function,3,integrated au runtime canonique,Pre-session validation authority,Prompt03 ownership graph
+SessionBootstrapSnapshot,src/core/SessionBootstrapValidator.h,25,class/struct/enum/function,14,integrated au runtime canonique,Immutable session snapshot,Prompt03 ownership graph
+SessionBackendLock,src/core/SessionBootstrapValidator.h,60,class/struct/enum/function,4,integrated au runtime canonique,Irreversible backend lock,Prompt03 ownership graph
+CanonicalRuntimeHost,src/core/CanonicalRuntimeHost.h,14,class/struct/enum/function,8,integrated au runtime canonique,Single owner host boundary,Prompt03 ownership graph

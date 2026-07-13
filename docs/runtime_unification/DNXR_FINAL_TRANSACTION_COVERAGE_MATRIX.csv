@@ -1,0 +1,19 @@
+current_owner_or_function,final_contract_destination,phase_or_interface,disposition,status
+RuntimeController session lifecycle,CanonicalNeuralBciRuntime,"openSession,step,requestHold,requestEmergencyStop,closeSession",single production façade,contract frozen
+RuntimePipelineRunner::run,Canonical typed transitions,"WorldIngressFrame -> ClosedTransaction",migration source,open P0 implementation migration
+RuntimeAcquisitionStage,IBciAcquisition,BciAcquisitionFrame,service behind canonical transaction,contract frozen
+RuntimeSignalStage,ConditionedSignal transition,ConditionedSignal,service behind canonical transaction,contract frozen
+RuntimeInferenceStage,InferenceResult transition,InferenceResult,service behind canonical transaction,contract frozen
+RuntimeCalibrationStage,CalibrationSnapshotRef transition,CalibrationSnapshotRef,service behind canonical transaction,contract frozen
+RuntimeImmersionFrameStage,IWorldIngress/IMotorWorldEgress,WorldIngressFrame/MotorIntent,world/motor boundary service,contract frozen
+RuntimeFullDiveStage,ISensoryEncoding,EncodedModalities,migration source for encoding and sync algorithms,contract frozen
+RuntimeFiveSenseCoherenceStage,ISensoryEncoding/ISafetyAuthority,EncodedModalities/SafetyDecision,migration source,contract frozen
+RuntimeModalityPhaseLockStage,ISpikeMapping/ISafetyAuthority,AlignedSpikePlan/SafetyDecision,migration source,contract frozen
+RuntimeStimulusStage,INeuralChipTransport,PreparedCommit -> SubmitReceipt,must stop direct HAL authority,open P0 implementation migration
+RuntimeClosedLoopFeedbackStage,IFeedbackReader,ExternalAck -> ExternalFeedback,must require external correlated feedback,open P0 implementation migration
+RuntimePerceptionCorrectionStage,CorrectionDecision,CorrectionDecision,service behind canonical transaction,contract frozen
+RuntimeCycleFinalizer,IAuditSink/IObserverSnapshotSink,ClosedTransaction,audit and read-only observer sink,contract frozen
+NeuralChipOnlyFullDivePipeline,service interfaces,"ISensoryEncoding,ISpikeMapping,ISafetyAuthority,INeuralChipTransport,IFeedbackReader,IAuditSink",algorithm source not API,ADR accepted
+PipelineOrchestrator,none in production API,n/a,support/test utility only,classified
+HardwareBenchRuntime,HIL/bench harness,n/a,external conformance lane only,classified
+XRRenderer/IObserver rendering,IObserverSnapshotSink,ClosedTransaction read-only snapshot,observer only outside core transaction,classified

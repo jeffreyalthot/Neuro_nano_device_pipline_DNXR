@@ -148,6 +148,8 @@ void ConsciousnessBridge::
 update(
     float deltaTime) {
 
+    (void)deltaTime;
+
     synchronizeConsciousness();
 
     computeAwarenessLevel();

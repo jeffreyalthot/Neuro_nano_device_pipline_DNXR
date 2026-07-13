@@ -127,3 +127,23 @@
 - Fixed the canonical runtime aggregate link closure using a CMake RESCAN link group.
 - Added final acceptance and external dependency reports.
 - Full CTest is not fully green; the final acceptance report records the remaining failing validation lanes without claiming clinical/hardware validation.
+
+## Prompt 01 executable-truth CLI rebaseline — 2026-07-13
+
+Initial git state observed on branch `work` at `32cb0aded536528281cef679f525515eda4ec0fb` before this change set. This update adds an early `RuntimeCli` parser so `--help`, `--version`, syntax errors, and `validate-config` return before runtime-controller construction. Active startup is now explicit via `run --profile <profile> --config <path>`.
+
+Build evidence: `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` passed. `cmake --build build --target distributed_neural_xr dnxr_cli_side_effect_contract_test -j2` passed after repairing warning-as-error findings. `ctest --test-dir build -R 'dnxr_cli_side_effect_contract_test' --output-on-failure` passed. `./build/distributed_neural_xr --help` returned code 0 and did not initialize runtime modules.
+
+Open P0 evidence: the canonical pipeline still delegates through `RuntimePipelineRunner`, and the simulation executable still links observer/test-adapter libraries pending the dedicated observer/core split prompts.
+
+## Prompt 02 final transaction contract — 2026-07-13
+
+Starting state: branch `work`, HEAD `5991c81` from Prompt 01. Prompt 02 adds a compilable canonical runtime transaction contract in `src/runtime/CanonicalBciRuntimeContract.h`, type-level transaction tests, a coverage matrix, and an ADR explaining why `RuntimePipelineRunner` and `NeuralChipOnlyFullDivePipeline` are migration sources rather than final APIs.
+
+No runtime business implementation was migrated in this prompt. P0 implementation gaps remain open for ownership transfer in Prompt 03+.
+
+## Prompt 03 composition root ownership — 2026-07-13
+
+Starting state: branch `work`, HEAD `f4c2849`. Added `SessionBootstrapValidator`, immutable `SessionBootstrapSnapshot`, `SessionBackendLock`, and `CanonicalRuntimeHost`. `RuntimeApplication` now runs bootstrap validation before constructing the legacy `RuntimeController`, preventing known-invalid configs from partially initializing runtime state.
+
+The full stage logic is not yet moved out of `RuntimeController`; that remains an explicit P0 migration gap. The new bootstrap test validates unique ownership counters, immutable snapshots, backend lock irreversibility, real-profile fail-closed attestation, and destruction order.

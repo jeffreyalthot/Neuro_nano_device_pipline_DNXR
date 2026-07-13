@@ -4,6 +4,7 @@ set(DNXR_RUNTIME_CORE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/app/CliDashboard.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/app/RuntimeApplication.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/app/RuntimeBootstrap.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/app/RuntimeCli.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/assets/AssetRegistry.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/assets/ClinicalAssetGate.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/calibration/AdaptationLayer.cpp
@@ -42,6 +43,8 @@ set(DNXR_RUNTIME_CORE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core/RuntimeCompositionRoot.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core/RuntimeController.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core/RuntimeDeploymentMode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/SessionBootstrapValidator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/CanonicalRuntimeHost.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core/RuntimeDiagnostics.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core/SystemKernel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/devices/HostComputerBridge.cpp

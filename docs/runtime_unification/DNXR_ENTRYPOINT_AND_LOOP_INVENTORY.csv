@@ -1,0 +1,4 @@
+target,entrypoint,loop_or_cycle,owner,current_disposition,evidence
+"distributed_neural_xr","src/main.cpp:main","RuntimeController::run / runDeterministicCycle","RuntimeController + CanonicalNeuralBciPipeline facade","active runtime entry; CLI now explicit before controller construction","Prompt 01 CLI side-effect test"
+"dnxr_cli_side_effect_contract_test","tests/dnxr_cli_side_effect_contract_test.cpp:main","none","RuntimeCli parser only","architecture/CLI test","CTest passed"
+"dnxr_hardware_bench","src/hardware_bench/main.cpp:main","HardwareBenchRuntime","bench runtime","bench/HIL only","not changed in this prompt"
