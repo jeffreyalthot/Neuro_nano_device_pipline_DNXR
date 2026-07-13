@@ -7,6 +7,10 @@ ChipReadFrame NeuralChipBus::readNeuralActivity() const {
     return readFrame_;
 }
 
+ChipReadFrame NeuralChipBus::readClosedLoopFeedback() const {
+    return feedbackFrame_;
+}
+
 bool NeuralChipBus::submitSensoryFrame(const FullDiveChipFrame& frame) {
     health_.connected = true;
     const auto validation = NeuralVectorValidator::validate(frame);
@@ -29,6 +33,10 @@ bool NeuralChipBus::submitSensoryFrame(const FullDiveChipFrame& frame) {
 
 void NeuralChipBus::injectSimulatedMotorReadFrame(const ChipReadFrame& frame) {
     readFrame_ = frame;
+}
+
+void NeuralChipBus::injectSimulatedFeedbackFrame(const ChipReadFrame& frame) {
+    feedbackFrame_ = frame;
 }
 
 bool NeuralChipBus::submitSafetyHold(const NeuralSafetyFrame& safety) {

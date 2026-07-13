@@ -7,8 +7,10 @@ namespace dnxr {
 class NeuralChipBus {
 public:
     ChipReadFrame readNeuralActivity() const;
+    ChipReadFrame readClosedLoopFeedback() const;
     bool submitSensoryFrame(const FullDiveChipFrame& frame);
     void injectSimulatedMotorReadFrame(const ChipReadFrame& frame);
+    void injectSimulatedFeedbackFrame(const ChipReadFrame& frame);
     bool submitSafetyHold(const NeuralSafetyFrame& safety);
     ChipHealthStatus getHealthStatus() const;
     const FullDiveChipFrame& lastAcceptedFrame() const;
@@ -19,6 +21,7 @@ private:
 
     ChipHealthStatus health_{};
     ChipReadFrame readFrame_{};
+    ChipReadFrame feedbackFrame_{};
     FullDiveChipFrame lastFrame_{};
     NeuralSafetyFrame lastSafetyHold_{};
 };

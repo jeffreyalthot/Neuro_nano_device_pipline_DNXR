@@ -8,7 +8,13 @@ int main() {
     assert(machine.state() == dnxr::SafetyRuntimeState::BootSelfTest);
 
     machine.bootSelfTestPassed();
-    assert(machine.state() == dnxr::SafetyRuntimeState::Nominal);
+    assert(machine.state() == dnxr::SafetyRuntimeState::EvidenceCheck);
+    machine.evidenceAccepted("test-evidence");
+    machine.connected("test-transport");
+    machine.calibrated("test-calibration");
+    assert(machine.state() == dnxr::SafetyRuntimeState::Ready);
+    machine.startRunning("test-start");
+    assert(machine.state() == dnxr::SafetyRuntimeState::Running);
 
     dnxr::SafetyDecision degraded;
     degraded.action = dnxr::SafetyAction::ReduceIntensity;
@@ -33,9 +39,11 @@ int main() {
     machine.enterPostIncidentReview("operator:test-review");
     assert(machine.state() == dnxr::SafetyRuntimeState::PostIncidentReview);
     machine.resetToNominalAfterReview("operator:test-reset");
-    assert(machine.state() == dnxr::SafetyRuntimeState::Nominal);
+    assert(machine.state() == dnxr::SafetyRuntimeState::ControlledResume);
+    machine.startRunning("test-controlled-resume");
+    assert(machine.state() == dnxr::SafetyRuntimeState::Running);
 
-    assert(machine.auditTrail().size() >= 6U);
+    assert(machine.auditTrail().size() >= 7U);
     std::cout << "Safety state machine latch semantics OK\n";
     return 0;
 }

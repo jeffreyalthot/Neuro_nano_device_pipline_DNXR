@@ -11,14 +11,27 @@
 namespace dnxr {
 
 enum class SafetyRuntimeState {
-    BootSelfTest,
-    Nominal,
-    Degraded,
-    Decompression,
-    RealityAnchor,
+    Booting,
+    EvidenceCheck,
+    Connecting,
+    Calibrating,
+    Ready,
+    Running,
+    AwaitingAck,
+    HoldNeutral,
+    HoldMinimal,
+    Recalibrating,
+    Decompressing,
+    ControlledResume,
     EmergencyLatched,
+    Shutdown,
     LockedOut,
-    PostIncidentReview
+    PostIncidentReview,
+    BootSelfTest = Booting,
+    Nominal = Running,
+    Degraded = HoldNeutral,
+    Decompression = Decompressing,
+    RealityAnchor = HoldMinimal
 };
 
 struct SafetyStateTransition {
@@ -27,6 +40,8 @@ struct SafetyStateTransition {
     std::string reason = "initialized";
     std::uint64_t sequence = 0U;
     bool latched = false;
+    std::string authority = "canonical_safety_state_machine";
+    std::uint64_t timestampNs = 0U;
 };
 
 class SafetyStateMachine {
@@ -34,6 +49,13 @@ public:
     SafetyStateMachine();
 
     SafetyStateTransition bootSelfTestPassed();
+    SafetyStateTransition evidenceAccepted(const std::string& authority);
+    SafetyStateTransition connected(const std::string& authority);
+    SafetyStateTransition calibrated(const std::string& authority);
+    SafetyStateTransition startRunning(const std::string& authority);
+    SafetyStateTransition awaitAck(const std::string& authority);
+    SafetyStateTransition enterControlledResume(const std::string& authority);
+    SafetyStateTransition shutdown(const std::string& authority);
     SafetyStateTransition observeSafetyDecision(const SafetyDecision& decision);
     SafetyStateTransition observeRealityAnchorPlan(const RealityAnchorPlan& plan);
     SafetyStateTransition latchEmergency(const std::string& reason);

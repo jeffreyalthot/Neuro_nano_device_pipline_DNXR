@@ -288,3 +288,19 @@
 
 ## Prompt 10 transport dependency disposition
 - The transport/HAL lifecycle path is independent of XR renderer/headset APIs and was checked for no empty transport shim or auto-ACK terms in the touched hardware/core scope.
+
+## Prompt 11 observer non-authority check
+
+Safety decision levels added in Prompt11 intentionally exclude render-budget or observer-display authority. The merged neural safety decision can include local encoder, modality, cross-modal, session, transport/hardware, and post-feedback evidence only; observer/render health may be reported separately but is not represented as an authority capable of permitting neural output.
+
+## Prompt 12 motor/control dependency disposition
+
+The canonical motor-control additions under `src/full_dive/chip_pipeline` and `src/full_dive/motor_chip` were checked for `XRRenderer`, `XRHeadsetInterface`, OpenXR, SteamVR, HMD, headset eye tracking, `runFullBodyControlTick`, `ImmersionCore`, and `XRFullBodyCommand`; no matches remain in the touched canonical motor/feedback path. `MotorIntentCommand` exits through `ICanonicalMotorIntentSink`, an explicit world-engine boundary, not through observer rendering.
+
+## Prompt 13 repository-sweep disposition
+
+The Prompt13 meta-audit covers every source/header under `src/`; renderer/headset-facing files remain classified as observer/support or legacy device adapters rather than mandatory canonical BCI path dependencies. Research and social/MMORPG subsystems are explicitly classified outside the production frame owner and cannot become hidden headset/renderer-derived control inputs by manifest omission.
+
+## Prompt 14 — real-runtime headset/observer source exclusion
+
+`DNXR_REAL_RUNTIME_SRC` now removes observer/headset implementation sources (`devices/XRHeadsetInterface.cpp`, `rendering/XRRenderer.cpp`) in addition to simulation/HIL sources. `RuntimeController` constructs and applies renderer QoS only under `DNXR_SIMULATION_ONLY`; `ObserverMirrorSink` exposes renderer attachment only under the same guard and otherwise records a renderer-excluded observer diagnostic. A real binary forbidden-symbol scan found no `XRHeadsetInterface` or `XRRenderer` symbols.

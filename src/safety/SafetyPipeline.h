@@ -14,6 +14,7 @@ public:
     void addLayer(std::unique_ptr<ISafetyLayer> layer);
     SafetyDecisionTrace evaluate(const SafetyGovernorInput& input) const;
     std::size_t layerCount() const;
+    static std::string decisionLevelName(SafetyDecisionLevel level);
 
 private:
     static SafetyDecision aggregate(const std::vector<SafetyLayerDecision>& decisions);

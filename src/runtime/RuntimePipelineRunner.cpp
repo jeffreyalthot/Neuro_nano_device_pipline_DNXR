@@ -31,19 +31,6 @@ std::vector<float> RuntimePipelineRunner::normalizedTelemetryRiskVector(const st
     };
 }
 
-void RuntimePipelineRunner::finishLegacyCycle(RuntimePipelineFrame& frame,
-                                              SchedulerTickReport& tickReport,
-                                              const RuntimeCycleFinalizer::Input& input,
-                                              bool safeDecision,
-                                              bool emergencyActive,
-                                              const std::string& reason,
-                                              bool emitBudgetWarning) {
-    RuntimeCycleFinalizer::finish(tickReport, safeDecision, emergencyActive, reason, input, emitBudgetWarning);
-    frame.continueCycle = false;
-    frame.emergencyActive = emergencyActive;
-    frame.stopReason = reason;
-}
-
 void RuntimePipelineRunner::finishModernCycle(RuntimePipelineFrame& frame,
                                               SchedulerTickReport& tickReport,
                                               RuntimeStageServices& services,
@@ -233,106 +220,5 @@ RuntimePipelineFrame RuntimePipelineRunner::run(const RuntimePipelineRunInputRef
     return pipeline;
 }
 
-RuntimePipelineFrame RuntimePipelineRunner::runLegacy(const LegacyRunInput& input) const {
-    RuntimePipelineFrame pipeline;
-
-    const auto tAcq = std::chrono::steady_clock::now();
-    pipeline = RuntimeAcquisitionStage::execute(input.context, input.stages.acquisition);
-    input.stages.finalizer.scheduler.endTask(RuntimeAcquisitionStage::name(), tAcq, input.tickReport);
-    if (!pipeline.continueCycle) {
-        if (pipeline.emergencyActive) {
-            if (input.sinks.triggerEmergency) input.sinks.triggerEmergency();
-            if (input.sinks.logWarn) input.sinks.logWarn("⚠️  Physiological guard triggered.");
-            finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, true, pipeline.stopReason);
-            if (input.sinks.throttleEmergency) input.sinks.throttleEmergency();
-            return pipeline;
-        }
-        if (input.sinks.logWarn) input.sinks.logWarn("⚠️  Empty neural signal frame.");
-        finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.acquisitionStatus.emergencyActive, pipeline.stopReason);
-        return pipeline;
-    }
-
-    const auto tSignal = std::chrono::steady_clock::now();
-    pipeline = RuntimeSignalStage::execute(std::move(pipeline), input.stages.signal);
-    input.stages.finalizer.scheduler.endTask(RuntimeSignalStage::name(), tSignal, input.tickReport);
-    if (!pipeline.continueCycle) {
-        finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.signalStatus.emergencyActive, pipeline.stopReason);
-        return pipeline;
-    }
-
-    pipeline.normalizedTelemetryRisk = normalizedTelemetryRiskVector(pipeline.telemetry);
-
-    const auto tInference = std::chrono::steady_clock::now();
-    pipeline = RuntimeInferenceStage::execute(std::move(pipeline), input.stages.inference);
-    const bool inferenceOk = input.stages.finalizer.scheduler.endTask(RuntimeInferenceStage::name(), tInference, input.tickReport);
-    if (!inferenceOk) {
-        if (input.sinks.recordDroppedFrame) input.sinks.recordDroppedFrame();
-        if (input.sinks.logWarn) input.sinks.logWarn("⚠️ Inference budget exceeded — frame degraded, skipping render. task=inference");
-        finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, true, false, "inference_budget_exceeded");
-        return pipeline;
-    }
-
-    if (input.sinks.publishPipelineState) input.sinks.publishPipelineState(pipeline);
-
-    pipeline = RuntimeCalibrationStage::execute(std::move(pipeline), input.stages.calibration);
-    if (!pipeline.continueCycle) {
-        finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.calibrationStatus.emergencyActive, pipeline.stopReason);
-        return pipeline;
-    }
-
-    pipeline = RuntimeImmersionFrameStage::execute(std::move(pipeline), input.stages.immersionFrame);
-    if (!pipeline.continueCycle) {
-        finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.immersionFrameStatus.emergencyActive, pipeline.stopReason);
-        return pipeline;
-    }
-
-    pipeline = RuntimeSafetyStage::execute(std::move(pipeline), input.stages.safety);
-    if (!pipeline.continueCycle) {
-        finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
-        return pipeline;
-    }
-
-    if (input.sinks.recordReplayFrame) input.sinks.recordReplayFrame(pipeline.cleanSignals, input.context.timestamp);
-
-    pipeline = RuntimeFullDiveStage::execute(std::move(pipeline), input.stages.fullDive);
-    if (!pipeline.continueCycle) {
-        finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
-        return pipeline;
-    }
-
-    pipeline = RuntimeRenderStage::execute(std::move(pipeline), input.makeRenderStageInput(input.tickReport));
-    if (!pipeline.continueCycle) {
-        finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
-        return pipeline;
-    }
-
-    pipeline.stimulusStatus = RuntimeStimulusStage::validate(
-        static_cast<bool>(input.stages.stimulus.buildCommand) &&
-            static_cast<bool>(input.stages.stimulus.writeSafeStimulus),
-        "stimulus_stage_unavailable");
-    if (!pipeline.stimulusStatus.continueCycle) {
-        finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.stimulusStatus.emergencyActive, pipeline.stimulusStatus.reason);
-        return pipeline;
-    }
-
-    pipeline = RuntimeStimulusStage::execute(std::move(pipeline), input.stages.stimulus);
-    if (!pipeline.continueCycle) {
-        if (pipeline.stopReason == "unsafe_stimulus_rejected") {
-            if (input.sinks.auditRejectedStimulus) input.sinks.auditRejectedStimulus(toLegacyCommand(pipeline.stimulusCommand));
-        }
-        finishLegacyCycle(pipeline, input.tickReport, input.stages.finalizer, false, pipeline.emergencyActive, pipeline.stopReason);
-        return pipeline;
-    }
-
-    RuntimeCycleFinalizer::finish(input.tickReport, true, false, "nominal_runtime", input.stages.finalizer, true);
-    pipeline.continueCycle = true;
-    pipeline.emergencyActive = false;
-    pipeline.stopReason = "nominal_runtime";
-    return pipeline;
-}
-
-RuntimePipelineFrame RuntimePipelineRunner::run(const LegacyRunInput& input) const {
-    return runLegacy(input);
-}
 
 } // namespace dnxr

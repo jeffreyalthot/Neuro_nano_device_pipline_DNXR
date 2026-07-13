@@ -317,3 +317,14 @@ dnxr_canonical_visual_bci_spike_path_test,Prompt07,canonical visual world-to-spi
 dnxr_canonical_multimodal_bci_spike_path_test,Prompt08,canonical multimodal world-to-spike path,new e2e regression,audio/touch/proprio/vestibular/chemical-neutral -> shared spike runtime -> gates
 dnxr_ppp_grammar_serialization_test,Prompt09,PPP grammar serialization/topology/integrity,new spike regression,serialize/parse/verify topology bounds tamper feedback-only hold
 dnxr_neural_chip_transport_lifecycle_test,Prompt10,transport/HAL lifecycle and ACK boundary,new transport regression,attest negotiate prepare submit external ack replay duplicate timeout cutoff real fail-closed
+dnxr_safety_state_machine_test,tests/dnxr_safety_state_machine_test.cpp,migrated,Canonical lifecycle gate sequence and controlled resume after reset,ctest prompt11 pass
+dnxr_integrated_safety_lifecycle_decision_test,tests/dnxr_integrated_safety_lifecycle_decision_test.cpp,added,Monotonic merged decisions plus audited canonical lifecycle gates,ctest prompt11 pass
+dnxr_safety_pipeline_test,tests/dnxr_safety_pipeline_test.cpp,retained,Existing safety monotonic pipeline regression remains compatible,ctest prompt11 pass
+dnxr_canonical_closed_loop_motor_world_feedback_test,tests/dnxr_canonical_closed_loop_motor_world_feedback_test.cpp,added,Frame N BCI motor command -> world N+1 -> feedback-gated correction and hold,no renderer/headset fallback; ctest prompt12 pass
+dnxr_neural_chip_only_pipeline_test,tests/dnxr_neural_chip_only_pipeline_test.cpp,retained,Canonical chip-only pipeline remains compatible with motor command/feedback additions,ctest prompt12 pass
+dnxr_closed_loop_pipeline_integration_test,tests/dnxr_closed_loop_pipeline_integration_test.cpp,retained,Closed-loop integration remains compatible with distinct feedback gate,ctest prompt12 pass
+dnxr_runtime_disposition_manifest_audit_test,tests/runtime/dnxr_runtime_disposition_manifest_audit_test.cpp,added,Meta-audit for 100% src file disposition and public type preservation,ctest prompt13 pass in default and research-enabled builds
+dnxr_runtime_pipeline_legacy_input_test,tests/dnxr_runtime_pipeline_legacy_input_test.cpp,migrated,Negative scan proving LegacyRunInput/runLegacy/finishLegacyCycle are removed,ctest prompt14 pass
+dnxr_runtime_pipeline_runner_test,tests/dnxr_runtime_pipeline_runner_test.cpp,migrated,RuntimeController plus CanonicalNeuralBciPipeline harness proves runner compatibility without legacy input,ctest prompt14 pass
+dnxr_runtime_pipeline_run_input_ref_test,tests/dnxr_runtime_pipeline_run_input_ref_test.cpp,migrated,Canonical run input ref semantics retained after legacy type removal,build prompt14 pass
+dnxr_runtime_single_pipeline_structure_test,tests/runtime/dnxr_runtime_single_pipeline_structure_test.cpp,added,Structural CMake/source guard for one business pipeline and no real-runtime sim/headset observer sources,ctest prompt14 default+real pass

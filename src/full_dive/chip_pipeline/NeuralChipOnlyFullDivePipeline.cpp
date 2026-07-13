@@ -6,8 +6,16 @@
 #include "neural_chip/DisabledModalityNeutralityValidator.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace dnxr {
+
+namespace {
+std::uint64_t quantize01(float value) {
+  const float clamped = std::max(0.0f, std::min(1.0f, value));
+  return static_cast<std::uint64_t>(std::llround(clamped * 1000000.0f));
+}
+}
 
 NeuralChipOnlyPipelineConfig
 NeuralChipOnlyPipelineConfig::simulationSafeDefaults() {
@@ -64,6 +72,7 @@ NeuralChipOnlyFullDivePipeline::NeuralChipOnlyFullDivePipeline(
   chemicalGate_.setEnabled(config_.enableExperimentalChemicalChannels);
   sessionState_.chemicalChannelsEverEnabled =
       config_.enableExperimentalChemicalChannels;
+  motorIntentSink_ = &defaultMotorIntentSink_;
 }
 
 PatientSpecificNeuralMap NeuralChipOnlyFullDivePipeline::effectivePatientMap(
@@ -266,6 +275,53 @@ void NeuralChipOnlyFullDivePipeline::recordNoOpReplay(
   recordReplay({}, frame, result, reason, outcome, true);
 }
 
+MotorIntentCommand NeuralChipOnlyFullDivePipeline::buildMotorIntentCommand(
+    std::uint64_t frameId, double timestampMs, const NeuralMotorIntentVector& motor,
+    const MotorIntentConfidenceDecision& decision, const AvatarRigCommandFrame& rig) const {
+  MotorIntentCommand command;
+  command.frameId = frameId;
+  command.validFromFrameId = frameId + 1U;
+  command.validUntilFrameId = frameId + 1U;
+  command.timestampMs = timestampMs;
+  command.confidence01 = motor.confidence01;
+  command.intent = motor;
+  command.rig = rig;
+  command.patientBinding = "simulation_patient_bound";
+  if (emergencyLatch_.latched()) {
+    command.safetyDisposition = MotorIntentSafetyDisposition::EmergencyStop;
+    command.dispositionReason = emergencyLatch_.reason();
+  } else if (decision.safetyPoseRequired || decision.freezeAvatar) {
+    command.safetyDisposition = MotorIntentSafetyDisposition::SafetyPose;
+    command.dispositionReason = decision.reason;
+  } else if (decision.lowConfidence || motor.confidence01 < 0.50f) {
+    command.safetyDisposition = MotorIntentSafetyDisposition::ReducedMotion;
+    command.dispositionReason = decision.reason && *decision.reason ? decision.reason : "low_confidence_reduced_motion";
+  } else {
+    command.safetyDisposition = MotorIntentSafetyDisposition::Normal;
+    command.dispositionReason = "accepted_for_world_frame_n_plus_1";
+  }
+  std::uint64_t hash = 1469598103934665603ULL;
+  const auto mix = [&hash](std::uint64_t value) {
+    hash ^= value;
+    hash *= 1099511628211ULL;
+  };
+  mix(command.frameId);
+  mix(command.validFromFrameId);
+  mix(quantize01(command.confidence01));
+  mix(quantize01(command.intent.moveForward01));
+  mix(quantize01(command.intent.turnYaw01));
+  mix(quantize01(command.intent.lookPitch01));
+  mix(quantize01(command.intent.stopIntent01));
+  mix(static_cast<std::uint64_t>(command.safetyDisposition));
+  command.commandHash = hash;
+  return command;
+}
+
+bool NeuralChipOnlyFullDivePipeline::feedbackUsableForNextFrame(
+    const ChipReadFrame& feedback, std::uint64_t expectedFrameId) const {
+  return feedback.frameId == expectedFrameId && feedback.signalQuality01 >= 0.25f;
+}
+
 PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(
     const NeuralChipOnlyWorldFrame &rawWorld) {
   if (!reentrancyGuard_.enter()) {
@@ -380,6 +436,24 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(
     lastRigCommand_ =
         avatarSafetyPose_.apply(lastRigCommand_, config_.enableResearchVision);
   }
+  lastMotorIntentCommand_ = buildMotorIntentCommand(
+      world.frameId, world.timestampMs, motor, motorDecision, lastRigCommand_);
+  if (motorIntentSink_ && !motorIntentSink_->submitMotorIntentCommand(lastMotorIntentCommand_)) {
+    decisionTrace_.record({world.frameId, "MotorIntentCommandSink", "motor",
+                           "hold", "motor_world_output_rejected", 1.0f,
+                           lastMotorIntentCommand_.confidence01, 0.0f});
+    FullDiveChipFrame holdProbe{};
+    holdProbe.frameId = world.frameId;
+    holdProbe.timestampMs = world.timestampMs;
+    return finishStep(rejectWithHold(holdProbe, "motor world output rejected",
+                                     0.0f, read,
+                                     PipelinePathKind::ValidatorReject));
+  }
+  decisionTrace_.record({world.frameId, "MotorIntentCommand", "motor",
+                         "world_output", lastMotorIntentCommand_.dispositionReason,
+                         motorDecision.lowConfidence ? 1.0f : 0.0f,
+                         lastMotorIntentCommand_.confidence01,
+                         static_cast<float>(lastMotorIntentCommand_.commandHash & 0xFFFFU) / 65535.0f});
 
   const VisualSceneSemantics visualSemantics =
       visualSemanticExtractor_.extract(world.scene);
@@ -610,7 +684,22 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(
   recordDiff("ExperimentalChemicalChannelGate", before, frame);
 
   if (hasLastSubmittedFrame_) {
-    auto error = closedLoopController_.analyze(lastSubmittedFrame_, read);
+    const ChipReadFrame feedback = chipBus_.readClosedLoopFeedback();
+    if (!feedbackUsableForNextFrame(feedback, lastSubmittedFrame_.frameId)) {
+      decisionTrace_.record({frame.frameId, "ClosedLoopNeuralFeedbackReader",
+                             "feedback", "hold",
+                             feedback.frameId == 0U
+                                 ? "feedback_absent_after_ack"
+                                 : "feedback_stale_or_low_quality",
+                             1.0f, feedback.signalQuality01,
+                             static_cast<float>(lastSubmittedFrame_.frameId & 0xFFFFU) / 65535.0f});
+      lastRigCommand_ = avatarSafetyPose_.apply(lastRigCommand_,
+                                                config_.enableResearchVision);
+      return finishStep(rejectWithHold(frame, "closed-loop feedback missing or unusable",
+                                       0.20f, read,
+                                       PipelinePathKind::SessionSupervisorHold));
+    }
+    auto error = closedLoopController_.analyze(lastSubmittedFrame_, feedback);
     auto correction = closedLoopController_.decide(error);
     before = frame;
     frame = closedLoopController_.applyCorrection(frame, correction);
@@ -620,6 +709,12 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(
                          error.touchError01, error.proprioceptionError01,
                          error.vestibularError01, error.olfactoryError01,
                          error.gustatoryError01, error.motorError01});
+    decisionTrace_.record({frame.frameId, "ClosedLoopNeuralFeedbackReader",
+                           "feedback", "accepted",
+                           "feedback_distinct_from_bci_acquisition",
+                           1.0f - feedback.signalQuality01,
+                           feedback.signalQuality01,
+                           sessionState_.closedLoopStability01});
     if (correction.requireHold) {
       return finishStep(
           rejectWithHold(frame, "closed-loop perception divergence", 0.20f,
@@ -816,6 +911,18 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(
 const AvatarRigCommandFrame &
 NeuralChipOnlyFullDivePipeline::lastRigCommand() const {
   return lastRigCommand_;
+}
+const MotorIntentCommand &
+NeuralChipOnlyFullDivePipeline::lastMotorIntentCommand() const {
+  return lastMotorIntentCommand_;
+}
+const RecordingMotorIntentSink &
+NeuralChipOnlyFullDivePipeline::recordedMotorIntentSink() const {
+  return defaultMotorIntentSink_;
+}
+void NeuralChipOnlyFullDivePipeline::setMotorIntentSink(
+    ICanonicalMotorIntentSink* sink) {
+  motorIntentSink_ = sink ? sink : &defaultMotorIntentSink_;
 }
 const NeuralChipSessionState &
 NeuralChipOnlyFullDivePipeline::sessionState() const {

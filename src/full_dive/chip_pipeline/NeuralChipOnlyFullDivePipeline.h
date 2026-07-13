@@ -6,6 +6,7 @@
 #include "full_dive/motor_chip/AvatarKinematicRigController.h"
 #include "full_dive/motor_chip/MotorCortexReadFrameAdapter.h"
 #include "full_dive/motor_chip/MotorIntentConfidenceGate.h"
+#include "full_dive/motor_chip/MotorIntentCommand.h"
 #include "full_dive/motor_chip/AvatarSafetyPoseController.h"
 #include "full_dive/olfactory_chip/NeuralOlfactoryEncoder.h"
 #include "full_dive/safety/ChipRealityAnchorHardChannel.h"
@@ -105,6 +106,9 @@ public:
     bool step(const NeuralChipOnlyWorldFrame& world);
     PipelineStepResult stepDetailed(const NeuralChipOnlyWorldFrame& world);
     const AvatarRigCommandFrame& lastRigCommand() const;
+    const MotorIntentCommand& lastMotorIntentCommand() const;
+    const RecordingMotorIntentSink& recordedMotorIntentSink() const;
+    void setMotorIntentSink(ICanonicalMotorIntentSink* sink);
     const NeuralChipSessionState& sessionState() const;
     const NeuralChipPipelineDecisionTrace& decisionTrace() const;
     const NeuralChipReplayRecorder& replayRecorder() const;
@@ -129,6 +133,8 @@ private:
     PipelineStepResult finishStep(PipelineStepResult result);
     bool criticalSafetyViolation(const FullDiveChipFrame& frame, const char** reason) const;
     void markAccepted(const FullDiveChipFrame& frame);
+    MotorIntentCommand buildMotorIntentCommand(std::uint64_t frameId, double timestampMs, const NeuralMotorIntentVector& motor, const MotorIntentConfidenceDecision& decision, const AvatarRigCommandFrame& rig) const;
+    bool feedbackUsableForNextFrame(const ChipReadFrame& feedback, std::uint64_t expectedFrameId) const;
     PatientSpecificNeuralMap effectivePatientMap(const NeuralChipOnlyWorldFrame& world) const;
 
     NeuralChipBus& chipBus_;
@@ -189,6 +195,9 @@ private:
     bool hasLastSubmittedFrame_ = false;
     PipelineReentrancyGuard reentrancyGuard_{};
     AvatarRigCommandFrame lastRigCommand_{};
+    MotorIntentCommand lastMotorIntentCommand_{};
+    RecordingMotorIntentSink defaultMotorIntentSink_{};
+    ICanonicalMotorIntentSink* motorIntentSink_ = nullptr;
 };
 
 } // namespace dnxr

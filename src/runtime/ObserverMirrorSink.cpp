@@ -1,6 +1,8 @@
 #include "ObserverMirrorSink.h"
 
+#if DNXR_SIMULATION_ONLY
 #include "../rendering/XRRenderer.h"
+#endif
 
 namespace dnxr {
 
@@ -14,6 +16,7 @@ bool ObserverMirrorSink::publishImmutableCopy(const std::vector<float>& neuralSe
         lastFrame_ = immutableCopy;
         lastFailure_.clear();
     }
+#if DNXR_SIMULATION_ONLY
     if (!renderer_) {
         std::lock_guard<std::mutex> lock(mutex_);
         lastFailure_ = "observer_mirror_renderer_unavailable";
@@ -23,6 +26,12 @@ bool ObserverMirrorSink::publishImmutableCopy(const std::vector<float>& neuralSe
     renderer_->present(immutableCopy);
     ++publishedCount_;
     return true;
+#else
+    std::lock_guard<std::mutex> lock(mutex_);
+    lastFailure_ = "observer_mirror_renderer_excluded_from_real_runtime";
+    ++failedCount_;
+    return false;
+#endif
 }
 
 std::vector<float> ObserverMirrorSink::lastFrameCopy() const {

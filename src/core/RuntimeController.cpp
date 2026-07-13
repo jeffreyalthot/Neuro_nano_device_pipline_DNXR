@@ -25,7 +25,9 @@
 #include "../calibration/CalibrationDriftMonitor.h"
 #include "../immersion/ImmersionCore.h"
 #include "../immersion/MultisensoryClock.h"
+#if DNXR_SIMULATION_ONLY
 #include "../rendering/XRRenderer.h"
+#endif
 #include "../runtime/IBiometricSource.h"
 #include "../runtime/ObserverMirrorSink.h"
 #include "../safety/PhysiologicalGuard.h"
@@ -183,10 +185,16 @@ void RuntimeController::initializeModules() {
     calibrationDriftMonitor_ = std::make_unique<CalibrationDriftMonitor>();
     immersion_    = std::make_unique<ImmersionCore>();
     multisensoryClock_ = std::make_unique<MultisensoryClock>();
+#if DNXR_SIMULATION_ONLY
     observerRenderer_ = std::make_unique<XRRenderer>();
+#endif
     observerMirror_ = std::make_unique<ObserverMirrorSink>();
     observerMirror_->setEnabled(config_.observerMirror.enabled);
+#if DNXR_SIMULATION_ONLY
     observerMirror_->attachRenderer(config_.observerMirror.enabled ? observerRenderer_.get() : nullptr);
+#else
+    observerMirror_->attachRenderer(nullptr);
+#endif
     guard_        = std::make_unique<PhysiologicalGuard>();
     emergency_    = std::make_unique<EmergencyShutdown>();
     reversibility_= std::make_unique<CognitiveReversibilitySystem>();
@@ -324,7 +332,9 @@ void RuntimeController::shutdownModules() {
     immersion_.reset();
     multisensoryClock_.reset();
     observerMirror_.reset();
+#if DNXR_SIMULATION_ONLY
     observerRenderer_.reset();
+#endif
     guard_.reset();
     emergency_.reset();
     reversibility_.reset();
@@ -446,7 +456,6 @@ void RuntimeController::publishRuntimeArtifacts(const RuntimePipelineFrame& pipe
     }
 
     if (dashboard_ && config_.dashboardEnabled && !config_.headless) {
-        const auto renderTelemetry = observerRenderer_ ? observerRenderer_->getTelemetrySnapshot() : XRRenderTelemetrySnapshot{};
         CliDashboardSnapshot snapshot;
         snapshot.cycle = static_cast<int>(pipeline.cycleId);
         snapshot.cognitiveState = pipeline.symbolicState;
@@ -457,7 +466,12 @@ void RuntimeController::publishRuntimeArtifacts(const RuntimePipelineFrame& pipe
         snapshot.calibratedIntensity = pipeline.calibratedFeatures.empty() ? 0.0f : pipeline.calibratedFeatures[0];
         snapshot.avatarPose = immersion_ ? immersion_->getAvatarPoseSummary() : "unavailable";
         snapshot.signalSource = config_.signalSource;
+#if DNXR_SIMULATION_ONLY
+        const auto renderTelemetry = observerRenderer_ ? observerRenderer_->getTelemetrySnapshot() : XRRenderTelemetrySnapshot{};
         snapshot.renderQualityMode = renderTelemetry.quality.qualityMode;
+#else
+        snapshot.renderQualityMode = "observer_renderer_excluded_from_real_runtime";
+#endif
         snapshot.auditHash = safetyJournal_ ? safetyJournal_->latestHash() : "genesis";
         snapshot.lastLatencyMs = metricsSnapshot.lastLatencyMs;
         snapshot.avgLatencyMs = metricsSnapshot.avgLatencyMs;
@@ -861,6 +875,7 @@ void RuntimeController::publishRuntimeMetrics(const RuntimeMetricsSnapshot& snap
     const char* rendererQosMode = "unavailable";
     const char* rendererQualityMode = "unavailable";
 
+#if DNXR_SIMULATION_ONLY
     if (observerRenderer_) {
         if (applyRendererQoS) {
             observerRenderer_->applyRuntimeLatencyHealth(snapshot.latencyHealth);
@@ -868,6 +883,7 @@ void RuntimeController::publishRuntimeMetrics(const RuntimeMetricsSnapshot& snap
         rendererQosMode = observerRenderer_->evaluateQoSDecision().qosMode;
         rendererQualityMode = observerRenderer_->getAdaptiveQualityProfile().qualityMode;
     }
+#endif
 
     publishRuntimeEvent(
         runtimeMetricsSnapshotToEventPayload(snapshot) +
