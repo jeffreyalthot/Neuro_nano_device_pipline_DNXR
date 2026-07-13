@@ -99,3 +99,16 @@
 - `DNXR_ENABLE_SIMULATION` may enable adapters, fixtures, and tools only; it must not change the canonical business graph or introduce a secondary production runtime.
 - A real-runtime binary built with `DNXR_SIMULATION_ONLY=OFF` must not export forbidden headset, observer renderer, simulation, HIL, auto-ACK, legacy, or secondary path symbols.
 - Observer rendering is never authoritative. In real-runtime builds renderer attachment is unavailable and observer publish attempts fail closed as observer diagnostics only.
+
+## Prompt 15 build/config invariants
+
+- CMake presets must not set `DNXR_HUMAN_USE_BUILD=ON` or `DNXR_ENABLE_HUMAN_CLINICAL_TRIAL=ON`; signed evidence gates remain required even if a caller attempts to set those flags manually.
+- Runtime profiles must declare `schemaVersion=dnxr.unified-runtime-profile.v1`, reject unknown properties by schema, keep secrets external to JSON files, keep raw neural payload logging disabled, and make profile configuration immutable after startup.
+- BCI world ingress must be structured-world-stream input with headset endpoints forbidden; observer output, when present, is read-only and cannot feed safety decisions or chip frames.
+
+## Prompt 16 realtime invariants
+
+- The canonical neural/world cycle target is 60 Hz (`16.666 ms`) only when hardware negotiation confirms compatibility; otherwise the negotiated rate is lower and must be explicit in telemetry.
+- Realtime telemetry uses bounded fixed-size windows and const cause tokens; it must not perform synchronous per-frame logging in the realtime thread.
+- World/chip backpressure must use bounded keep-latest/drop-or-hold semantics; obsolete stimulation frames must not accumulate while waiting for ACK/feedback.
+- Safety/commit order is unchanged: telemetry and queue accounting cannot move validation after dispatch or clear an existing hold/emergency decision.

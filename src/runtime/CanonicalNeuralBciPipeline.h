@@ -2,6 +2,7 @@
 
 #include "RuntimePathLock.h"
 #include "RuntimePipelineRunner.h"
+#include "RuntimeRealtimeTelemetry.h"
 #include "neural_chip/AckHoldFrameFactory.h"
 #include "neural_chip/EmergencyLatchController.h"
 #include "neural_chip/FrameLifecycleGuard.h"
@@ -224,6 +225,7 @@ public:
 
     const CanonicalPipelineMetrics& metrics() const;
     const CanonicalBciCycleTransaction& lastTransaction() const;
+    RuntimeRealtimeSnapshot realtimeSnapshot() const;
     NeuralChipPipelineState globalState() const;
     bool cycleInProgress() const;
     static std::uint64_t activeInstanceCount();
@@ -267,6 +269,7 @@ private:
     CanonicalSafetyLifecycleBundle safetyLifecycle_{};
     CanonicalObservabilityBundle observability_{};
     CanonicalPipelineMetrics metrics_{};
+    RuntimeRealtimeTelemetry realtimeTelemetry_{};
     CanonicalBciCycleTransaction lastTransaction_{};
     bool cycleInProgress_ = false;
     bool hasLastFrameId_ = false;

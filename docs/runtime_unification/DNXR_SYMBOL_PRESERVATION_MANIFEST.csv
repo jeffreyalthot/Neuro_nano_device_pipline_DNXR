@@ -3585,3 +3585,14 @@ RuntimePipelineRunner::run,src/runtime/RuntimePipelineRunner.h,method,prompt14,i
 ObserverMirrorSink::attachRenderer,src/runtime/ObserverMirrorSink.h,method,prompt14,conserved as support library,src/runtime/ObserverMirrorSink.h,Simulation-only renderer attachment; real runtime uses no-op signature and nm scan proves no XRRenderer symbol
 ObserverMirrorSink::publishImmutableCopy,src/runtime/ObserverMirrorSink.cpp,method,prompt14,conserved as support library,src/runtime/ObserverMirrorSink.cpp,Observer publish remains read-only; real runtime records renderer-excluded failure without authorizing neural dispatch
 dnxr_runtime_single_pipeline_structure_test,tests/runtime/dnxr_runtime_single_pipeline_structure_test.cpp,function,prompt14,tests/HIL,tests/runtime/dnxr_runtime_single_pipeline_structure_test.cpp,Structural guard for no legacy runner/no secondary runtime/no observer source in real runtime
+dnxr_runtime_core,CMakeLists.txt,Prompt15,target,integrated directly to runtime canonical core,CMake configure/build development-safe and real-backend-compile-check
+dnxr_real_adapters,CMakeLists.txt,Prompt15,target,called by canonical runtime for real backend compile-check,CMake configure/build real-backend-compile-check
+dnxr_observer,CMakeLists.txt,Prompt15,target,conserved as read-only observer support,VR dependency report records remaining debt
+dnxr_test_adapters,CMakeLists.txt,Prompt15,target,limited to tests/development-safe adapters,CMake target split and development-safe build
+dnxr_hil,CMakeLists.txt,Prompt15,target,limited to HIL/nonhuman bench support,CMake target split
+dnxr_tools,CMakeLists.txt,Prompt15,target,conserved as support tools,CMake target split
+RuntimeRateContract,src/runtime/RuntimeRealtimeTelemetry.h,Prompt16,class/struct/enum/function,integrated directly to runtime canonical telemetry,60Hz negotiation tested by dnxr_runtime_realtime_60hz_telemetry_test
+RuntimeRealtimeTelemetry,src/runtime/RuntimeRealtimeTelemetry.h,Prompt16,class/struct/enum/function,integrated directly to runtime canonical telemetry,CanonicalNeuralBciPipeline owns telemetry and test validates metrics
+RuntimeRealtimeSnapshot,src/runtime/RuntimeRealtimeTelemetry.h,Prompt16,class/struct/enum/function,called by canonical runtime telemetry,CanonicalNeuralBciPipeline::realtimeSnapshot exposes snapshot
+RuntimeBoundedLatestQueue,src/runtime/RuntimeRealtimeTelemetry.h,Prompt16,class/struct/enum/function,conserved as canonical support library for bounded backpressure,test validates drop/keep-latest behavior
+realtimeSnapshot,src/runtime/CanonicalNeuralBciPipeline.h,Prompt16,class/struct/enum/function,called by canonical service,test/build verifies exposure

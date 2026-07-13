@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cmath>
+#include <chrono>
 
 namespace dnxr {
 namespace {
@@ -27,9 +28,17 @@ CanonicalNeuralBciPipeline::~CanonicalNeuralBciPipeline() {
 RuntimePipelineFrame CanonicalNeuralBciPipeline::runCycle(
     RuntimePipelineRunner::RuntimePipelineRunInputRef input,
     RuntimePathDecision pathDecision) {
+    const auto cycleStart = RuntimeRealtimeTelemetry::clock::now();
+    realtimeTelemetry_.beginCycle(cycleStart);
     beginCycle(input.context.cycleId, secondsToNanoseconds(input.context.timestamp), pathDecision);
 
+    const auto adapterStart = RuntimeRealtimeTelemetry::clock::now();
     RuntimePipelineFrame frame = compatibilityAdapter_.run(input);
+    const auto adapterEnd = RuntimeRealtimeTelemetry::clock::now();
+    const double adapterMs = std::chrono::duration<double, std::milli>(adapterEnd - adapterStart).count();
+    for (CanonicalBciStage stage : kCanonicalBciStageOrder) {
+        realtimeTelemetry_.recordStage(stage, adapterMs / static_cast<double>(kCanonicalBciStageOrder.size()));
+    }
     frame.runtimePathDecision = pathDecision;
     if (pathDecision.path == RuntimePathKind::RealHardware && pathDecision.adapterFallbackAttempted) {
         ++metrics_.rejectedAdapterFallbacks;
@@ -39,6 +48,7 @@ RuntimePipelineFrame CanonicalNeuralBciPipeline::runCycle(
     }
 
     finishCycle(frame);
+    realtimeTelemetry_.endCycle(RuntimeRealtimeTelemetry::clock::now());
     return frame;
 }
 
@@ -48,6 +58,10 @@ const CanonicalPipelineMetrics& CanonicalNeuralBciPipeline::metrics() const {
 
 const CanonicalBciCycleTransaction& CanonicalNeuralBciPipeline::lastTransaction() const {
     return lastTransaction_;
+}
+
+RuntimeRealtimeSnapshot CanonicalNeuralBciPipeline::realtimeSnapshot() const {
+    return realtimeTelemetry_.snapshot();
 }
 
 NeuralChipPipelineState CanonicalNeuralBciPipeline::globalState() const {
@@ -138,6 +152,14 @@ void CanonicalNeuralBciPipeline::finishCycle(const RuntimePipelineFrame& frame) 
                                                 frame.closedLoopFeedback.safetyVerified ? "feedback_verified" : "feedback_pending_or_hold");
     lastTransaction_.feedback.ackReceived = frame.closedLoopFeedback.safetyVerified;
     lastTransaction_.feedback.autoAck = false;
+
+    realtimeTelemetry_.recordQueueDepths(frame.worldIngressQueueDepth, frame.chipTransportQueueDepth);
+    if (frame.worldFrameDropped) {
+        realtimeTelemetry_.recordDroppedWorldFrame(frame.worldDropCause.c_str());
+    }
+    if (!frame.continueCycle) {
+        realtimeTelemetry_.recordHeldChipFrame(frame.stopReason.empty() ? "cycle_hold" : frame.stopReason.c_str());
+    }
 
     ++metrics_.delegatedCompatibilityCycles;
     ++metrics_.commitsPrepared;

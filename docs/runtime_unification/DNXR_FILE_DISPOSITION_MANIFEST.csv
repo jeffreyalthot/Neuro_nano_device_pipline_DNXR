@@ -1304,3 +1304,17 @@ tests/dnxr_runtime_pipeline_legacy_input_test.cpp,modified,tests/HIL,Prompt14 co
 tests/dnxr_runtime_pipeline_runner_test.cpp,modified,tests/HIL,Prompt14 migrates runner coverage to RuntimeController plus CanonicalNeuralBciPipeline metrics instead of legacy runner input,ctest prompt14
 tests/dnxr_runtime_pipeline_run_input_ref_test.cpp,modified,tests/HIL,Prompt14 removes obsolete LegacyRunInput static assertion and retains canonical stage ordering/ref semantics,ctest prompt14
 tests/runtime/dnxr_runtime_single_pipeline_structure_test.cpp,created,tests/HIL,Prompt14 structural scan for single pipeline/no legacy/no secondary runtime/no observer source in real runtime,default+real ctest prompt14
+CMakeLists.txt,build,modified,Prompt15,target split into dnxr_runtime_core/real_adapters/observer/test_adapters/HIL/tools/speculative; no recursive source glob compiles all cpp
+cmake/dnxr_sources.cmake,build,created,Prompt15,controlled generated source manifest by target category
+CMakePresets.json,build,modified,Prompt15,non-human reproducible presets and legacy preset migration through inheritance
+config/unified_runtime_profile.schema.json,config,created,Prompt15,strict unified runtime/safety/deployment/network/neural_chip/build profile schema
+config/profiles/development-safe.unified.json,config,created,Prompt15,development-safe unified profile with headset ingress forbidden and external-only secrets
+qms/generated/DNXR_BUILD_SOURCE_CONFIG_BINARY_MANIFEST.sha256,evidence,created,Prompt15,source/config/binary SHA-256 build manifest
+src/cognition/PersistentNeuroCognitiveTwin.cpp,source,modified,Prompt15,unused parameter acknowledged for warnings-as-errors cleanup
+src/runtime/RuntimeRealtimeTelemetry.h,source,created,Prompt16,canonical realtime telemetry/rate contract/bounded queue support
+src/runtime/RuntimeRealtimeTelemetry.cpp,source,created,Prompt16,monotonic timing fixed-window percentile/WCET/jitter/drop-hold implementation
+src/runtime/CanonicalNeuralBciPipeline.h,source,modified,Prompt16,canonical pipeline exposes realtime snapshot and owns telemetry
+src/runtime/CanonicalNeuralBciPipeline.cpp,source,modified,Prompt16,canonical cycle begins/ends monotonic telemetry and records backpressure/hold counters
+src/runtime/RuntimePipelineFrame.h,source,modified,Prompt16,adds bounded queue depth and world-drop cause fields for telemetry
+tests/runtime/dnxr_runtime_realtime_60hz_telemetry_test.cpp,test,created,Prompt16,regression for 60Hz negotiation stage stats and bounded keep-latest queue
+qms/generated/DNXR_PROMPT16_REALTIME_BUILD_MANIFEST.sha256,evidence,created,Prompt16,hash manifest for realtime/build/test modifications and binary

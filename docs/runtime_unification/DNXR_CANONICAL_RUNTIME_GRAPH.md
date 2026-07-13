@@ -145,3 +145,17 @@ The canonical runtime now treats repository subsystems as layers around one fram
 Production now has one business cycle owner: `RuntimeApplication` constructs `RuntimeController`, which owns `CanonicalNeuralBciPipeline::runCycle` and its canonical stage services/sinks. `RuntimePipelineRunner` no longer exposes `LegacyRunInput` or `runLegacy`; it remains only as a canonical stage runner utility for tests/adapters that use `RuntimePipelineRunInput` or immutable `RuntimePipelineRunInputRef`.
 
 Real-runtime source selection (`DNXR_SIMULATION_ONLY=OFF`) excludes simulation/HIL/headset/observer-renderer implementation sources. Observer mirroring remains out-of-band and read-only: renderer attachment is available only in simulation/observer builds, while real builds retain an observer sink that records a renderer-excluded diagnostic and cannot affect neural safety, frame commit, ACK, or feedback decisions.
+
+## Prompt 16 realtime overlay
+
+The canonical runtime owner now has an explicit realtime telemetry overlay:
+
+```text
+RuntimeApplication -> RuntimeController -> CanonicalNeuralBciPipeline::runCycle
+  -> RuntimeRealtimeTelemetry::beginCycle(monotonic steady_clock)
+  -> canonical stage order timing windows (p50/p95/p99/max/WCET, fixed 64-sample windows)
+  -> bounded queue-depth/drop/hold counters for world ingress and chip transport backpressure
+  -> RuntimeRealtimeTelemetry::endCycle(monotonic steady_clock)
+```
+
+The BCI/world rate contract defaults to 60 Hz with a 16.666 ms budget when compatible with the hardware. If hardware capability is lower, `RuntimeRateContract::negotiate` lowers the cycle rate and marks the requested 60 Hz target as not hardware-compatible instead of silently overrunning or coupling the observer display rate to the neural cycle. Observer/dashboard output remains out-of-band and is not part of the authoritative safety/commit path.

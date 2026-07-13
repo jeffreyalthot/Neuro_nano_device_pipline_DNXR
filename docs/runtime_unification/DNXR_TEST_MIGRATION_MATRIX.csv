@@ -328,3 +328,10 @@ dnxr_runtime_pipeline_legacy_input_test,tests/dnxr_runtime_pipeline_legacy_input
 dnxr_runtime_pipeline_runner_test,tests/dnxr_runtime_pipeline_runner_test.cpp,migrated,RuntimeController plus CanonicalNeuralBciPipeline harness proves runner compatibility without legacy input,ctest prompt14 pass
 dnxr_runtime_pipeline_run_input_ref_test,tests/dnxr_runtime_pipeline_run_input_ref_test.cpp,migrated,Canonical run input ref semantics retained after legacy type removal,build prompt14 pass
 dnxr_runtime_single_pipeline_structure_test,tests/runtime/dnxr_runtime_single_pipeline_structure_test.cpp,added,Structural CMake/source guard for one business pipeline and no real-runtime sim/headset observer sources,ctest prompt14 default+real pass
+Prompt15,dnxr_canonical_runtime_architecture_test,development-safe,passed,verifies single canonical executable assumptions after target split
+Prompt15,dnxr_config_loader_test,development-safe,passed,config loader regression during unified profile addition
+Prompt15,distributed_neural_xr,real-backend-compile-check,passed,real backend compile-check without simulation crypto in runtime core
+Prompt16,dnxr_runtime_realtime_60hz_telemetry_test,development-safe,passed,validates 60Hz negotiation telemetry fixed windows and bounded latest queue
+Prompt16,dnxr_runtime_realtime_60hz_telemetry_test,real-backend-compile-check,passed,validates realtime test links without simulation adapters in real compile profile
+Prompt16,distributed_neural_xr,development-safe,passed,canonical runtime builds with realtime telemetry integrated
+Prompt16,distributed_neural_xr,real-backend-compile-check,passed,real backend compile-check builds with telemetry integrated
