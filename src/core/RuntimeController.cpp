@@ -56,7 +56,7 @@
 #include "../runtime/RuntimeState.h"
 #include "../runtime/RuntimeFrame.h"
 #include "../runtime/RuntimeTypes.h"
-#include "../runtime/RuntimePipelineRunner.h"
+#include "../runtime/CanonicalNeuralBciPipeline.h"
 #include "../utils/Logger.h"
 #include "../utils/SessionSafetyJournal.h"
 #include "../utils/TimeSync.h"
@@ -139,7 +139,7 @@ RuntimeController::RuntimeController(RuntimeConfig config)
     if (config_.dashboardEnabled && !config_.headless) {
         dashboard_ = std::make_unique<CliDashboard>(config_);
     }
-    pipelineRunner_ = std::make_unique<RuntimePipelineRunner>();
+    canonicalPipeline_ = std::make_unique<CanonicalNeuralBciPipeline>();
     initializeModules();
 }
 
@@ -341,7 +341,7 @@ void RuntimeController::shutdownModules() {
     deepImmersion_.reset();
     fullDiveSynchronization_.reset();
     fullDiveBridge_.reset();
-    pipelineRunner_.reset();
+    canonicalPipeline_.reset();
 }
 
 double RuntimeController::computeCycleDeltaSeconds(std::chrono::steady_clock::time_point cycleStart) {
@@ -707,7 +707,7 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
     }
 
     RuntimeStageServices& services = *stageServices_;
-    const RuntimePathDecision pathDecision = runtimePathLock_.decide(
+    const RuntimePathDecision pathDecision = backendAdapterLock_.decide(
         neuralChipHal_->status(), deploymentMode_);
     RuntimePipelineRunner::RuntimePipelineRunInputRef input{
         RuntimeStageContext{cycleCounter_.load(), timestamp, runtimeDeltaSeconds},
@@ -717,13 +717,12 @@ RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) 
         fullDiveMetricsSnapshot,
         makeCycleFinalizerContext(fullDiveMetricsSnapshot)};
 
-    RuntimePipelineFrame frame = pipelineRunner_->run(input);
-    frame.runtimePathDecision = pathDecision;
-    if (pathDecision.path == RuntimePathKind::PrimaryReal &&
-        pathDecision.secondaryRuntimeAllowed) {
+    RuntimePipelineFrame frame = canonicalPipeline_->runCycle(input, pathDecision);
+    if (pathDecision.path == RuntimePathKind::RealHardware &&
+        pathDecision.adapterFallbackAttempted) {
         frame.continueCycle = false;
         frame.emergencyActive = true;
-        frame.stopReason = "runtime_path_lock_invalid_primary_real_state";
+        frame.stopReason = "runtime_path_lock_invalid_real_hardware_adapter_state";
     }
     publishRuntimeArtifacts(frame);
     return frame;
@@ -810,6 +809,11 @@ uint64_t RuntimeController::getDroppedFrames() const { return droppedFrames_.loa
 RuntimeMetricsSnapshot RuntimeController::getRuntimeMetricsSnapshot() const {
     std::lock_guard<std::mutex> lock(metricsMutex_);
     return runtimeMetrics_.snapshot();
+}
+
+
+CanonicalPipelineMetrics RuntimeController::getCanonicalPipelineMetrics() const {
+    return canonicalPipeline_ ? canonicalPipeline_->metrics() : CanonicalPipelineMetrics{};
 }
 
 RuntimeLatencyHealth RuntimeController::getRuntimeLatencyHealth() const {

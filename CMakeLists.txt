@@ -220,6 +220,8 @@ if(DNXR_BUILD_TESTS)
         dnxr_spike_to_stimulus_translator_test
         dnxr_stimulus_by_spike_runtime_test
         dnxr_runtime_path_lock_test
+        dnxr_canonical_runtime_architecture_test
+        dnxr_canonical_runtime_single_owner_test
         dnxr_spike_runtime_real_evidence_gate_test
         dnxr_openssl_packet_protector_test
         dnxr_virtual_world_data_ingress_test

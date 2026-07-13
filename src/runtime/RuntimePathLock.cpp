@@ -10,38 +10,38 @@ bool deploymentRequestsReal(RuntimeDeploymentMode mode) {
 }
 } // namespace
 
-RuntimePathDecision RuntimePathLock::decide(
+RuntimePathDecision BackendAdapterLock::decide(
     const NeuralChipStatus &status, RuntimeDeploymentMode deploymentMode) {
-  const bool requestsPrimaryReal = deploymentRequestsReal(deploymentMode) ||
+  const bool requestsRealHardware = deploymentRequestsReal(deploymentMode) ||
                                    (!status.simulation && status.connected);
 
-  if (decision_.lockedPrimaryReal && !requestsPrimaryReal) {
-    decision_.path = RuntimePathKind::PrimaryReal;
-    decision_.secondaryRuntimeAllowed = false;
-    decision_.reason = "primary_real_runtime_lock_prevents_secondary_fallback";
+  if (decision_.lockedRealHardware && !requestsRealHardware) {
+    decision_.path = RuntimePathKind::RealHardware;
+    decision_.adapterFallbackAttempted = true;
+    decision_.reason = "real_hardware_backend_lock_prevents_adapter_fallback";
     return decision_;
   }
 
-  if (requestsPrimaryReal) {
-    decision_.path = RuntimePathKind::PrimaryReal;
-    decision_.lockedPrimaryReal = true;
-    decision_.secondaryRuntimeAllowed = false;
+  if (requestsRealHardware) {
+    decision_.path = RuntimePathKind::RealHardware;
+    decision_.lockedRealHardware = true;
+    decision_.adapterFallbackAttempted = false;
     decision_.reason = status.simulation
-                           ? "primary_real_deployment_requested"
-                           : "primary_real_neural_chip_detected";
+                           ? "real_hardware_deployment_requested"
+                           : "real_hardware_neural_chip_detected";
     return decision_;
   }
 
-  decision_.path = RuntimePathKind::SecondarySimulation;
-  decision_.secondaryRuntimeAllowed = true;
-  decision_.reason = "secondary_simulation_runtime";
+  decision_.path = RuntimePathKind::CanonicalAdapter;
+  decision_.adapterFallbackAttempted = false;
+  decision_.reason = "canonical_environment_adapter";
   return decision_;
 }
 
-RuntimePathDecision RuntimePathLock::current() const { return decision_; }
+RuntimePathDecision BackendAdapterLock::current() const { return decision_; }
 
-bool RuntimePathLock::primaryRealLocked() const {
-  return decision_.lockedPrimaryReal;
+bool BackendAdapterLock::realHardwareLocked() const {
+  return decision_.lockedRealHardware;
 }
 
 } // namespace dnxr
