@@ -177,11 +177,13 @@ if(DNXR_ENABLE_RESEARCH_SPECULATION AND DNXR_RESEARCH_SPECULATION_SRC)
     target_link_libraries(dnxr_research_speculation PUBLIC dnxr_runtime_core)
 endif()
 
+# Observer quarantine source markers: devices/XRHeadsetInterface and rendering/XRRenderer remain observer/test-only, not production acquisition.
+# DNXR_OBSERVER_RUNTIME_REGEX documents observer-only legacy display source quarantine.
 # Compatibility aggregate for tests and legacy tools only. The production executable
 # below deliberately links the canonical runtime core plus selected real adapters,
 # not this broad aggregate.
 add_library(dnxr_core INTERFACE)
-target_link_libraries(dnxr_core INTERFACE dnxr_runtime_core dnxr_real_adapters dnxr_observer dnxr_test_adapters dnxr_hil dnxr_tools)
+target_link_libraries(dnxr_core INTERFACE "$<LINK_GROUP:RESCAN,dnxr_runtime_core,dnxr_real_adapters,dnxr_observer,dnxr_test_adapters,dnxr_hil,dnxr_tools>")
 if(DNXR_ENABLE_RESEARCH_SPECULATION)
     target_link_libraries(dnxr_core INTERFACE dnxr_research_speculation)
 endif()
@@ -265,6 +267,7 @@ if(DNXR_BUILD_TESTS)
         dnxr_canonical_runtime_architecture_test
         dnxr_canonical_runtime_single_owner_test
         dnxr_canonical_runtime_headset_independence_test
+        dnxr_canonical_runtime_architecture_guard_test
         dnxr_spike_runtime_real_evidence_gate_test
         dnxr_openssl_packet_protector_test
         dnxr_virtual_world_data_ingress_test
@@ -580,6 +583,7 @@ if(DNXR_BUILD_TESTS)
         dnxr_add_test(${test_name})
     endforeach()
 
+    set_tests_properties(dnxr_canonical_runtime_architecture_guard_test PROPERTIES LABELS "architecture;canonical;runtime")
     set_tests_properties(dnxr_safety_state_machine_concurrency_test PROPERTIES LABELS "concurrency;safety")
     set_tests_properties(dnxr_real_readiness_gate_allows_hardware_bench_no_human_test dnxr_real_readiness_gate_blocks_human_without_authorization_test PROPERTIES LABELS "real;clinical_blocker")
     set_tests_properties(dnxr_hardware_bench_requires_dummy_load_test dnxr_hardware_bench_requires_emergency_stop_test dnxr_hardware_bench_requires_trace_recorder_test dnxr_hardware_bench_dry_run_sends_no_active_output_test PROPERTIES LABELS "hardware_bench;hardware;real")

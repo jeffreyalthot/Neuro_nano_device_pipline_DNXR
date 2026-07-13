@@ -159,3 +159,13 @@ RuntimeApplication -> RuntimeController -> CanonicalNeuralBciPipeline::runCycle
 ```
 
 The BCI/world rate contract defaults to 60 Hz with a 16.666 ms budget when compatible with the hardware. If hardware capability is lower, `RuntimeRateContract::negotiate` lowers the cycle rate and marks the requested 60 Hz target as not hardware-compatible instead of silently overrunning or coupling the observer display rate to the neural cycle. Observer/dashboard output remains out-of-band and is not part of the authoritative safety/commit path.
+
+
+## Prompt 18 final sweep — 2026-07-13 UTC
+
+- Rebuilt focused canonical runtime and migrated runner/chip tests in `build/final`.
+- Rebuilt the real configuration in `build/final-real` with `DNXR_SIMULATION_ONLY=OFF` and confirmed no forbidden headset, legacy runner, HIL, simulated transport, or null neural source symbols in the production binary symbol scan.
+- Converted simulation/HIL neural-chip transport declarations and definitions to simulation-only compile units so the real binary cannot link them accidentally.
+- Fixed the canonical runtime aggregate link closure using a CMake RESCAN link group.
+- Added final acceptance and external dependency reports.
+- Full CTest is not fully green; the final acceptance report records the remaining failing validation lanes without claiming clinical/hardware validation.

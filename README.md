@@ -440,3 +440,10 @@ See also:
 - `docs/DEPLOYMENT.md`
 - `docs/RESEARCH_SPECIALIZATION_REPORT.md`
 - `docs/VALIDATION_REPORT.md`
+
+
+## Canonical Runtime Status (Prompt 18)
+
+DNXR now documents and tests the canonical runtime as a 100% BCI middleware path: structured virtual-world frames enter the runtime, neural-chip feedback/ACK returns from the chip, and headset/VR device dependencies are not required for acquisition, inference, encoding, dispatch, motor decoding, safety, or closed-loop feedback. Observer display support is optional, read-only, and must not influence safety decisions or chip frames.
+
+Real backend operation still requires an external neural-chip protocol implementation, hardware attestation, signed deployment evidence, patient-specific binding/calibration data, and QMS/readiness artifacts. The project is not validated for human use. Chemical channels remain disabled by default. Missing hardware/proof must fail closed rather than falling back to simulation or automatic ACK.

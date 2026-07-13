@@ -87,12 +87,14 @@ std::string envOrDefault(const char* key, const std::string& fallback) {
     return fallback;
 }
 
+#if DNXR_SIMULATION_ONLY
 bool envFlagEnabled(const char* key) {
     if (const char* v = std::getenv(key)) {
         return std::string(v) == "1" || std::string(v) == "true" || std::string(v) == "TRUE";
     }
     return false;
 }
+#endif
 
 // ─────────────────────────────────────────────────────────────────────────────
 // [AMÉLIORATION 6] Validation et audit de l'inducedVector
@@ -593,12 +595,12 @@ RuntimeFullDiveStage::Input RuntimeController::makeFullDiveStageInput(const Runt
     return RuntimeFullDiveStage::Input{
         [this](const FullDiveRuntimeInput& input) { fullDiveSynchronization_->updateFromRuntime(input); },
         [this]() { return fullDiveBridge_->evaluateAndRemember(*fullDiveSynchronization_); },
-        [this](const FullDiveRuntimeSnapshot& snapshot, const SafetyDecision& decision) {
-            return fullDiveBridge_->mergeIntoDecision(snapshot, decision);
+        [this](const FullDiveRuntimeSnapshot& fullDiveSnapshot, const SafetyDecision& decision) {
+            return fullDiveBridge_->mergeIntoDecision(fullDiveSnapshot, decision);
         },
-        [this](const FullDiveRuntimeSnapshot& snapshot) {
+        [this](const FullDiveRuntimeSnapshot& fullDiveSnapshot) {
             if (safetyStateMachine_) {
-                fullDiveBridge_->apply(snapshot, *safetyStateMachine_);
+                fullDiveBridge_->apply(fullDiveSnapshot, *safetyStateMachine_);
             }
         },
         [this](const std::string& category, const std::string& message, float riskScore, const SessionAuditMetadata& metadata) {
@@ -708,7 +710,9 @@ RuntimePipelineSinks RuntimeController::makeRuntimePipelineSinks() {
 
 RuntimePipelineFrame RuntimeController::runDeterministicCycle(double timestamp) {
     const auto cycleStart = std::chrono::steady_clock::now();
-    const double runtimeDeltaSeconds = computeCycleDeltaSeconds(cycleStart);
+    const double measuredDeltaSeconds = computeCycleDeltaSeconds(cycleStart);
+    const double frameBudgetDeltaSeconds = static_cast<double>(frameBudgetMs_) / 1000.0;
+    const double runtimeDeltaSeconds = std::max(measuredDeltaSeconds, frameBudgetDeltaSeconds);
     SchedulerTickReport tickReport = scheduler_.beginTick();
 
     RuntimeMetricsSnapshot fullDiveMetricsSnapshot;

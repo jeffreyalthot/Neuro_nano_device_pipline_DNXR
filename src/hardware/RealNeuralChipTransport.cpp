@@ -7,6 +7,7 @@ NeuralTransportOperationResult ClinicalLockedNeuralChipTransport::emergencyStop(
     return ok("clinical_locked_transport_cutoff_asserted");
 }
 
+#if DNXR_SIMULATION_ONLY
 NeuralTransportOperationResult SimulatedNeuralChipTransport::discover(const std::string& selector) {
     return selector.empty() ? rejected("simulation_selector_missing") : ok("simulation_transport_discovered");
 }
@@ -107,6 +108,8 @@ NeuralTransportOperationResult HILNeuralChipTransport::prepareCommand(const Real
 NeuralTransportOperationResult HILNeuralChipTransport::submitPreparedCommand(const RealNeuralChipPacket& packet) { return delegate_.submitPreparedCommand(packet); }
 NeuralTransportAck HILNeuralChipTransport::receiveAck(std::uint64_t packetId, std::uint32_t timeoutMs) { return delegate_.receiveAck(packetId, timeoutMs); }
 NeuralTransportOperationResult HILNeuralChipTransport::emergencyStop(const std::string& reason) { return delegate_.emergencyStop(reason); }
+
+#endif
 
 NeuralTransportOperationResult RealNeuralChipTransport::discover(const std::string& selector) {
     return selector.empty() ? rejected("real_transport_selector_missing") : ok("real_transport_descriptor_discovered");

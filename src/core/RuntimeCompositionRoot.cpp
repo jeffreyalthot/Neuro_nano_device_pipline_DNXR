@@ -87,7 +87,7 @@ private:
     std::uint64_t lastSequence_ = kNoSequence;
     std::int64_t lastTimestampMs_ = std::numeric_limits<std::int64_t>::min();
 };
-class NullBiometricSource final : public IBiometricSource {
+class UnavailableBiometricSource final : public IBiometricSource {
 public:
     BiometricSample readBiometricSample(double timestampSeconds) override {
         BiometricSample sample;
@@ -98,15 +98,43 @@ public:
         return sample;
     }
 };
+
+#if DNXR_SIMULATION_ONLY
+class DeterministicSimulationBiometricSource final : public IBiometricSource {
+public:
+    BiometricSample readBiometricSample(double timestampSeconds) override {
+        BiometricSample sample;
+        sample.timestampSeconds = timestampSeconds;
+        sample.channels = {72.0f, 0.5f, 0.02f};
+        sample.quality = 1.0f;
+        sample.provenance = "deterministic_simulation_biometric_source";
+        sample.validity = BiometricValidity::Valid;
+        return sample;
+    }
+};
+#endif
 }
 
 RuntimeComposition RuntimeCompositionRoot::compose(const RuntimeConfig& config) const {
     RuntimeComposition composition;
-    composition.neuralTransport = config.simulationMode
-        ? std::unique_ptr<INeuralTransport>(std::make_unique<SimulatedNeuralChipTransport>())
-        : std::unique_ptr<INeuralTransport>(std::make_unique<ClinicalLockedNeuralChipTransport>());
+    if (config.simulationMode) {
+#if DNXR_SIMULATION_ONLY
+        composition.neuralTransport = std::make_unique<SimulatedNeuralChipTransport>();
+#else
+        throw std::runtime_error("SIMULATION_TRANSPORT_NOT_COMPILED_IN_REAL_BUILD");
+#endif
+    } else {
+        composition.neuralTransport = std::make_unique<ClinicalLockedNeuralChipTransport>();
+    }
     composition.packetProtector = makePacketProtector(config.simulationMode);
-    composition.biometricSource = std::make_unique<NullBiometricSource>();
+#if DNXR_SIMULATION_ONLY
+    if (config.simulationMode) {
+        composition.biometricSource = std::make_unique<DeterministicSimulationBiometricSource>();
+    } else
+#endif
+    {
+        composition.biometricSource = std::make_unique<UnavailableBiometricSource>();
+    }
 
     if (config.simulationMode) {
 #if DNXR_SIMULATION_ONLY

@@ -75,3 +75,26 @@
 |---|---:|---|---|
 | Per-stage timings are currently recorded around the compatibility stage runner and apportioned across the canonical stage order. | Medium | `CanonicalNeuralBciPipeline::runCycle` records telemetry while the adapter still owns detailed stage execution. | Migrate each stage to direct canonical ownership and wrap each call with its own monotonic timer. |
 | No 100k/1M soak was executed in this prompt. | Medium | Only micro realtime telemetry tests and compile-check builds were run. | Enable long soak lanes after per-stage direct timers and no-allocation counters are connected. |
+
+## Prompt 17 gaps
+
+| Gap | Evidence | Disposition |
+|---|---|---|
+| Test aggregate link closure for selected legacy migration targets | `dnxr_runtime_pipeline_runner_test` fails to link with unresolved observer, real adapter, test adapter, feedback reader, and stimulus conversion symbols. | Open P0 validation infrastructure gap; do not remove tests or weaken assertions. |
+| Strict-warning lane contains legacy warnings | Initial `DNXR_WARNINGS_AS_ERRORS=ON` focused build exposed unused/shadow warnings in existing implementation files. | Partially remediated for files touched by this prompt; full strict-warning sweep remains open. |
+
+
+## Prompt 18 final sweep — 2026-07-13 UTC
+
+- Rebuilt focused canonical runtime and migrated runner/chip tests in `build/final`.
+- Rebuilt the real configuration in `build/final-real` with `DNXR_SIMULATION_ONLY=OFF` and confirmed no forbidden headset, legacy runner, HIL, simulated transport, or null neural source symbols in the production binary symbol scan.
+- Converted simulation/HIL neural-chip transport declarations and definitions to simulation-only compile units so the real binary cannot link them accidentally.
+- Fixed the canonical runtime aggregate link closure using a CMake RESCAN link group.
+- Added final acceptance and external dependency reports.
+- Full CTest is not fully green; the final acceptance report records the remaining failing validation lanes without claiming clinical/hardware validation.
+
+### Prompt 18 strict-warning blocker
+
+- Status: OPEN.
+- Evidence: strict-warning build stops in `src/neural_chip/PipelineSafetyCaseReport.cpp` because new canonical path enum values `TraceCoverageReject` and `ReentrantStepReject` are not yet assigned explicit safety-case report handling.
+- Required follow-up: add explicit report disposition for those paths and rerun the `DNXR_WARNINGS_AS_ERRORS=ON` lane.
