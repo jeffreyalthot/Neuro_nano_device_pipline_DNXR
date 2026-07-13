@@ -43,8 +43,8 @@ constexpr float kBaseRotationSpeed  = 90.0f; // degrés/s
 constexpr float kPitchClampDeg      = 85.0f;
 constexpr float kTransitionSpeed    = 0.10f;
 
-float clamp01(float v)            { return std::max(0.0f, std::min(1.0f, v)); }
-float smoothBlend(float a, float b, float t) { return a + (b - a) * t; }
+[[maybe_unused]] float clamp01(float v) { return std::max(0.0f, std::min(1.0f, v)); }
+[[maybe_unused]] float smoothBlend(float a, float b, float t) { return a + (b - a) * t; }
 
 float normalizeAngleDeg(float angle) {
     float wrapped = std::fmod(angle + 180.0f, 360.0f);
@@ -210,6 +210,7 @@ void VirtualWorldState::updateSceneFromCognitive(
     const CognitiveState&    cognitive,
     const XRAdaptationFrame& adaptation)
 {
+    (void)adaptation;
     const std::string newBiome   = selectBiome(cognitive);
     const std::string newLighting= selectLightingMode(cognitive);
 

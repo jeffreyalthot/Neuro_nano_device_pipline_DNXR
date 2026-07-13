@@ -22,12 +22,15 @@ std::int64_t monotonicNowMs() {
 
 std::int64_t TimeSync::nowMs() {
 
-    const std::int64_t t = monotonicNowMs();
+    const std::int64_t raw = monotonicNowMs();
     std::int64_t last = g_lastTimestamp.load(std::memory_order_relaxed);
-    while (t > last && !g_lastTimestamp.compare_exchange_weak(
-                         last, t, std::memory_order_relaxed)) {
+    for (;;) {
+        const std::int64_t next = raw > last ? raw : last + 1;
+        if (g_lastTimestamp.compare_exchange_weak(
+                last, next, std::memory_order_relaxed)) {
+            return next;
+        }
     }
-    return t > last ? t : last;
 }
 
 

@@ -112,3 +112,19 @@
 - Realtime telemetry uses bounded fixed-size windows and const cause tokens; it must not perform synchronous per-frame logging in the realtime thread.
 - World/chip backpressure must use bounded keep-latest/drop-or-hold semantics; obsolete stimulation frames must not accumulate while waiting for ACK/feedback.
 - Safety/commit order is unchanged: telemetry and queue accounting cannot move validation after dispatch or clear an existing hold/emergency decision.
+
+## Prompt 17 executable architecture invariants
+
+- `dnxr_canonical_runtime_architecture_guard_test` proves dispatch preconditions reject auto-ACK and missing world validity.
+- The same test proves the canonical stage order rejects Dispatch/Ack swaps.
+- The same test scans the canonical runtime header/implementation and application entry for headset, OpenXR/SteamVR/HMD, legacy input, `runLegacy`, and `PipelineOrchestrator` production ownership references.
+
+
+## Prompt 18 final sweep — 2026-07-13 UTC
+
+- Rebuilt focused canonical runtime and migrated runner/chip tests in `build/final`.
+- Rebuilt the real configuration in `build/final-real` with `DNXR_SIMULATION_ONLY=OFF` and confirmed no forbidden headset, legacy runner, HIL, simulated transport, or null neural source symbols in the production binary symbol scan.
+- Converted simulation/HIL neural-chip transport declarations and definitions to simulation-only compile units so the real binary cannot link them accidentally.
+- Fixed the canonical runtime aggregate link closure using a CMake RESCAN link group.
+- Added final acceptance and external dependency reports.
+- Full CTest is not fully green; the final acceptance report records the remaining failing validation lanes without claiming clinical/hardware validation.

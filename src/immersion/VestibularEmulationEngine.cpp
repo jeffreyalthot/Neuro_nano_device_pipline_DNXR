@@ -36,6 +36,7 @@ update(
     const std::array<float,3>& acceleration,
     const std::array<float,3>& orientation,
     float deltaTime) {
+    (void)velocity;
 
     updateAngularVelocity(
         orientation,

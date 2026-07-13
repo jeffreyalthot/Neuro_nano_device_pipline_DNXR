@@ -8,6 +8,7 @@ public:
     NeuralTransportOperationResult emergencyStop(const std::string& reason) override;
 };
 
+#if DNXR_SIMULATION_ONLY
 class SimulatedNeuralChipTransport final : public INeuralChipTransport {
 public:
     NeuralTransportOperationResult discover(const std::string& selector) override;
@@ -47,6 +48,8 @@ public:
 private:
     SimulatedNeuralChipTransport delegate_;
 };
+
+#endif
 
 class RealNeuralChipTransport final : public INeuralChipTransport {
 public:

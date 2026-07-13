@@ -214,6 +214,8 @@ void NeuralLinkDeviceInterface::
 update(
     float deltaTime) {
 
+    (void)deltaTime;
+
     if(status_ !=
         NeuralDeviceStatus::CONNECTED) {
 

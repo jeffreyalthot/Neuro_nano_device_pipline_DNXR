@@ -207,3 +207,34 @@ ctest --test-dir build/real-backend-compile-check -R 'dnxr_runtime_realtime_60hz
 ```
 
 Result: PASS. 1/1 selected realtime test passed.
+
+## Prompt 17 evidence — 2026-07-13
+
+### Pre-change state
+- `git status --short` was executed before edits.
+
+### Commands and results
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — configured, then strict warning build exposed pre-existing `-Werror` blockers in `SubjectiveContinuityEngine`, `RuntimeController`, `NeuralChipOnlyFullDivePipeline`, and `VestibularEmulationEngine`.
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_WARNINGS_AS_ERRORS=OFF -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — PASS configure for the focused validation lane with warnings not promoted to errors.
+- `cmake --build build --target distributed_neural_xr dnxr_canonical_runtime_architecture_guard_test -j2` — PASS. The production executable and the new architecture guard compiled.
+- `ctest --test-dir build -R dnxr_canonical_runtime_architecture_guard_test --output-on-failure` — PASS, 1/1.
+- `cmake --build build --target dnxr_runtime_pipeline_runner_test dnxr_neural_chip_only_pipeline_test -j2` — FAIL at link for `dnxr_runtime_pipeline_runner_test`; unresolved references show the broad test aggregate still has static-library ordering/closure issues for observer, real adapter, test adapter, and safe stimulus conversion symbols. This was not treated as a test assertion failure and is left as an open build-system gap.
+
+### Open validation risk
+- Full CTest with labels/lanes was not completed in this prompt because focused legacy-migration test targets fail to link before execution. The matrix now records the full declared test inventory and the next prompt must resolve the test aggregate link closure before claiming all migrated tests pass.
+
+
+## Prompt 18 final sweep — 2026-07-13 UTC
+
+- Rebuilt focused canonical runtime and migrated runner/chip tests in `build/final`.
+- Rebuilt the real configuration in `build/final-real` with `DNXR_SIMULATION_ONLY=OFF` and confirmed no forbidden headset, legacy runner, HIL, simulated transport, or null neural source symbols in the production binary symbol scan.
+- Converted simulation/HIL neural-chip transport declarations and definitions to simulation-only compile units so the real binary cannot link them accidentally.
+- Fixed the canonical runtime aggregate link closure using a CMake RESCAN link group.
+- Added final acceptance and external dependency reports.
+- Full CTest is not fully green; the final acceptance report records the remaining failing validation lanes without claiming clinical/hardware validation.
+
+## Prompt 18 additional strict-warning lane
+
+- Command: `rm -rf build/final-strict && cmake -S . -B build/final-strict -DDNXR_BUILD_TESTS=ON -DDNXR_WARNINGS_AS_ERRORS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF && cmake --build build/final-strict --target distributed_neural_xr dnxr_runtime_realtime_test -j2`
+- Result: FAIL after fixing several touched/adjacent strict-warning issues. The remaining reproducible blocker is `src/neural_chip/PipelineSafetyCaseReport.cpp`, where `PipelinePathKind::TraceCoverageReject` and `PipelinePathKind::ReentrantStepReject` are not handled in a switch with `-Werror=switch`.
+- Disposition: open validation debt; not a hardware/environment limitation. It is intentionally recorded and not claimed as passing.

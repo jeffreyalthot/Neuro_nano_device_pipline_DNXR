@@ -109,3 +109,21 @@
 - Added a bounded keep-latest queue utility for world/transport backpressure so stale frames are not accumulated when producers outpace the chip cycle.
 - Kept observer/audit logging out of the hot telemetry path; the realtime telemetry records counters and const cause tokens without per-frame synchronous log calls.
 - Open risk: current stage durations are attributed across canonical stage order around the compatibility stage runner until each stage is migrated from the adapter into directly measured canonical stage calls.
+
+## Prompt 17 — test migration, traceability and proof sweep (2026-07-13)
+
+- Captured pre-change Git state with `git status --short` before edits; no tracked output was emitted by the command in this environment.
+- Added `dnxr_canonical_runtime_architecture_guard_test` as a static/contract regression for the canonical BCI runtime harness.
+- Rebuilt the test migration matrix from the CMake `DNXR_TEST_TARGETS` inventory so every declared CTest target has an explicit component, legacy path, canonical harness, command, result field, and requirement coverage.
+- Migrated the validation narrative for `RuntimePipelineRunner` and `NeuralChipOnlyFullDivePipeline` tests to a common canonical harness classification rather than deleting or silencing those tests.
+- Recorded strict-warning build blockers found while compiling the focused lane and added minimal non-behavioral warning fixes for touched runtime/chip files.
+
+
+## Prompt 18 final sweep — 2026-07-13 UTC
+
+- Rebuilt focused canonical runtime and migrated runner/chip tests in `build/final`.
+- Rebuilt the real configuration in `build/final-real` with `DNXR_SIMULATION_ONLY=OFF` and confirmed no forbidden headset, legacy runner, HIL, simulated transport, or null neural source symbols in the production binary symbol scan.
+- Converted simulation/HIL neural-chip transport declarations and definitions to simulation-only compile units so the real binary cannot link them accidentally.
+- Fixed the canonical runtime aggregate link closure using a CMake RESCAN link group.
+- Added final acceptance and external dependency reports.
+- Full CTest is not fully green; the final acceptance report records the remaining failing validation lanes without claiming clinical/hardware validation.

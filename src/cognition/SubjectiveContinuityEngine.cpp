@@ -131,6 +131,7 @@ computeDissociationRisk() {
 
 void SubjectiveContinuityEngine::
 update(float deltaTime) {
+    (void)deltaTime;
 
     computeIdentityStability();
 

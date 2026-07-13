@@ -887,6 +887,7 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(
     markAccepted(frame);
     ackHandshake_.expect(frame.frameId, timebase_.nowMs());
     const auto beforeCommitState = stateMachine_.state();
+    (void)beforeCommitState;
     stateMachine_.onCommitAccepted();
     recordReplay(read, frame, result, "", PipelineStepOutcome::NormalAccepted,
                  false);
@@ -955,6 +956,7 @@ void NeuralChipOnlyFullDivePipeline::setStrictTraceCoverage(bool enabled) {
 }
 void NeuralChipOnlyFullDivePipeline::shutdown(const char *reason) {
   const auto before = stateMachine_.state();
+    (void)before;
   stateMachine_.shutdown(reason ? reason : "pipeline shutdown");
 }
 NeuralChipTimebase &NeuralChipOnlyFullDivePipeline::timebase() {
@@ -976,6 +978,7 @@ bool NeuralChipOnlyFullDivePipeline::resetEmergencyLatchWithAudit(
   if (accepted) {
     observedEmergencyLatch_ = false;
     const auto beforeResetState = stateMachine_.state();
+    (void)beforeResetState;
     stateMachine_.onAuditedReset(request.simulationOperatorConfirmed &&
                                  request.safetyChecklistConfirmed);
     sessionState_.emergencyStopLatched = false;
@@ -989,6 +992,7 @@ void NeuralChipOnlyFullDivePipeline::injectSimulatedAck(std::uint64_t frameId,
   ackHandshake_.receiveAck(frameId, quality01);
   if (!ackHandshake_.state().hasPendingAck) {
     const auto beforeAckState = stateMachine_.state();
+    (void)beforeAckState;
     stateMachine_.onAckValid();
   }
 }
