@@ -1,6 +1,7 @@
 #include "neural_chip/PatientSpecificNeuralMap.h"
 
 namespace dnxr {
+#if DNXR_SIMULATION_ONLY
 namespace {
 PatientModalityProfile profile(NeuralChannelMaturity maturity, bool enabled) {
     PatientModalityProfile out;
@@ -26,5 +27,7 @@ PatientSpecificNeuralMap PatientSpecificNeuralMap::simulationDefaults() {
     map.chemicalChip.allowedComplexity01 = 0.0f;
     return map;
 }
+
+#endif
 
 } // namespace dnxr

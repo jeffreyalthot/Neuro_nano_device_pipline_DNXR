@@ -81,6 +81,7 @@ set(DNXR_RUNTIME_CORE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/PerceptionErrorCorrector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/SensoryEncodingModelRegistry.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/auditory_chip/AuditoryTonotopicEncoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/auditory_chip/CanonicalAuditoryBciEncoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/auditory_chip/AuditoryVectorToSpikeAdapter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/chip_pipeline/ClosedLoopPerceptionErrorController.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/chip_pipeline/NeuralChipOnlyFullDivePipeline.cpp
@@ -132,6 +133,7 @@ set(DNXR_RUNTIME_CORE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/touch_chip/ProprioceptionVectorToSpikeAdapter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/touch_chip/TouchVectorToSpikeAdapter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/touch_chip/VestibularVectorToSpikeAdapter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/visual_chip/CanonicalVisualBciEncoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/visual_chip/PhospheneFrameStabilizer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/visual_chip/VisualCorticalWorldEncoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/full_dive/visual_chip/VisualSceneSemanticExtractor.cpp

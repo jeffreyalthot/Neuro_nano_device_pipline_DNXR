@@ -28,6 +28,38 @@ struct BiometricSourceConfig {
     float minimumQuality = 0.0f;
 };
 
+
+struct SignedRuntimeArtifactConfig {
+    std::string artifactId;
+    std::string issuer;
+    std::string subjectId;
+    std::string deviceId;
+    std::string schema;
+    std::string compatibility;
+    std::string payloadDigest;
+    std::string signature;
+    std::string keyId;
+    std::string trustAnchor;
+    std::int64_t validFromUnixSeconds = 0;
+    std::int64_t validUntilUnixSeconds = 0;
+    std::uint32_t schemaVersion = 1;
+    bool revoked = false;
+    std::string auditId;
+};
+
+struct RuntimeArtifactBundleConfig {
+    SignedRuntimeArtifactConfig calibration;
+    SignedRuntimeArtifactConfig patientMap;
+    SignedRuntimeArtifactConfig topology;
+    SignedRuntimeArtifactConfig capability;
+    std::string patientId;
+    std::string deviceId;
+    std::string firmwareVersion;
+    std::string protocolVersion;
+    std::uint32_t minimumSchemaVersion = 1;
+    bool immutableAtBootstrap = true;
+};
+
 struct RuntimeConfig {
     std::string profile = "simulation_safe";
     std::string runtimeMode = "simulation_mode";
@@ -48,6 +80,7 @@ struct RuntimeConfig {
     NeuralChipTransportConfig neuralChipTransport;
     ObserverMirrorConfig observerMirror;
     BiometricSourceConfig biometricSource;
+    RuntimeArtifactBundleConfig runtimeArtifacts;
 
     bool fullUnlockedDiagnostics = false;
     bool replayEnabled = false;

@@ -61,3 +61,15 @@ The canonical acquisition payload now includes device identity, session id, sequ
 ### Prompt 08 motor intent schema
 - Motor intent transaction data includes model digest/version/signature status, BCI provenance, signal quality, confidence, uncertainty, bounded `MotorIntentCommand`, safety disposition, and command hash.
 - The default disposition is neutral hold; low confidence, stale/corrupt/non-external acquisition, non-finite input, or invalid model manifest never becomes an active avatar command.
+
+## Prompt 09 artifact digest rule
+
+A dispatchable `PreparedCommit` is invalid unless the immutable session snapshot and per-transaction calibration/spike path carry non-empty patient-map, topology and capability digests. These digests must originate from signed runtime artifacts validated at bootstrap, not from simulation defaults. Missing artifact digests cause a hold-disposition `missing_required_artifact_digest` failure before transport submission.
+
+## Prompt 10 visual BCI phase schema
+
+The canonical visual path is `CanonicalVirtualWorldFrame -> CanonicalVisualBciEncoder -> ModalityVectorPacket` and contains these typed phases: scene validation, projection/reference, semantic feature extraction, spatial/temporal encoding, patient/capability mapping, safety normalization and spike-candidate generation. Each phase records a reason, acceptance bit, bounded metric and microsecond budget. The visual result carries frame id, trace digest, semantic snapshot, normalized visual vector and visual spike candidates.
+
+## Prompt 11 auditory BCI phase schema
+
+The canonical auditory path is `CanonicalVirtualWorldFrame -> CanonicalAuditoryBciEncoder -> ModalityVectorPacket`. It contains media validation, deterministic segmentation, semantic spatialization, tonotopic/envelope mapping, patient/capability mapping, safety/phase normalization and spike-candidate generation. The auditory result carries frame id, trace digest, semantic spatial audio frame, normalized auditory vector, spike candidates and per-phase budget/acceptance traces.

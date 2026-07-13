@@ -242,7 +242,7 @@ if(DNXR_BUILD_TESTS)
             message(FATAL_ERROR "Missing test source for ${test_name}")
         endif()
         add_executable(${test_name} ${test_source})
-        if(test_name STREQUAL "dnxr_runtime_realtime_60hz_telemetry_test" OR test_name STREQUAL "dnxr_session_bootstrap_validator_test")
+        if(test_name STREQUAL "dnxr_runtime_realtime_60hz_telemetry_test" OR test_name STREQUAL "dnxr_session_bootstrap_validator_test" OR test_name STREQUAL "dnxr_immutable_runtime_artifacts_test" OR test_name STREQUAL "dnxr_canonical_transaction_contract_test")
             target_link_libraries(${test_name} PRIVATE dnxr_runtime_core)
         else()
             target_link_libraries(${test_name} PRIVATE dnxr_core)
@@ -275,6 +275,7 @@ if(DNXR_BUILD_TESTS)
         dnxr_canonical_transaction_contract_test
         dnxr_session_bootstrap_validator_test
         dnxr_spike_runtime_real_evidence_gate_test
+        dnxr_immutable_runtime_artifacts_test
         dnxr_openssl_packet_protector_test
         dnxr_virtual_world_data_ingress_test
         dnxr_canonical_virtual_world_ingress_test
@@ -449,6 +450,7 @@ if(DNXR_BUILD_TESTS)
         dnxr_neural_chip_only_pipeline_test
         dnxr_visual_cortical_world_encoder_test
         dnxr_canonical_visual_bci_spike_path_test
+        dnxr_canonical_auditory_bci_spike_path_test
         dnxr_canonical_multimodal_bci_spike_path_test
         dnxr_virtual_epidermis_contact_codec_test
         dnxr_avatar_kinematic_rig_controller_test

@@ -20,7 +20,9 @@ std::uint64_t quantize01(float value) {
 NeuralChipOnlyPipelineConfig
 NeuralChipOnlyPipelineConfig::simulationSafeDefaults() {
   NeuralChipOnlyPipelineConfig config;
+#if DNXR_SIMULATION_ONLY
   config.patientMap = PatientSpecificNeuralMap::simulationDefaults();
+#endif
   config.capabilities.canVisual = false;
   config.capabilities.canAuditory = false;
   config.capabilities.canHaptic = true;
@@ -286,7 +288,11 @@ MotorIntentCommand NeuralChipOnlyFullDivePipeline::buildMotorIntentCommand(
   command.confidence01 = motor.confidence01;
   command.intent = motor;
   command.rig = rig;
+#if DNXR_SIMULATION_ONLY
   command.patientBinding = "simulation_patient_bound";
+#else
+  command.patientBinding = "signed_patient_artifact_required";
+#endif
   if (emergencyLatch_.latched()) {
     command.safetyDisposition = MotorIntentSafetyDisposition::EmergencyStop;
     command.dispositionReason = emergencyLatch_.reason();

@@ -202,3 +202,47 @@ Implementation summary:
 - Added `RuntimeMotorIntentStage` to decode bounded motor intent only from validated external BCI acquisition plus canonical signal/inference snapshots. The stage carries a signed deterministic model identity, confidence/uncertainty/provenance, and neutral hold defaults.
 - Integrated motor decoding after signal conditioning/inference and before sensory encoding; motor intent is submitted only to `IMotorWorldEgress` and never to sensory electrode encoding.
 - Neutralized runtime `inducedVector` by default; future influence activation remains outside the canonical runtime and requires a distinct signed profile/consent gate.
+
+## Prompt 09 calibration/patient/capability/topology immutable artifacts — 2026-07-13 UTC
+
+Initial state captured before edits: branch `work`, commit `625a9c4e62c16c8c4162dfe61c21fd4ae8801830`; `git status --short --branch` reported branch `work` with no pre-existing uncommitted files in the first terminal capture. This step added signed runtime artifact configuration, real-session bootstrap validation, PreparedCommit artifact-digest enforcement, and a regression test for invalid signature, wrong patient, expiration, revocation, forbidden hot reload, and missing prepared-commit artifact digest.
+
+Focused commands executed:
+- `cmake --preset development-safe && cmake --build build/development-safe --target dnxr_immutable_runtime_artifacts_test dnxr_session_bootstrap_validator_test dnxr_canonical_transaction_contract_test -j2` — initial build failed while the new test reassigned move-only `SessionBootstrapResult`; fixed by using separate result variables.
+- `cmake --build build/development-safe --target dnxr_session_bootstrap_validator_test -j2 && ctest --test-dir build/development-safe -R 'dnxr_(immutable_runtime_artifacts|session_bootstrap_validator|canonical_transaction_contract)_test' --output-on-failure` — PASS, 3/3 tests.
+- `cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target distributed_neural_xr dnxr_session_bootstrap_validator_test dnxr_canonical_transaction_contract_test -j2` — failed in pre-existing real executable link path because `dnxr_test_adapters` still compiles `SimulationCryptoTransport` in the real profile; focused runtime-core tests were relinked away from `dnxr_core`.
+- `cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target dnxr_immutable_runtime_artifacts_test dnxr_session_bootstrap_validator_test dnxr_canonical_transaction_contract_test -j2 && ctest --test-dir build/real-backend-compile-check -R 'dnxr_(immutable_runtime_artifacts|session_bootstrap_validator|canonical_transaction_contract)_test' --output-on-failure` — PASS, 3/3 tests.
+
+## Prompt 10 visual BCI world-to-spike service — 2026-07-13 UTC
+
+Initial state captured before edits: branch `work`, commit `6e37c741685bfd257ef83afff90d67a771007f49`, clean `git status --short --branch` output `## work`. Runtime-unification artifacts and latest build/test evidence were reviewed from `docs/runtime_unification/` before code changes.
+
+Implementation summary:
+- Added `CanonicalVisualBciEncoder` as the single canonical visual service from `CanonicalVirtualWorldFrame` to visual spike candidates.
+- The service decomposes scene validation, projection/reference canonicalization, semantic extraction, spatial/temporal encoding, patient/capability mapping, safety normalization and spike-candidate generation with explicit phase traces and budgets.
+- The service validates world provenance, digest/auth tag, visual projection metadata, asset hash/size/resolution state, signed patient/topology/capability artifact presence and visual hardware capability before producing candidates.
+- Existing useful visual subsystems are preserved and dispositioned: `VisualSceneSemanticExtractor`, `VisualCorticalWorldEncoder`, `PhospheneFrameStabilizer`, and `VisualVectorToSpikeAdapter` are called as components, not independent orchestrators.
+
+Commands:
+- `cmake --preset development-safe && cmake --build build/development-safe --target dnxr_canonical_visual_bci_spike_path_test dnxr_canonical_multimodal_bci_spike_path_test -j2` — initial failure while adding the new test/service because the test referenced non-existent `ModalityVectorPacket::boundedChannels01` and service referenced non-existent `normalizedLoad01`; fixed to use `channels01` and `confidence01`.
+- `ctest --test-dir build/development-safe -R 'dnxr_(canonical_visual_bci_spike_path|canonical_multimodal_bci_spike_path)_test' --output-on-failure` — initial failure because the test canonical world lacked a 64-character message digest; fixed by setting deterministic digest.
+- `ctest --test-dir build/development-safe -R 'dnxr_(canonical_visual_bci_spike_path|canonical_multimodal_bci_spike_path)_test' --output-on-failure` — PASS, 2/2 tests.
+- `if rg -n "XRRenderer|XRHeadsetInterface|OpenXR|SteamVR|HMD|eye tracker|toRenderVector|presentImmersiveFrame" src/full_dive/visual_chip tests/dnxr_canonical_visual_bci_spike_path_test.cpp; then echo 'Forbidden visual dependency found' >&2; exit 1; fi` — PASS, no forbidden render/headset dependency in the canonical visual service/test scope.
+- `cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target dnxr_runtime_core -j2` — PASS, visual service compiles in non-simulation runtime core.
+
+## Prompt 11 auditory BCI world-to-spike service — 2026-07-13 UTC
+
+Initial state captured before edits: branch `work`, commit `dcc733d1a8b25d09c4f56d3d8570ce039f5cc53d`, clean `git status --short --branch` output `## work`. Runtime-unification artifacts and latest build/test evidence were reviewed from `docs/runtime_unification/` before code changes.
+
+Implementation summary:
+- Added `CanonicalAuditoryBciEncoder` as the single canonical auditory service from authenticated `CanonicalVirtualWorldFrame` audio metadata to auditory spike candidates.
+- Extended `VirtualWorldAudioIngress` with deterministic non-PCM world metadata: sample rate, channel count, format, units, asset digest, source velocity, room/acoustic metadata, clipping/discontinuity/packet-loss/clock-drift indicators.
+- The service decomposes media validation, deterministic segmentation, semantic spatialization, tonotopic/envelope mapping, patient/capability mapping, safety/phase normalization and spike-candidate generation with explicit phase traces and budgets.
+- Existing useful auditory subsystems are preserved and dispositioned: `SpatialAudioEngine`, `AuditoryTonotopicEncoder`, and `AuditoryVectorToSpikeAdapter` are called as components; `SensoryRenderer` remains non-authoritative and outside the canonical auditory path.
+
+Commands:
+- `cmake --preset development-safe && cmake --build build/development-safe --target dnxr_canonical_auditory_bci_spike_path_test -j2` — PASS after adding the new source/test.
+- `ctest --test-dir build/development-safe -R 'dnxr_(canonical_auditory_bci_spike_path|canonical_multimodal_bci_spike_path)_test' --output-on-failure` — initial failure because the test expected exactly 16 auditory packet channels; fixed to require non-zero channel count using the existing adapter contract.
+- `ctest --test-dir build/development-safe -R 'dnxr_(canonical_auditory_bci_spike_path|canonical_multimodal_bci_spike_path)_test' --output-on-failure` — PASS, 2/2 tests.
+- `if rg -n "XRRenderer|XRHeadsetInterface|OpenXR|SteamVR|HMD|eye tracker|AudioDevice|ALSA|PulseAudio|CoreAudio|WASAPI|present|renderSensoryFrame|SensoryRenderer" src/full_dive/auditory_chip tests/dnxr_canonical_auditory_bci_spike_path_test.cpp; then echo 'Forbidden auditory dependency found' >&2; exit 1; fi` — PASS, no forbidden audio-device/render/headset dependency in canonical auditory scope.
+- `cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target dnxr_runtime_core -j2` — PASS, auditory service compiles in non-simulation runtime core.

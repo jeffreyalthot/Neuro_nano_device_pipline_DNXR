@@ -1,10 +1,66 @@
 #include "full_dive/spike_bridge/StimulusBySpikeRuntime.h"
+#include "full_dive/visual_chip/CanonicalVisualBciEncoder.h"
+#include "evidence/CryptoSignatureVerifier.h"
 #include "full_dive/visual_chip/PhospheneFrameStabilizer.h"
 #include "full_dive/visual_chip/VisualCorticalWorldEncoder.h"
 #include "full_dive/visual_chip/VisualSceneSemanticExtractor.h"
 #include "full_dive/visual_chip/VisualVectorToSpikeAdapter.h"
 #include <cassert>
 #include <cstring>
+#include <string>
+
+namespace {
+std::string digest(const std::string& input) {
+    return dnxr::CryptoSignatureVerifier::digestHex(input);
+}
+
+dnxr::CanonicalVirtualWorldFrame canonicalWorld() {
+    dnxr::VirtualWorldIngressFrame raw;
+    raw.frameId = 77;
+    raw.timestampMs = 123.0;
+    raw.view.exposure = 0.40f;
+    raw.view.contrast = 0.35f;
+    raw.view.saturation = 0.70f;
+    raw.view.fieldOfViewDeg = 90.0f;
+    raw.visualField.nearDepthLayer = 0.45f;
+    raw.visualField.midDepthLayer = 0.70f;
+    raw.visualField.farDepthLayer = 0.80f;
+    raw.visualField.peripheralBlur = 0.70f;
+    raw.visualField.motionComfort = 0.80f;
+    raw.visualField.fovealRadius = 0.25f;
+    raw.visualField.peripheralAwareness = 0.70f;
+    raw.visualField.retinalStability = 0.70f;
+    raw.body.handConfidence01 = 0.30f;
+    raw.body.avatarOwnership01 = 0.30f;
+    raw.assets.push_back({"visual-fixture-scene", digest("visual-fixture-scene"), 4096U, true});
+    raw.events.push_back({"navigation_label", 0.25f});
+    auto world = dnxr::makeCanonicalVirtualWorldFrame(raw, "deterministic_engine_test");
+    world.metadata.authenticationTag = "auth-tag";
+    world.metadata.messageDigest = digest("canonical-visual-world-message");
+    world.metadata.sessionId = "session-visual-test";
+    return world;
+}
+
+dnxr::CanonicalVisualBciProfile visualProfile(const dnxr::PatientVisualMap& map, const dnxr::VisualSafetyState& safety) {
+    dnxr::CanonicalVisualBciProfile profile;
+    profile.patientMap = map;
+    profile.safety = safety;
+    profile.visualModalityAllowed = true;
+    profile.signedPatientMap = true;
+    profile.signedTopology = true;
+    profile.signedCapability = true;
+    profile.patientMapDigest = 11U;
+    profile.topologyDigest = 22U;
+    profile.capabilityDigest = 33U;
+    profile.capabilities.canVisual = true;
+    profile.capabilities.electrodeCount = 64U;
+    profile.capabilities.wireCount = 64U;
+    profile.capabilities.maxSafeRateHz = 60.0f;
+    profile.capabilities.supportsHardwareCutoff = true;
+    profile.capabilities.supportsClosedLoopFeedback = true;
+    return profile;
+}
+} // namespace
 
 int main() {
     dnxr::VirtualSceneFrame scene;
@@ -38,6 +94,45 @@ int main() {
 
     dnxr::VisualSafetyState safety;
     safety.edgeGain = 1.2f;
+
+    const auto canonicalAccepted = dnxr::CanonicalVisualBciEncoder{}.encode(canonicalWorld(), visualProfile(map, safety));
+    assert(canonicalAccepted.accepted);
+    assert(!canonicalAccepted.holdRequired);
+    assert(canonicalAccepted.executedPhaseCount == static_cast<std::uint8_t>(dnxr::CanonicalVisualBciPhase::Count));
+    assert(canonicalAccepted.frameId == 77U);
+    assert(canonicalAccepted.traceDigest != 0U);
+    assert(canonicalAccepted.spikeCandidates.modality == dnxr::SpikeModality::Visual);
+    assert(canonicalAccepted.spikeCandidates.channelCount == 16U);
+    assert(std::strcmp(canonicalAccepted.reason, "visual_bci_spike_path_accept") == 0);
+    const auto canonicalReplay = dnxr::CanonicalVisualBciEncoder{}.encode(canonicalWorld(), visualProfile(map, safety));
+    assert(canonicalReplay.traceDigest == canonicalAccepted.traceDigest);
+    assert(canonicalReplay.spikeCandidates.channels01[0] == canonicalAccepted.spikeCandidates.channels01[0]);
+
+    auto invalidAssetWorld = canonicalWorld();
+    invalidAssetWorld.modalities.assets[0].sha256Digest = "bad";
+    const auto invalidAsset = dnxr::CanonicalVisualBciEncoder{}.encode(invalidAssetWorld, visualProfile(map, safety));
+    assert(!invalidAsset.accepted);
+    assert(invalidAsset.holdRequired);
+    assert(std::strcmp(invalidAsset.reason, "visual_asset_metadata_invalid") == 0);
+
+    auto badProfile = visualProfile(map, safety);
+    badProfile.signedTopology = false;
+    const auto unsignedTopology = dnxr::CanonicalVisualBciEncoder{}.encode(canonicalWorld(), badProfile);
+    assert(!unsignedTopology.accepted);
+    assert(std::strcmp(unsignedTopology.reason, "visual_required_signed_artifact_missing") == 0);
+
+    auto noCapability = visualProfile(map, safety);
+    noCapability.capabilities.canVisual = false;
+    const auto capabilityHold = dnxr::CanonicalVisualBciEncoder{}.encode(canonicalWorld(), noCapability);
+    assert(!capabilityHold.accepted);
+    assert(std::strcmp(capabilityHold.reason, "visual_capability_contract_denied") == 0);
+
+    auto badProjection = canonicalWorld();
+    badProjection.modalities.visualField.horizontalFovDeg = -1.0f;
+    const auto projectionHold = dnxr::CanonicalVisualBciEncoder{}.encode(badProjection, visualProfile(map, safety));
+    assert(!projectionHold.accepted);
+    assert(std::strcmp(projectionHold.reason, "visual_projection_metadata_invalid") == 0);
+
     auto visual = dnxr::VisualCorticalWorldEncoder{}.encode(scene, map, safety);
     visual = dnxr::PhospheneFrameStabilizer{}.stabilize(visual);
     const auto compliance = dnxr::VisualCorticalWorldEncoder{}.validateEncoded(visual);

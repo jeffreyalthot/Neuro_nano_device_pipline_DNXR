@@ -155,3 +155,22 @@
 - CLOSED: motor intent previously had reusable components but no canonical causal runtime stage; `RuntimeMotorIntentStage` now owns confidence-gated BCI-to-world intent.
 - CLOSED: runtime default non-zero `inducedVector` could activate influence; the canonical runtime now sets an empty vector.
 - OPEN P1 / model-owner: production motor intent model manifest loading remains static and must be replaced with immutable signed artifact loading before real hardware enablement.
+
+## Prompt 09 immutable artifact gap update — 2026-07-13
+
+- CLOSED-PARTIAL: RealMinimal session bootstrap now fails closed unless calibration, patient map, topology and capability artifacts are present, signed, unexpired, unreoked, patient/device-matched and immutable at bootstrap.
+- CLOSED-PARTIAL: `PreparedCommit` creation now rejects transactions missing required patient-map, topology, or capability digests along the causal chain.
+- OPEN-P1: Full executable target in `real-backend-compile-check` still reaches `dnxr_test_adapters` and `SimulationCryptoTransport`; focused runtime-core tests pass without test adapters, but CMake link scope still needs cleanup.
+- OPEN-P1: Channel/electrode compatibility matrix is represented by signed artifact compatibility metadata but not yet parsed into a complete per-electrode vendor matrix.
+
+## Prompt 10 visual BCI gap update — 2026-07-13
+
+- CLOSED-PARTIAL: A single visual world-to-spike service now exists and is tested without renderer/HMD dependencies.
+- OPEN-P1: The service is covered as a canonical component and by the chip pipeline's existing visual path, but the final `CanonicalNeuralBciPipeline` transaction still needs direct service injection instead of domain pipeline integration.
+- OPEN-P1: Electrode-level vendor matrix enforcement remains represented through capability/profile evidence and must be expanded when vendor topology artifacts are available.
+
+## Prompt 11 auditory BCI gap update — 2026-07-13
+
+- CLOSED-PARTIAL: A single auditory world-to-spike service now exists and is tested without physical audio device/render/HMD dependencies.
+- OPEN-P1: The service is covered as a canonical component and by multimodal spike-path tests, but the final `CanonicalNeuralBciPipeline` transaction still needs direct service injection for auditory alongside visual.
+- OPEN-P1: Vendor electrode-level auditory topology remains represented by capability/profile evidence and must be expanded when signed vendor topology artifacts are available.

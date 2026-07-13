@@ -27,6 +27,19 @@ struct VirtualWorldAudioIngress {
   float sourceDistance01 = 0.0f;
   float speechPresence01 = 0.0f;
   float dangerPriority01 = 0.0f;
+  std::uint32_t sampleRateHz = 48000;
+  std::uint8_t channelCount = 2;
+  std::string format = "semantic_bci_audio_v1";
+  std::string unitSystem = "normalized01";
+  std::string assetId;
+  std::string assetDigest;
+  float sourceVelocity01 = 0.0f;
+  float roomSize01 = 0.5f;
+  float reverberation01 = 0.0f;
+  float clippingRisk01 = 0.0f;
+  float discontinuity01 = 0.0f;
+  float packetLoss01 = 0.0f;
+  float clockDrift01 = 0.0f;
 };
 
 struct VirtualWorldTouchIngress {

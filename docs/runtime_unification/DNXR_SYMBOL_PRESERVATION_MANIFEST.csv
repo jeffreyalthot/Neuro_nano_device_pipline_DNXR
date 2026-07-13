@@ -3633,3 +3633,16 @@ Prompt08,CausalMotorIntentStageResult,integrated au runtime canonique,Propagates
 Prompt08,MotorIntentDecoder,called as service,Local decode algorithm inside canonical stage
 Prompt08,MotorIntentConfidenceGate,called as service,Low-confidence/tremor/spasm/fatigue neutralization policy
 Prompt08,InducedVectorInfluenceEngine,bibliothèque hors chemin critique,Inactive by default; future activation requires signed profile and consent proof
+SignedRuntimeArtifactConfig,src/config/RuntimeConfig.h,integrated au runtime canonique,Prompt09 signed artifact envelope for calibration patient map topology capability
+RuntimeArtifactBundleConfig,src/config/RuntimeConfig.h,integrated au runtime canonique,Prompt09 immutable bootstrap artifact bundle
+requiredArtifactDigestsPresent,src/runtime/CanonicalBciRuntimeContract.h,integrated au runtime canonique,Prompt09 PreparedCommit artifact digest gate
+CanonicalVisualBciEncoder,src/full_dive/visual_chip/CanonicalVisualBciEncoder.h,integrated au runtime canonique,Prompt10 single authoritative visual world-to-spike service
+VisualSceneSemanticExtractor,src/full_dive/visual_chip/VisualSceneSemanticExtractor.h,appelé comme service,Prompt10 semantic feature extraction component
+VisualCorticalWorldEncoder,src/full_dive/visual_chip/VisualCorticalWorldEncoder.h,appelé comme service,Prompt10 spatial temporal visual encoder component
+PhospheneFrameStabilizer,src/full_dive/visual_chip/PhospheneFrameStabilizer.h,appelé comme service,Prompt10 safety normalization component
+VisualVectorToSpikeAdapter,src/full_dive/visual_chip/VisualVectorToSpikeAdapter.h,appelé comme service,Prompt10 spike candidate generation component
+CanonicalAuditoryBciEncoder,src/full_dive/auditory_chip/CanonicalAuditoryBciEncoder.h,integrated au runtime canonique,Prompt11 single authoritative auditory world-to-spike service
+AuditoryTonotopicEncoder,src/full_dive/auditory_chip/AuditoryTonotopicEncoder.h,appelé comme service,Prompt11 tonotopic envelope mapping component
+AuditoryVectorToSpikeAdapter,src/full_dive/auditory_chip/AuditoryVectorToSpikeAdapter.h,appelé comme service,Prompt11 auditory spike candidate generation component
+SpatialAudioEngine,src/immersion/SpatialAudioEngine.h,appelé comme service,Prompt11 semantic spatialization component
+SensoryRenderer,src/immersion/SensoryRenderer.h,bibliothèque hors chemin critique,Prompt11 explicitly non-authoritative for auditory BCI path

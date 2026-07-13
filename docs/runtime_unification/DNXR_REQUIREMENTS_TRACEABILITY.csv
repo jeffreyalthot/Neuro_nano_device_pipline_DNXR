@@ -13,3 +13,11 @@ PROMPT05-RUNNER-FACADE-REMOVAL,RuntimePipelineRunner not linked to production ru
 PROMPT06-EXTERNAL-BCI-ACQUISITION,External validated BCI acquisition source,src/runtime/IBciAcquisitionSource.h;src/runtime/IBciAcquisitionSource.cpp;src/runtime/RuntimeAcquisitionStage.cpp;tests/dnxr_bci_acquisition_source_validation_test.cpp,development-safe ctest and real-backend nm/source scans,PASS
 Prompt07-REQ-WorldIngress,Prompt 07 authenticated versioned deterministic world ingress,src/immersion/VirtualWorldDataIngress.h;src/immersion/VirtualWorldDataIngress.cpp;tests/dnxr_authenticated_virtual_world_ingress_test.cpp,PASS
 Prompt08-REQ-MotorIntent,Prompt 08 causal BCI signal conditioning and motor intent,src/runtime/RuntimeMotorIntentStage.cpp;tests/dnxr_runtime_motor_intent_stage_test.cpp,PASS
+PROMPT09-ARTIFACT-SIGNED,Runtime artifact bundle must be signed and bound to patient/device,src/core/SessionBootstrapValidator.cpp,dnxr_immutable_runtime_artifacts_test,PASS
+PROMPT09-PREPARED-COMMIT-DIGESTS,PreparedCommit requires patient map topology and capability digests,src/runtime/CanonicalBciRuntimeContract.h,dnxr_immutable_runtime_artifacts_test,PASS
+PROMPT10-VISUAL-WORLD-INPUT,Visual path input must be CanonicalVirtualWorldFrame not renderer/HMD,src/full_dive/visual_chip/CanonicalVisualBciEncoder.cpp,dnxr_canonical_visual_bci_spike_path_test,PASS
+PROMPT10-VISUAL-PHASES,Visual path must decompose into typed budgeted phases,src/full_dive/visual_chip/CanonicalVisualBciEncoder.h,dnxr_canonical_visual_bci_spike_path_test,PASS
+PROMPT10-VISUAL-NO-RENDER,Visual service/test must not reference renderer/headset APIs,src/full_dive/visual_chip/CanonicalVisualBciEncoder.cpp,rg forbidden visual dependency scan,PASS
+PROMPT11-AUDITORY-WORLD-INPUT,Auditory path input must be CanonicalVirtualWorldFrame not audio device/HMD,src/full_dive/auditory_chip/CanonicalAuditoryBciEncoder.cpp,dnxr_canonical_auditory_bci_spike_path_test,PASS
+PROMPT11-AUDITORY-PHASES,Auditory path must decompose into typed budgeted phases,src/full_dive/auditory_chip/CanonicalAuditoryBciEncoder.h,dnxr_canonical_auditory_bci_spike_path_test,PASS
+PROMPT11-AUDITORY-NO-DEVICE,Auditory service/test must not reference physical audio renderer/headset APIs,src/full_dive/auditory_chip/CanonicalAuditoryBciEncoder.cpp,rg forbidden auditory dependency scan,PASS

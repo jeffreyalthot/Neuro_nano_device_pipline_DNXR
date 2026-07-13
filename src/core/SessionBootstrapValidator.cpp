@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include "../evidence/CryptoSignatureVerifier.h"
 
 namespace dnxr {
 namespace {
@@ -22,6 +23,46 @@ std::uint64_t foldString(std::uint64_t seed, const std::string& value) noexcept 
         hash *= 1099511628211ULL;
     }
     return hash;
+}
+
+
+bool validArtifact(const SignedRuntimeArtifactConfig& artifact,
+                   const char* expectedId,
+                   const RuntimeArtifactBundleConfig& bundle,
+                   std::int64_t now,
+                   std::string& reason) {
+    if (artifact.artifactId != expectedId) { reason = std::string(expectedId) + "_artifact_missing"; return false; }
+    if (artifact.issuer.empty() || artifact.subjectId.empty() || artifact.deviceId.empty() ||
+        artifact.schema.empty() || artifact.compatibility.empty() || artifact.auditId.empty()) {
+        reason = std::string(expectedId) + "_metadata_incomplete"; return false;
+    }
+    if (artifact.subjectId != bundle.patientId) { reason = std::string(expectedId) + "_patient_mismatch"; return false; }
+    if (artifact.deviceId != bundle.deviceId) { reason = std::string(expectedId) + "_device_mismatch"; return false; }
+    if (artifact.revoked) { reason = std::string(expectedId) + "_revoked"; return false; }
+    if (artifact.schemaVersion < bundle.minimumSchemaVersion) { reason = std::string(expectedId) + "_schema_downgrade"; return false; }
+    if (artifact.validFromUnixSeconds <= 0 || artifact.validFromUnixSeconds > now || artifact.validUntilUnixSeconds <= now) {
+        reason = std::string(expectedId) + "_validity_window_invalid"; return false;
+    }
+    SignedEvidenceDocument doc{artifact.artifactId, artifact.payloadDigest, artifact.signature,
+                               artifact.issuer, "runtime-artifact-issuer", artifact.keyId,
+                               artifact.validFromUnixSeconds, artifact.validUntilUnixSeconds};
+    CryptoSignatureVerifier verifier;
+    std::string verifyReason;
+    if (!verifier.verify(doc, artifact.trustAnchor, now, &verifyReason)) {
+        reason = std::string(expectedId) + "_" + verifyReason; return false;
+    }
+    return true;
+}
+
+bool allRuntimeArtifactsValid(const RuntimeArtifactBundleConfig& bundle, std::int64_t now, std::string& reason) {
+    if (bundle.patientId.empty() || bundle.deviceId.empty() || bundle.firmwareVersion.empty() || bundle.protocolVersion.empty()) {
+        reason = "artifact_bundle_identity_incomplete"; return false;
+    }
+    if (!bundle.immutableAtBootstrap) { reason = "artifact_hot_reload_forbidden"; return false; }
+    return validArtifact(bundle.calibration, "calibration", bundle, now, reason) &&
+           validArtifact(bundle.patientMap, "patient_map", bundle, now, reason) &&
+           validArtifact(bundle.topology, "topology", bundle, now, reason) &&
+           validArtifact(bundle.capability, "capability", bundle, now, reason);
 }
 
 bool allHardwareEvidencePresent(const RuntimeHardwareEvidence& evidence) noexcept {
@@ -128,6 +169,14 @@ SessionBootstrapResult SessionBootstrapValidator::validate(const RuntimeConfig& 
         ? RuntimeDeploymentMode::SimulationOnly
         : RuntimeDeploymentMode::HardwareBenchNoHuman;
 
+    std::string artifactReason;
+    constexpr std::int64_t kBootstrapValidationUnixSeconds = 1000;
+    if (profileKind == RuntimeProfileKind::RealMinimal && !allRuntimeArtifactsValid(config.runtimeArtifacts, kBootstrapValidationUnixSeconds, artifactReason)) {
+        return fail(canonical::RuntimeErrorCode::PreconditionMissing,
+                    canonical::LifecycleDisposition::Hold,
+                    artifactReason);
+    }
+
     if (profileKind == RuntimeProfileKind::RealMinimal && !allHardwareEvidencePresent(evidence)) {
         return fail(canonical::RuntimeErrorCode::ExternalDependencyUnavailable,
                     canonical::LifecycleDisposition::ExternalDependencyUnavailable,
@@ -153,6 +202,10 @@ SessionBootstrapResult SessionBootstrapValidator::validate(const RuntimeConfig& 
     seed = foldString(seed, config.virtualWorldIngress.endpoint);
     seed = foldString(seed, config.neuralChipTransport.transport);
     seed = foldString(seed, config.signalSource);
+    seed = foldString(seed, config.runtimeArtifacts.calibration.payloadDigest);
+    seed = foldString(seed, config.runtimeArtifacts.patientMap.payloadDigest);
+    seed = foldString(seed, config.runtimeArtifacts.topology.payloadDigest);
+    seed = foldString(seed, config.runtimeArtifacts.capability.payloadDigest);
 
     const bool backendAttested = config.simulationMode || allHardwareEvidencePresent(evidence);
     const bool secretsResolved = config.simulationMode || evidence.authenticatedSessionCreated;

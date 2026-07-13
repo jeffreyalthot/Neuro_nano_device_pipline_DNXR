@@ -3,3 +3,6 @@ PROMPT05-RUNNER-FACADE-REMOVAL,RuntimePipelineRunner and RuntimeRenderStage exec
 PROMPT06-EXTERNAL-BCI-ACQUISITION,Canonical acquisition uses validated external BCI source and forbids headset/simulation acquisition in real binary,PARTIAL PASS,Validation and scans pass; vendor transport packet binding remains open
 Prompt07,Authenticated deterministic world ingress,PARTIAL,PASS tests; production IPC/network binding remains open fail-closed dependency
 Prompt08,Causal motor intent from external BCI,PARTIAL,PASS tests; signed model artifact loader remains open before real activation
+PROMPT09-IMMUTABLE-ARTIFACTS,partial-pass,Focused development-safe and real-backend runtime-core tests pass; full real executable still has pre-existing test-adapter link-scope debt
+PROMPT10-VISUAL-BCI-SPIKE-PATH,partial-pass,Canonical visual world-to-spike service and focused tests pass; direct injection into final CanonicalNeuralBciPipeline remains P1
+PROMPT11-AUDITORY-BCI-SPIKE-PATH,partial-pass,Canonical auditory world-to-spike service and focused tests pass; direct injection into final CanonicalNeuralBciPipeline remains P1

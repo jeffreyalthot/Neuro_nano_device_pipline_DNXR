@@ -411,7 +411,9 @@ NeuralChipOnlyWorldFrame VirtualWorldDataIngress::buildWorld(const CanonicalVirt
   }
 
   world.realityAnchor = safeAnchor(input.modalities.realityAnchor);
+#if DNXR_SIMULATION_ONLY
   world.patientMap = PatientSpecificNeuralMap::simulationDefaults();
+#endif
   world.latencyBudget.visualLatencyMs = 16.67f;
   world.latencyBudget.auditoryLatencyMs = 16.67f;
   world.latencyBudget.touchLatencyMs = 16.67f;
