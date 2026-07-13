@@ -381,8 +381,31 @@ PipelineStepResult NeuralChipOnlyFullDivePipeline::stepDetailed(
         avatarSafetyPose_.apply(lastRigCommand_, config_.enableResearchVision);
   }
 
+  const VisualSceneSemantics visualSemantics =
+      visualSemanticExtractor_.extract(world.scene);
+  decisionTrace_.record({world.frameId, "VisualSceneSemanticExtractor",
+                         "visual", "extract", "canonical_world_visual_semantics",
+                         visualSemantics.visualDanger01,
+                         visualSemantics.walkingCorridor01,
+                         visualSemantics.horizon01});
   NeuralVisualVector visual =
       visualEncoder_.encode(world.scene, world.visualMap, world.visualSafety);
+  const auto visualCompliance = visualEncoder_.validateEncoded(visual);
+  decisionTrace_.record({world.frameId, "VisualCorticalWorldEncoder",
+                         "visual", visualCompliance.accepted ? "encode" : "hold",
+                         visualCompliance.reason, visualCompliance.requiresHold ? 1.0f : 0.0f,
+                         visualCompliance.normalizedLoad01, visual.phospheneStability01});
+  if (!visualCompliance.accepted) {
+    visual = NeuralVisualVector{};
+    decisionTrace_.record({world.frameId, "PerModalityIsolationBroker",
+                           "visual", "isolate", visualCompliance.reason, 1.0f,
+                           0.0f, 1.0f});
+  }
+  visual = phospheneStabilizer_.stabilize(visual);
+  decisionTrace_.record({world.frameId, "PhospheneFrameStabilizer",
+                         "visual", "stabilize", "phosphene_flicker_motion_safety",
+                         visual.flickerRisk01, visual.motionFlow01,
+                         visual.phospheneStability01});
   NeuralAuditoryVector auditory = auditoryEncoder_.encode(
       world.audio, world.auditoryMap, world.auditorySafety);
   NeuralTouchVector touch = epidermisEncoder_.encode(

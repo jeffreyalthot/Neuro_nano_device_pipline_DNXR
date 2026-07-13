@@ -46,3 +46,25 @@
 - Omitted modalities are neutral for the current frame and must not carry residual intensity from a previous frame.
 - Duplicate, replayed, stale, future, oversized, unauthenticated, unsafe-scene, unsafe-body, or chemical-injected world frames must hold/reality-anchor before encoding.
 - Patient maps remain middleware-owned; engine-provided frames may carry context/provenance but cannot supply patient binding or calibration maps.
+
+## Prompt 07 visual invariants
+- Visual neural output must originate from `VirtualSceneFrame` structured world fields, never from `XRRenderer`, HMD eye tracking, OpenXR, SteamVR, or headset frame cadence.
+- `PatientVisualMap::topology` must validate schema version, bounded grid size, ON/OFF availability, foveation, surround suppression, and compression before non-neutral visual encoding.
+- Visual disabling or invalid topology produces a strictly neutral `NeuralVisualVector` while the reality anchor path remains separate and available.
+- Photic risks (flicker, flash pattern, luminance slew, contrast, motion flow, phosphene stability, temporal coherence, fatigue, latency) must be represented in `VisualSafetyState` and checked before spike commit.
+
+## Prompt 08 multimodal invariants
+- Audio, touch, proprioception, vestibular, olfactory and gustatory vectors must enter the same `StimulusBySpikeRuntime` path as vision and cannot bypass patient binding, temporal alignment, cross-modal coherence, PPP grammar, phase lock, exposure/dose policy, capability checks, disabled-modality neutrality or the reality anchor hard channel.
+- Chemical smell/taste channels remain structurally present but neutral by default unless both patient map and hardware/policy gates are valid; a runtime option alone is insufficient authorization.
+- Global spike-lane pressure must be resolved by deterministic safety-prioritized modality emission. Reality anchor and motor/stop-related channels outrank sensory/chemical channels.
+
+## Prompt 09 spike/PPP invariants
+- Normal chip dispatch must be derived from a spike bundle that has traversed normalization, temporal alignment, patient binding, cross-modal coherence, PPP grammar, spike intent, thinking layers, engine output validation, spike envelope, stimulus translation, packet assembly and feedback synchronization.
+- PPP grammar frames must carry version, frame validity, modality entries, electrode/wire bounds, phase/risk, feedback/hold semantics and an integrity hash; serialized PPP must round-trip through parse/verify before use as evidence.
+- PPP feedback-only state is a lifecycle hold/recalibration state, not a blocking loop and not a normal dispatch permission.
+
+## Prompt 10 transport/ACK invariants
+- A normal hardware-bound frame must follow candidate -> validate -> prepare -> submit -> ACK pending -> external ACK accepted/rejected/timeout -> feedback transaction order.
+- The runtime sender may not auto-generate ACK acceptance; tests may only obtain ACK from explicit simulation/HIL transport adapters.
+- Real transport without a concrete protocol driver must fail closed and must not return an authorized dispatch success.
+- Empty transport interfaces and automatic production fallback to simulation/HIL are prohibited.

@@ -26,3 +26,24 @@
 ## Prompt 06 remaining gaps
 - Canonical world ingress now validates structured frames and deterministic hold behavior, but a concrete network transport adapter with signed packet verification remains to be bound behind `VirtualWorldIngressConfig` in a later prompt.
 - Motor/avatar output remains separated conceptually; a dedicated causality-tested output adapter should be wired to the engine in the next stage without feeding back into the same cycle.
+
+## Prompt 07 gap update
+- Closed: visual topology parameters now have a versioned validator and fail-neutral behavior when topology/patient binding is invalid.
+- Closed: canonical visual unit/e2e coverage now proves structured world visual data reaches PPP/spike runtime without renderer dependency.
+- Open: remaining visual configuration should be loaded from clinical configuration files rather than only in-memory `PatientVisualMap` defaults.
+
+## Prompt 08 gap update
+- Closed: canonical tests now exercise audio, touch, proprioception, vestibular, olfactory and gustatory encoders/adapters through the shared spike runtime path.
+- Closed: `EngineSpikeCore` no longer allocates lanes solely in normalizer input order; safety-prioritized lane emission prevents silent loss of reality-anchor lanes under channel pressure.
+- Open: `SpatialAudioEngine`, `HapticTextureEngine`, `SyntheticProprioceptionLayer`, `VestibularEmulationEngine`, `OlfactoryPersistenceEngine` and `GustatorySafetyEngine` should be lifted from support-library/test coverage into direct production-stage pre-encoder services in a follow-up pass.
+
+## Prompt 09 gap update
+- Closed: PPP grammar now has deterministic serialization/parse/verify and integrity checking over frame IDs, timing, topology, modality entries, feedback state and risk/phase metadata.
+- Closed: feedback-only PPP state now prevents normal `StimulusBySpikeRuntime` acceptance through an explicit lifecycle hold reason.
+- Open: negotiated real-hardware electrode availability still needs to replace the default fixed simulation topology inside `PPPGrammarFrameBuilder::build` once capability negotiation is fully canonicalized into the spike stage.
+
+## Prompt 10 gap update
+- Closed: `INeuralChipTransport` now documents and implements the full bidirectional lifecycle expected at the chip boundary.
+- Closed: real transport no longer returns fabricated `authorized_real_transport_dispatch` success.
+- Closed: transport lifecycle regression covers replay/duplicate ACK/timeout/emergency cutoff and no double write.
+- Open: a vendor-specific real protocol driver remains unavailable; real backend correctly blocks with an explicit unavailable result until implemented and attested.

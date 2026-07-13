@@ -11,6 +11,8 @@ namespace dnxr {
 constexpr std::size_t DNXR_SPIKE_BRIDGE_MODALITY_COUNT = 9;
 constexpr std::size_t DNXR_SPIKE_BRIDGE_VECTOR_CHANNELS = 32;
 constexpr std::size_t DNXR_SPIKE_BRIDGE_LANES = 64;
+constexpr std::size_t DNXR_SPIKE_BRIDGE_CHANNELS_PER_WIRE = 16;
+constexpr std::size_t DNXR_PPP_SERIALIZED_CAPACITY = 2048;
 constexpr std::size_t DNXR_PPP_GRAMMAR_REFRESH_FRAMES = 60;
 constexpr float DNXR_PPP_STIMULUS_SYNC_THRESHOLD_01 = 0.80f;
 
@@ -90,6 +92,11 @@ struct PPPGrammarModalityEntry {
   bool requiresClinicalGate = true;
   bool feedbackExpected = true;
   bool stimulusUnlocked = false;
+  std::uint16_t electrodeStart = 0;
+  std::uint16_t electrodeCount = 0;
+  std::uint16_t wireId = 0;
+  float phaseSlot01 = 0.0f;
+  float risk01 = 0.0f;
 };
 
 struct PPPGrammarFrame {
@@ -115,6 +122,15 @@ struct PPPGrammarFrame {
   std::array<PPPGrammarModalityEntry, DNXR_SPIKE_BRIDGE_MODALITY_COUNT>
       modalities{};
   std::size_t modalityCount = 0;
+  std::uint32_t integrityHash = 0;
+};
+
+struct PPPGrammarSerializedFrame {
+  std::array<char, DNXR_PPP_SERIALIZED_CAPACITY> bytes{};
+  std::size_t size = 0;
+  std::uint32_t integrityHash = 0;
+  bool accepted = false;
+  const char *reason = "not_serialized";
 };
 
 struct ThinkingGroupSummary {

@@ -313,3 +313,7 @@ Prompt06,tests/dnxr_canonical_virtual_world_ingress_test.cpp,added,Validates sch
 Prompt06,tests/dnxr_virtual_world_data_ingress_test.cpp,retained,Legacy structured ingress adapter still maps modalities without raw payload dispatch
 Prompt06,tests/dnxr_world_frame_sanitizer_test.cpp,covered,Verifies sanitizer neutralization before encoder-facing frames
 Prompt06,tests/dnxr_sensor_encoder_output_contract_test.cpp,covered,Verifies encoder contract rejects invalid/disabled modality outputs
+dnxr_canonical_visual_bci_spike_path_test,Prompt07,canonical visual world-to-spike path,new e2e regression,world visual -> encoder -> PPP/spike bounded deterministic no headset
+dnxr_canonical_multimodal_bci_spike_path_test,Prompt08,canonical multimodal world-to-spike path,new e2e regression,audio/touch/proprio/vestibular/chemical-neutral -> shared spike runtime -> gates
+dnxr_ppp_grammar_serialization_test,Prompt09,PPP grammar serialization/topology/integrity,new spike regression,serialize/parse/verify topology bounds tamper feedback-only hold
+dnxr_neural_chip_transport_lifecycle_test,Prompt10,transport/HAL lifecycle and ACK boundary,new transport regression,attest negotiate prepare submit external ack replay duplicate timeout cutoff real fail-closed

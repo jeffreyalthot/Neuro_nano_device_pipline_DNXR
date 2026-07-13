@@ -2,6 +2,8 @@
 
 #include "neural_chip/NeuralChipFrame.h"
 
+#include <cstdint>
+
 namespace dnxr {
 
 struct VirtualSceneFrame {
@@ -23,10 +25,40 @@ struct VirtualSceneFrame {
     float interactiveObjectPriority01 = 0.0f;
     float handVisibility01 = 0.0f;
     float bodyVisibility01 = 0.0f;
+    float worldGazeAttention01 = 0.0f;
 };
 
-struct PatientVisualMap { float phospheneDensityLimit01 = 0.35f; float stability01 = 0.5f; };
-struct VisualSafetyState { bool allowVisualStimulus = true; float flickerRisk01 = 0.0f; float fatigueRisk01 = 0.0f; float edgeGain = 1.0f; };
+struct VisualTopologyConfig {
+    std::uint32_t schemaVersion = 1;
+    std::uint16_t gridColumns = 16;
+    std::uint16_t gridRows = 16;
+    bool onOffChannelsEnabled = true;
+    bool chromaticChannelsEnabled = false;
+    float foveationStrength01 = 0.50f;
+    float surroundSuppression01 = 0.20f;
+    float compressionRatio01 = 0.50f;
+    bool validate() const;
+};
+
+struct PatientVisualMap {
+    float phospheneDensityLimit01 = 0.35f;
+    float stability01 = 0.5f;
+    float retinotopicConfidence01 = 0.5f;
+    VisualTopologyConfig topology;
+};
+struct VisualSafetyState {
+    bool allowVisualStimulus = true;
+    float flickerRisk01 = 0.0f;
+    float flashPatternRisk01 = 0.0f;
+    float luminanceSlewRisk01 = 0.0f;
+    float contrastRisk01 = 0.0f;
+    float motionFlowRisk01 = 0.0f;
+    float phospheneStabilityRisk01 = 0.0f;
+    float temporalCoherenceRisk01 = 0.0f;
+    float fatigueRisk01 = 0.0f;
+    float latencyRisk01 = 0.0f;
+    float edgeGain = 1.0f;
+};
 struct VisualComplianceDecision {
     bool accepted = true;
     bool requiresHold = false;
