@@ -24,12 +24,21 @@ dnxr::RuntimePipelineRunner::LegacyRunInput makeNominalInput(
         dnxr::RuntimeStageContext{cycleCounter.load(), 42.0, 0.011},
         dnxr::RuntimePipelineRunner::StageInputs{
             dnxr::RuntimeAcquisitionStage::Input{
-                [] { return std::vector<float>{72.0f, 0.1f, 0.8f, 0.01f, 0.98f, 0.95f}; },
+                [](double ts) { dnxr::BiometricSample sample; sample.channels = {72.0f, 0.1f, 0.8f, 0.01f, 0.98f, 0.95f}; sample.timestampSeconds = ts; sample.quality = 1.0f; sample.provenance = "test"; sample.validity = dnxr::BiometricValidity::Valid; return sample; },
                 [](const std::vector<float>&) { return true; },
                 [] {},
                 [] {},
-                [] { return std::vector<float>{0.1f, 0.2f, 0.3f}; },
-                [] { return dnxr::NeuralChipFrame{}; }},
+                [](double) {
+                    dnxr::NeuralSignalReadResult result;
+                    result.frame.sequenceId = 1;
+                    result.frame.monotonicTimestampMs = 42;
+                    result.frame.channels = {0.1f, 0.2f, 0.3f};
+                    result.frame.signalQuality = 0.9f;
+                    result.provenance = "test_canonical_frame";
+                    result.valid = true;
+                    result.failureReason.clear();
+                    return result;
+                }},
             dnxr::RuntimeSignalStage::Input{
                 [](const std::vector<float>& raw) { return std::vector<std::uint8_t>(raw.size(), 1U); },
                 [](const std::vector<std::uint8_t>& encrypted) { return std::vector<float>(encrypted.size(), 0.25f); },
@@ -137,6 +146,7 @@ dnxr::RuntimePipelineRunner::LegacyRunInput makeNominalInput(
         [&](dnxr::SchedulerTickReport&) {
             ++renderInputsBuilt;
             return dnxr::RuntimeRenderStage::Input{
+                [](const std::vector<float>&) { return true; },
                 [](const std::vector<float>&) {},
                 [] { return true; },
                 {},
@@ -144,7 +154,6 @@ dnxr::RuntimePipelineRunner::LegacyRunInput makeNominalInput(
                 {},
                 {},
                 {},
-                [](const std::vector<float>&) {},
                 {},
                 {},
                 1.0};

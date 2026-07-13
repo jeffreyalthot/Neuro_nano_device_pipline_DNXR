@@ -222,9 +222,11 @@ if(DNXR_BUILD_TESTS)
         dnxr_runtime_path_lock_test
         dnxr_canonical_runtime_architecture_test
         dnxr_canonical_runtime_single_owner_test
+        dnxr_canonical_runtime_headset_independence_test
         dnxr_spike_runtime_real_evidence_gate_test
         dnxr_openssl_packet_protector_test
         dnxr_virtual_world_data_ingress_test
+        dnxr_canonical_virtual_world_ingress_test
         dnxr_full_dive_environment_sync_graph_test
         dnxr_spike_bridge_replay_coverage_test
         runtime_mode_test

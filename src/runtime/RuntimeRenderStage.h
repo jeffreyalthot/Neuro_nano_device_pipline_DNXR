@@ -17,14 +17,14 @@ class RuntimeStageServices;
 class RuntimeRenderStage {
 public:
     struct Input {
-        RuntimeCallback<void(const std::vector<float>&)> present;
+        RuntimeCallback<bool(const std::vector<float>&)> prepareNeuralSensory;
+        RuntimeCallback<void(const std::vector<float>&)> publishObserverMirror;
         RuntimeCallback<bool()> finishRenderBudget;
         RuntimeCallback<void()> onRenderBudgetExceeded;
-        RuntimeCallback<void()> heartbeatRenderer;
+        RuntimeCallback<void()> heartbeatObserver;
         RuntimeCallback<WatchdogAssessment(double, bool, float, float)> assessWatchdog;
         RuntimeCallback<void()> triggerEmergency;
         RuntimeCallback<void(const std::string&)> latchEmergency;
-        RuntimeCallback<void(const std::vector<float>&)> pushSensoryFrame;
         RuntimeCallback<void(const std::string&)> logWarn;
         RuntimeCallback<void(const std::string&)> logError;
         double runtimeLatencyMs = 0.0;

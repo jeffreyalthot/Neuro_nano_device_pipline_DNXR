@@ -10,7 +10,7 @@ namespace dnxr {
 
 class NanoNodeInterface;
 class HostComputerBridge;
-class XRHeadsetInterface;
+class IBiometricSource;
 class SignalStreamProcessor;
 class FeatureVectorizer;
 class StateInferenceEngine;
@@ -18,7 +18,7 @@ class NeuralCalibrationEngine;
 class CalibrationDriftMonitor;
 class ImmersionCore;
 class MultisensoryClock;
-class XRRenderer;
+class ObserverMirrorSink;
 class PhysiologicalGuard;
 class EmergencyShutdown;
 class CognitiveReversibilitySystem;
@@ -37,7 +37,7 @@ class VirtualBodyPoseProvider;
 struct RuntimeStageServices {
     NanoNodeInterface& nodes;
     HostComputerBridge& bridge;
-    XRHeadsetInterface& headset;
+    IBiometricSource& biometricSource;
     SignalStreamProcessor& dsp;
     FeatureVectorizer& vectorizer;
     StateInferenceEngine& brain;
@@ -45,7 +45,7 @@ struct RuntimeStageServices {
     CalibrationDriftMonitor& driftMonitor;
     ImmersionCore& immersion;
     MultisensoryClock& multisensoryClock;
-    XRRenderer& renderer;
+    ObserverMirrorSink& observerMirror;
     PhysiologicalGuard& guard;
     EmergencyShutdown& emergency;
     CognitiveReversibilitySystem& reversibility;
@@ -56,6 +56,7 @@ struct RuntimeStageServices {
     IndependentWatchdog& watchdog;
     NeuralStimulusSafetyEnvelope& stimulusEnvelope;
     INeuralChipHAL& neuralChipHal;
+    INeuralSignalSource& neuralSignalSource;
     DeepImmersionPlatform& deepImmersion;
     FullDiveSynchronizationEngine& fullDiveSynchronization;
     FullDiveSafetyBridge& fullDiveBridge;

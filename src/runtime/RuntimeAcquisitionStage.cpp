@@ -1,8 +1,6 @@
 #include "RuntimeAcquisitionStage.h"
 
 #include "RuntimeStageServices.h"
-#include "../devices/NanoNodeInterface.h"
-#include "../devices/XRHeadsetInterface.h"
 #include "../hardware/NeuralChipHAL.h"
 #include "../safety/IndependentWatchdog.h"
 #include "../safety/PhysiologicalGuard.h"
@@ -23,8 +21,15 @@ RuntimePipelineFrame RuntimeAcquisitionStage::execute(const RuntimeStageContext&
     frame.timestamp = context.timestamp;
     frame.deltaTimeSeconds = context.deltaTimeSeconds;
 
-    if (input.pullBioTelemetry) {
-        frame.telemetry = input.pullBioTelemetry();
+    BiometricSample biometricSample;
+    biometricSample.timestampSeconds = context.timestamp;
+    biometricSample.provenance = "no_biometric_callback_configured";
+    biometricSample.validity = BiometricValidity::Unavailable;
+    if (input.readBiometricSample) {
+        biometricSample = input.readBiometricSample(context.timestamp);
+    }
+    if (biometricSample.usable()) {
+        frame.telemetry = biometricSample.channels;
     }
     if (input.heartbeatRuntimeCycle) {
         input.heartbeatRuntimeCycle();
@@ -40,15 +45,20 @@ RuntimePipelineFrame RuntimeAcquisitionStage::execute(const RuntimeStageContext&
         return frame;
     }
 
-    if (input.readNeuralNodeSignals) {
-        frame.rawNeuralSignals = input.readNeuralNodeSignals();
+    NeuralSignalReadResult neuralRead;
+    if (input.readCanonicalNeuralFrame) {
+        neuralRead = input.readCanonicalNeuralFrame(context.timestamp);
     }
-    if (input.readChipFrame) {
-        frame.chipFrame = input.readChipFrame();
-        if (!frame.chipFrame.channels.empty()) {
-            frame.rawNeuralSignals = frame.chipFrame.channels;
-        }
+    if (!neuralRead.valid) {
+        frame.acquisitionStatus = RuntimeStageStatus::degraded(
+            neuralRead.failureReason.empty() ? "neural_signal_source_unavailable" : neuralRead.failureReason);
+        frame.continueCycle = false;
+        frame.stopReason = frame.acquisitionStatus.reason;
+        return frame;
     }
+    frame.chipFrame = neuralRead.frame;
+    frame.acquisitionChipFrame = neuralRead.frame;
+    frame.rawNeuralSignals = neuralRead.frame.channels;
 
     frame.acquisitionStatus = validate(!frame.rawNeuralSignals.empty(), "empty_neural_signal_frame");
     frame.continueCycle = frame.acquisitionStatus.continueCycle;
@@ -65,7 +75,10 @@ RuntimePipelineFrame RuntimeAcquisitionStage::execute(const RuntimeStageContext&
     frame.timestamp = context.timestamp;
     frame.deltaTimeSeconds = context.deltaTimeSeconds;
 
-    frame.telemetry = services.headset.pullBioTelemetry();
+    const BiometricSample biometricSample = services.biometricSource.readBiometricSample(context.timestamp);
+    if (biometricSample.usable()) {
+        frame.telemetry = biometricSample.channels;
+    }
     services.watchdog.heartbeat("runtime_cycle");
     services.watchdog.heartbeat("acquisition");
     std::vector<float> guardTelemetry = frame.telemetry;
@@ -80,11 +93,17 @@ RuntimePipelineFrame RuntimeAcquisitionStage::execute(const RuntimeStageContext&
         return frame;
     }
 
-    frame.rawNeuralSignals = services.nodes.readNeuralNodeSignals();
-    frame.chipFrame = services.neuralChipHal.readFrame();
-    if (!frame.chipFrame.channels.empty()) {
-        frame.rawNeuralSignals = frame.chipFrame.channels;
+    const NeuralSignalReadResult neuralRead = services.neuralSignalSource.readCanonicalFrame(context.timestamp);
+    if (!neuralRead.valid) {
+        frame.acquisitionStatus = RuntimeStageStatus::degraded(
+            neuralRead.failureReason.empty() ? "neural_signal_source_unavailable" : neuralRead.failureReason);
+        frame.continueCycle = false;
+        frame.stopReason = frame.acquisitionStatus.reason;
+        return frame;
     }
+    frame.chipFrame = neuralRead.frame;
+    frame.acquisitionChipFrame = neuralRead.frame;
+    frame.rawNeuralSignals = neuralRead.frame.channels;
 
     frame.acquisitionStatus = validate(!frame.rawNeuralSignals.empty(), "empty_neural_signal_frame");
     frame.continueCycle = frame.acquisitionStatus.continueCycle;

@@ -1,9 +1,14 @@
 #pragma once
 
 #include "full_dive/chip_pipeline/NeuralChipOnlyFullDivePipeline.h"
+#include "immersion/ClinicalNeutralSceneController.h"
+#include "immersion/SceneCapabilityContract.h"
+#include "immersion/SceneRiskAnnotator.h"
+#include "immersion/VirtualBodySafetyContract.h"
 #include "immersion/VirtualWorldState.h"
 
 #include <cstdint>
+#include <string>
 
 namespace dnxr {
 
@@ -97,9 +102,87 @@ struct VirtualWorldIngressFrame {
   NeuralRealityAnchorVector realityAnchor;
 };
 
+struct CanonicalVirtualWorldMetadata {
+  static constexpr std::uint32_t kCurrentSchemaVersion = 1;
+  std::uint32_t schemaVersion = kCurrentSchemaVersion;
+  std::uint64_t sequenceId = 0;
+  double engineTimestampMs = 0.0;
+  std::string engineProvenance;
+  std::string contextId;
+  std::string authenticationTag;
+  std::uint64_t declaredSizeBytes = 0;
+};
+
+struct CanonicalVirtualWorldModalities {
+  VirtualViewFrame view;
+  VisualFieldFrame visualField;
+  VirtualWorldAudioIngress audio;
+  VirtualWorldTouchIngress touch;
+  VirtualWorldBodyIngress body;
+  VirtualWorldVestibularIngress vestibular;
+  VirtualWorldChemicalIngress chemical;
+  VirtualWorldMotorIngress motor;
+  NeuralRealityAnchorVector realityAnchor;
+  bool visualPresent = true;
+  bool audioPresent = true;
+  bool touchPresent = true;
+  bool bodyPresent = true;
+  bool vestibularPresent = true;
+  bool chemicalPresent = false;
+};
+
+struct CanonicalVirtualWorldFrame {
+  CanonicalVirtualWorldMetadata metadata;
+  CanonicalVirtualWorldModalities modalities;
+  SceneCapabilityContract sceneContract;
+  SceneRiskAnnotation sceneRisk;
+  ClinicalSceneContentFlags clinicalFlags;
+  VirtualBodySafetyContract bodyContract;
+};
+
+struct VirtualWorldIngressPolicy {
+  std::uint64_t maxFrameBytes = 4096;
+  double maxFutureLeadMs = 250.0;
+  double maxStaleLagMs = 1000.0;
+  bool requireAuthentication = false;
+  bool chemicalChannelsEnabled = false;
+  bool requireClinicalNeutralScene = true;
+  bool requireBodySafety = true;
+};
+
+struct VirtualWorldIngressResult {
+  bool accepted = false;
+  bool holdFrame = false;
+  bool usedLastSafeWorld = false;
+  bool duplicate = false;
+  bool stale = false;
+  bool future = false;
+  std::string reason = "not_evaluated";
+  NeuralChipOnlyWorldFrame world{};
+};
+
 class VirtualWorldDataIngress {
 public:
+  explicit VirtualWorldDataIngress(VirtualWorldIngressPolicy policy = {});
+
+  VirtualWorldIngressResult ingestCanonical(const CanonicalVirtualWorldFrame& input,
+                                            double cycleTimestampMs);
   NeuralChipOnlyWorldFrame ingest(const VirtualWorldIngressFrame &input) const;
+
+private:
+  NeuralChipOnlyWorldFrame buildWorld(const CanonicalVirtualWorldFrame& input) const;
+  NeuralChipOnlyWorldFrame holdWorld(std::uint64_t frameId, double timestampMs) const;
+  VirtualWorldIngressResult rejectWithHold(std::string reason, std::uint64_t frameId, double timestampMs) const;
+  bool authenticated(const CanonicalVirtualWorldFrame& input) const;
+
+  VirtualWorldIngressPolicy policy_;
+  std::uint64_t lastSequenceId_ = 0;
+  double lastTimestampMs_ = -1.0;
+  NeuralChipOnlyWorldFrame lastSafeWorld_{};
+  bool hasLastSafeWorld_ = false;
 };
+
+CanonicalVirtualWorldFrame makeCanonicalVirtualWorldFrame(const VirtualWorldIngressFrame& input,
+                                                          std::string engineProvenance = "legacy_structured_ingress");
 
 } // namespace dnxr

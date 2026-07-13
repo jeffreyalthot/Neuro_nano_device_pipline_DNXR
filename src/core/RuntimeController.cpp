@@ -18,7 +18,6 @@
 
 #include "../devices/NanoNodeInterface.h"
 #include "../devices/HostComputerBridge.h"
-#include "../devices/XRHeadsetInterface.h"
 #include "../signal/SignalStreamProcessor.h"
 #include "../signal/FeatureVectorizer.h"
 #include "../cognition/StateInferenceEngine.h"
@@ -27,6 +26,8 @@
 #include "../immersion/ImmersionCore.h"
 #include "../immersion/MultisensoryClock.h"
 #include "../rendering/XRRenderer.h"
+#include "../runtime/IBiometricSource.h"
+#include "../runtime/ObserverMirrorSink.h"
 #include "../safety/PhysiologicalGuard.h"
 #include "../safety/EmergencyShutdown.h"
 #include "../safety/CognitiveReversibilitySystem.h"
@@ -173,15 +174,7 @@ void RuntimeController::initializeModules() {
         true
     });
 
-    headset_ = std::make_unique<XRHeadsetInterface>(XRHeadsetRuntimeConfig{
-        envOrDefault("DNXR_XR_ENDPOINT", config_.xrEndpoint),
-        envOrDefault("DNXR_XR_DEVICE_ID", config_.xrDeviceId),
-        SecretProvider::resolve("xr_auth_token", config_.xrAuthTokenEnv).value,
-        true,
-        config_.xrTargetFramerate,
-        120.0f,
-        config_.xrAsyncTelemetry
-    });
+    biometricSource_ = std::make_unique<UnavailableBiometricSource>();
 
     dsp_          = std::make_unique<SignalStreamProcessor>();
     vec_          = std::make_unique<FeatureVectorizer>();
@@ -190,7 +183,10 @@ void RuntimeController::initializeModules() {
     calibrationDriftMonitor_ = std::make_unique<CalibrationDriftMonitor>();
     immersion_    = std::make_unique<ImmersionCore>();
     multisensoryClock_ = std::make_unique<MultisensoryClock>();
-    renderer_     = std::make_unique<XRRenderer>();
+    observerRenderer_ = std::make_unique<XRRenderer>();
+    observerMirror_ = std::make_unique<ObserverMirrorSink>();
+    observerMirror_->setEnabled(config_.observerMirror.enabled);
+    observerMirror_->attachRenderer(config_.observerMirror.enabled ? observerRenderer_.get() : nullptr);
     guard_        = std::make_unique<PhysiologicalGuard>();
     emergency_    = std::make_unique<EmergencyShutdown>();
     reversibility_= std::make_unique<CognitiveReversibilitySystem>();
@@ -208,7 +204,7 @@ void RuntimeController::initializeModules() {
         "acquisition",
         "signal_processing",
         "inference",
-        "renderer",
+        "observer_mirror",
         "stimulus"});
     stimulusEnvelope_ = std::make_unique<NeuralStimulusSafetyEnvelope>(
         UserNeuralCalibrationProfile{
@@ -319,7 +315,7 @@ void RuntimeController::shutdownModules() {
     safetyJournal_.reset();
     nodes_.reset();
     bridge_.reset();
-    headset_.reset();
+    biometricSource_.reset();
     dsp_.reset();
     vec_.reset();
     brain_.reset();
@@ -327,7 +323,8 @@ void RuntimeController::shutdownModules() {
     calibrationDriftMonitor_.reset();
     immersion_.reset();
     multisensoryClock_.reset();
-    renderer_.reset();
+    observerMirror_.reset();
+    observerRenderer_.reset();
     guard_.reset();
     emergency_.reset();
     reversibility_.reset();
@@ -360,12 +357,11 @@ double RuntimeController::computeCycleDeltaSeconds(std::chrono::steady_clock::ti
 
 RuntimeAcquisitionStage::Input RuntimeController::makeAcquisitionStageInput() {
     return RuntimeAcquisitionStage::Input{
-        [this]() { return headset_->pullBioTelemetry(); },
+        [this](double timestamp) { return biometricSource_->readBiometricSample(timestamp); },
         [this](const std::vector<float>& telemetry) { return guard_->enforce(telemetry); },
         [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("runtime_cycle"); },
         [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("acquisition"); },
-        [this]() { return nodes_->readNeuralNodeSignals(); },
-        [this]() { return neuralChipHal_->readFrame(); }
+        [this](double timestamp) { return neuralSignalSource_->readCanonicalFrame(timestamp); }
     };
 }
 
@@ -450,7 +446,7 @@ void RuntimeController::publishRuntimeArtifacts(const RuntimePipelineFrame& pipe
     }
 
     if (dashboard_ && config_.dashboardEnabled && !config_.headless) {
-        const auto renderTelemetry = renderer_ ? renderer_->getTelemetrySnapshot() : XRRenderTelemetrySnapshot{};
+        const auto renderTelemetry = observerRenderer_ ? observerRenderer_->getTelemetrySnapshot() : XRRenderTelemetrySnapshot{};
         CliDashboardSnapshot snapshot;
         snapshot.cycle = static_cast<int>(pipeline.cycleId);
         snapshot.cognitiveState = pipeline.symbolicState;
@@ -604,10 +600,11 @@ RuntimeRenderStage::Input RuntimeController::makeRenderStageInput(
     const std::chrono::steady_clock::time_point& renderStart,
     SchedulerTickReport& tickReport) {
     return RuntimeRenderStage::Input{
-        [this](const std::vector<float>& sensoryFrame) { renderer_->present(sensoryFrame); },
+        [](const std::vector<float>& sensoryFrame) { return !sensoryFrame.empty(); },
+        [this](const std::vector<float>& sensoryFrame) { if (observerMirror_) observerMirror_->publishImmutableCopy(sensoryFrame); },
         [this, &renderStart, &tickReport]() { return scheduler_.endTask(RuntimeRenderStage::name(), renderStart, tickReport); },
         [this]() { ++droppedFrames_; },
-        [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("renderer"); },
+        [this]() { if (independentWatchdog_) independentWatchdog_->heartbeat("observer_mirror"); },
         [this](double latencyMs, bool neuralSignalValid, float biometricRisk, float driftScore) {
             return independentWatchdog_
                 ? independentWatchdog_->assess(latencyMs, neuralSignalValid, biometricRisk, driftScore)
@@ -619,7 +616,6 @@ RuntimeRenderStage::Input RuntimeController::makeRenderStageInput(
                 safetyStateMachine_->latchEmergency(reason);
             }
         },
-        [this](const std::vector<float>& sensoryFrame) { headset_->pushSensoryFrame(sensoryFrame); },
         [](const std::string& message) { Logger::warn(message); },
         [](const std::string& message) { Logger::error(message); },
         tickReport.totalMs
@@ -643,7 +639,7 @@ RuntimeStageServices RuntimeController::makeRuntimeStageServices() {
     return RuntimeStageServices{
         *nodes_,
         *bridge_,
-        *headset_,
+        *biometricSource_,
         *dsp_,
         *vec_,
         *brain_,
@@ -651,7 +647,7 @@ RuntimeStageServices RuntimeController::makeRuntimeStageServices() {
         *calibrationDriftMonitor_,
         *immersion_,
         *multisensoryClock_,
-        *renderer_,
+        *observerMirror_,
         *guard_,
         *emergency_,
         *reversibility_,
@@ -662,6 +658,7 @@ RuntimeStageServices RuntimeController::makeRuntimeStageServices() {
         *independentWatchdog_,
         *stimulusEnvelope_,
         *neuralChipHal_,
+        *neuralSignalSource_,
         *deepImmersion_,
         *fullDiveSynchronization_,
         *fullDiveBridge_,
@@ -864,19 +861,19 @@ void RuntimeController::publishRuntimeMetrics(const RuntimeMetricsSnapshot& snap
     const char* rendererQosMode = "unavailable";
     const char* rendererQualityMode = "unavailable";
 
-    if (renderer_) {
+    if (observerRenderer_) {
         if (applyRendererQoS) {
-            renderer_->applyRuntimeLatencyHealth(snapshot.latencyHealth);
+            observerRenderer_->applyRuntimeLatencyHealth(snapshot.latencyHealth);
         }
-        rendererQosMode = renderer_->evaluateQoSDecision().qosMode;
-        rendererQualityMode = renderer_->getAdaptiveQualityProfile().qualityMode;
+        rendererQosMode = observerRenderer_->evaluateQoSDecision().qosMode;
+        rendererQualityMode = observerRenderer_->getAdaptiveQualityProfile().qualityMode;
     }
 
     publishRuntimeEvent(
         runtimeMetricsSnapshotToEventPayload(snapshot) +
-        "|renderer_qos_applied=" + (applyRendererQoS ? "1" : "0") +
-        "|renderer_qos=" + rendererQosMode +
-        "|renderer_quality=" + rendererQualityMode);
+        "|observerRenderer_qos_applied=" + (applyRendererQoS ? "1" : "0") +
+        "|observerRenderer_qos=" + rendererQosMode +
+        "|observerRenderer_quality=" + rendererQualityMode);
 
     if (snapshot.latencyHealth != RuntimeLatencyHealth::Stable) {
         Logger::warn(
@@ -886,9 +883,9 @@ void RuntimeController::publishRuntimeMetrics(const RuntimeMetricsSnapshot& snap
             " window_budget_exceeded=" + std::to_string(snapshot.windowBudgetExceededCount) +
             " health_transitions=" + std::to_string(snapshot.latencyHealthTransitionCount) +
             " non_stable_streak=" + std::to_string(snapshot.consecutiveNonStableCycles) +
-            " renderer_qos_applied=" + (applyRendererQoS ? "1" : "0") +
-            " renderer_qos=" + rendererQosMode +
-            " renderer_quality=" + rendererQualityMode);
+            " observerRenderer_qos_applied=" + (applyRendererQoS ? "1" : "0") +
+            " observerRenderer_qos=" + rendererQosMode +
+            " observerRenderer_quality=" + rendererQualityMode);
     }
 }
 

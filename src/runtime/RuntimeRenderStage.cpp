@@ -1,8 +1,7 @@
 #include "RuntimeRenderStage.h"
 
 #include "RuntimeStageServices.h"
-#include "../devices/XRHeadsetInterface.h"
-#include "../rendering/XRRenderer.h"
+#include "ObserverMirrorSink.h"
 #include "../safety/EmergencyShutdown.h"
 #include "../safety/IndependentWatchdog.h"
 
@@ -21,14 +20,20 @@ RuntimePipelineFrame RuntimeRenderStage::execute(RuntimePipelineFrame frame, con
         return frame;
     }
 
-    frame.renderStatus = validate(input.present && input.pushSensoryFrame, "render_stage_unavailable");
+    frame.renderStatus = validate(static_cast<bool>(input.prepareNeuralSensory), "neural_sensory_preparation_unavailable");
     if (!frame.renderStatus.continueCycle) {
         frame.continueCycle = false;
         frame.stopReason = frame.renderStatus.reason;
         return frame;
     }
 
-    input.present(frame.sensoryFrame);
+    if (!input.prepareNeuralSensory(frame.sensoryFrame)) {
+        frame.renderStatus = RuntimeStageStatus::emergency("neural_sensory_preparation_failed");
+        frame.continueCycle = false;
+        frame.emergencyActive = true;
+        frame.stopReason = frame.renderStatus.reason;
+        return frame;
+    }
     const bool renderOk = input.finishRenderBudget ? input.finishRenderBudget() : true;
     if (!renderOk) {
         frame.renderStatus = RuntimeStageStatus::degraded("render_budget_exceeded");
@@ -42,8 +47,8 @@ RuntimePipelineFrame RuntimeRenderStage::execute(RuntimePipelineFrame frame, con
         frame.renderStatus = validate(true, "render_stage_unhealthy");
     }
 
-    if (input.heartbeatRenderer) {
-        input.heartbeatRenderer();
+    if (input.heartbeatObserver) {
+        input.heartbeatObserver();
     }
     if (input.assessWatchdog) {
         const WatchdogAssessment watchdog = input.assessWatchdog(
@@ -69,7 +74,10 @@ RuntimePipelineFrame RuntimeRenderStage::execute(RuntimePipelineFrame frame, con
         }
     }
 
-    input.pushSensoryFrame(frame.sensoryFrame);
+    if (input.publishObserverMirror) {
+        const std::vector<float> immutableCopy = frame.sensoryFrame;
+        input.publishObserverMirror(immutableCopy);
+    }
     return frame;
 }
 
@@ -81,8 +89,7 @@ RuntimePipelineFrame RuntimeRenderStage::execute(
         return frame;
     }
 
-    services.renderer.present(frame.sensoryFrame);
-    services.watchdog.heartbeat("renderer");
+    services.watchdog.heartbeat("observer_mirror");
 
     const WatchdogAssessment watchdog = services.watchdog.assess(
         tickReport.totalMs,
@@ -99,8 +106,8 @@ RuntimePipelineFrame RuntimeRenderStage::execute(
         return frame;
     }
 
-    services.headset.pushSensoryFrame(frame.sensoryFrame);
-    frame.renderStatus = validate(true, "render_stage_unhealthy");
+    services.observerMirror.publishImmutableCopy(frame.sensoryFrame);
+    frame.renderStatus = validate(true, "neural_sensory_prepared");
     return frame;
 }
 
