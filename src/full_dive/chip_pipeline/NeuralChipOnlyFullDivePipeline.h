@@ -17,7 +17,9 @@
 #include "full_dive/sync/MultisensoryPhaseLockOrchestrator.h"
 #include "full_dive/touch_chip/NeuralBodySenseEncoders.h"
 #include "full_dive/touch_chip/NeuralVirtualEpidermisEncoder.h"
+#include "full_dive/visual_chip/PhospheneFrameStabilizer.h"
 #include "full_dive/visual_chip/VisualCorticalWorldEncoder.h"
+#include "full_dive/visual_chip/VisualSceneSemanticExtractor.h"
 #include "neural_chip/ChipCapabilityContract.h"
 #include "neural_chip/FrameLifecycleGuard.h"
 #include "neural_chip/FullDiveChipFrameDiff.h"
@@ -130,7 +132,9 @@ private:
     PatientSpecificNeuralMap effectivePatientMap(const NeuralChipOnlyWorldFrame& world) const;
 
     NeuralChipBus& chipBus_;
+    VisualSceneSemanticExtractor visualSemanticExtractor_{};
     VisualCorticalWorldEncoder visualEncoder_{};
+    PhospheneFrameStabilizer phospheneStabilizer_{};
     AuditoryTonotopicEncoder auditoryEncoder_{};
     NeuralVirtualEpidermisEncoder epidermisEncoder_{};
     NeuralProprioceptionEncoder proprioceptionEncoder_{};

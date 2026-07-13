@@ -1,5 +1,7 @@
 #include "RuntimeCompositionRoot.h"
 #include "../network/OpenSSLNeuralPacketProtector.h"
+#include "../hardware/RealNeuralChipTransport.h"
+#include "../utils/TimeSync.h"
 
 #if DNXR_SIMULATION_ONLY
 #include "../network/SimulationCryptoTransport.h"
@@ -10,8 +12,6 @@
 
 namespace dnxr {
 namespace {
-class NullNeuralTransport final : public INeuralTransport {};
-
 #if DNXR_SIMULATION_ONLY
 class SimulationPacketProtectorAdapter final : public INeuralPacketProtector {
 public:
@@ -102,7 +102,9 @@ public:
 
 RuntimeComposition RuntimeCompositionRoot::compose(const RuntimeConfig& config) const {
     RuntimeComposition composition;
-    composition.neuralTransport = std::make_unique<NullNeuralTransport>();
+    composition.neuralTransport = config.simulationMode
+        ? std::unique_ptr<INeuralTransport>(std::make_unique<SimulatedNeuralChipTransport>())
+        : std::unique_ptr<INeuralTransport>(std::make_unique<ClinicalLockedNeuralChipTransport>());
     composition.packetProtector = makePacketProtector(config.simulationMode);
     composition.biometricSource = std::make_unique<NullBiometricSource>();
 
@@ -120,17 +122,33 @@ RuntimeComposition RuntimeCompositionRoot::compose(const RuntimeConfig& config) 
 
     composition.deploymentMode = RuntimeDeploymentMode::HardwareBenchNoHuman;
     auto hal = std::make_unique<RealNeuralChipHAL>();
+    auto transport = std::make_unique<RealNeuralChipTransport>();
+    const auto discovery = transport->discover("runtime_real_neural_chip");
+    composition.evidence.deviceDiscovered = discovery.ok;
+    const auto transportConnect = transport->connect("runtime_real_neural_chip");
+    if (!transportConnect.ok) {
+        throw std::runtime_error("REAL_NEURAL_TRANSPORT_UNAVAILABLE:" + transportConnect.reason);
+    }
     hal->connect("runtime_real_neural_chip");
-    composition.evidence.deviceDiscovered = true;
-    composition.evidence.hardwareIdentityVerified = hal->deviceIdentity().signedIdentity;
-    composition.evidence.firmwareVerified = !hal->deviceIdentity().firmwareHash.empty();
-    composition.evidence.deviceCertificateVerified = !hal->deviceIdentity().certificateHash.empty();
-    composition.evidence.capabilitiesNegotiated = hal->capabilities().electrodeCount > 0 || hal->capabilities().maxStimulusChannels > 0;
-    composition.evidence.readChannelVerified = hal->status().connected;
+    DeviceIdentityEvidence identityEvidence;
+    const DeviceIdentity identity = hal->deviceIdentity();
+    identityEvidence.deviceId = identity.deviceIdHash;
+    identityEvidence.certificate = identity.certificateHash;
+    identityEvidence.firmwareVersion = identity.firmwareHash;
+    identityEvidence.firmwareSignature = identity.signedIdentity ? identity.firmwareHash : "";
+    identityEvidence.calibrationId = "runtime_calibration_unverified";
+    const auto attestation = transport->attest(identityEvidence);
+    composition.evidence.hardwareIdentityVerified = attestation.ok;
+    composition.evidence.firmwareVerified = attestation.ok && !identity.firmwareHash.empty();
+    composition.evidence.deviceCertificateVerified = attestation.ok && !identity.certificateHash.empty();
+    ChipCapabilities negotiatedCapabilities;
+    const auto negotiation = transport->negotiate(hal->capabilities(), negotiatedCapabilities);
+    composition.evidence.capabilitiesNegotiated = negotiation.ok;
+    composition.evidence.readChannelVerified = transport->read().operation.ok;
     composition.evidence.feedbackChannelVerified = hal->closedLoopFeedbackAvailable();
     composition.evidence.hardwareCutoffVerified = hal->hardwareCutoffAvailable();
-    composition.evidence.clocksSynchronized = false;
-    composition.evidence.authenticatedSessionCreated = false;
+    composition.evidence.clocksSynchronized = transport->synchronizeClock(TimeSync::nowMs()).ok;
+    composition.evidence.authenticatedSessionCreated = transport->openAuthenticatedSession("runtime-real-session").ok;
 
     if (!composition.evidence.hardwareIdentityVerified ||
         !composition.evidence.firmwareVerified ||
@@ -144,6 +162,7 @@ RuntimeComposition RuntimeCompositionRoot::compose(const RuntimeConfig& config) 
         throw std::runtime_error("REAL_HARDWARE_STARTUP_EVIDENCE_INCOMPLETE");
     }
 
+    composition.neuralTransport = std::move(transport);
     composition.neuralChipHal = std::move(hal);
     if (!composition.neuralChipHal || !composition.neuralChipHal->status().connected) {
         throw std::runtime_error("REAL_NEURAL_SIGNAL_SOURCE_UNAVAILABLE");

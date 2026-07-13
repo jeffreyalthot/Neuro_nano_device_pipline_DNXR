@@ -79,3 +79,27 @@ Result: PASS. 3/3 selected tests passed.
 - `cmake --build build --target distributed_neural_xr dnxr_canonical_virtual_world_ingress_test dnxr_virtual_world_data_ingress_test dnxr_world_frame_sanitizer_test dnxr_sensor_encoder_output_contract_test -j2` — passed.
 - `ctest --test-dir build -R "dnxr_(canonical_virtual_world_ingress|virtual_world_data_ingress|world_frame_sanitizer|sensor_encoder_output_contract)_test" --output-on-failure` — passed, 4/4 tests.
 - `rg -n "RawSensoryPayload|raw.*payload|pixel|pcm|OpenXR|SteamVR|XRHeadsetInterface" src/immersion/VirtualWorldDataIngress.* tests/dnxr_canonical_virtual_world_ingress_test.cpp` — no matches in canonical world ingress/test files.
+
+## 2026-07-13 Prompt 07 visual BCI spike path evidence
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target distributed_neural_xr dnxr_visual_cortical_world_encoder_test dnxr_canonical_visual_bci_spike_path_test -j2` — passed.
+- `ctest --test-dir build -R "dnxr_(visual_cortical_world_encoder|canonical_visual_bci_spike_path)_test" --output-on-failure` — passed, 2/2 tests.
+- `rg -n "XRRenderer|XRHeadsetInterface|OpenXR|SteamVR|HMD|eye tracker" tests/dnxr_canonical_visual_bci_spike_path_test.cpp src/full_dive/visual_chip src/full_dive/chip_pipeline/NeuralChipOnlyFullDivePipeline.cpp src/full_dive/chip_pipeline/NeuralChipOnlyFullDivePipeline.h` — passed with no matches in the canonical visual path files/test.
+
+## 2026-07-13 Prompt 08 multimodal BCI spike path evidence
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target distributed_neural_xr dnxr_engine_spike_core_test dnxr_canonical_visual_bci_spike_path_test dnxr_canonical_multimodal_bci_spike_path_test -j2` — passed after reconfiguring the build tree for the new test target.
+- `ctest --test-dir build -R "dnxr_(engine_spike_core|canonical_visual_bci_spike_path|canonical_multimodal_bci_spike_path)_test" --output-on-failure` — passed, 3/3 tests.
+- `rg -n "XRRenderer|XRHeadsetInterface|OpenXR|SteamVR|HMD|eye tracker" tests/dnxr_canonical_multimodal_bci_spike_path_test.cpp src/full_dive/spike_bridge/EngineSpikeCore.cpp src/full_dive/auditory_chip src/full_dive/touch_chip src/full_dive/olfactory_chip src/full_dive/gustatory_chip` — passed with no matches in the multimodal canonical test and sense encoder/priority-spike files.
+
+## 2026-07-13 Prompt 09 spike mapping and PPP evidence
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target distributed_neural_xr dnxr_ppp_grammar_serialization_test dnxr_stimulus_by_spike_runtime_test dnxr_engine_spike_core_test dnxr_canonical_multimodal_bci_spike_path_test -j2` — passed.
+- `ctest --test-dir build -R "dnxr_(ppp_grammar_serialization|stimulus_by_spike_runtime|engine_spike_core|canonical_multimodal_bci_spike_path)_test" --output-on-failure` — passed, 4/4 tests.
+- `rg -n "writeSafeStimulus|sensoryFrame.*write|FullDiveNeuralFrame.*write|XRRenderer|XRHeadsetInterface|OpenXR|SteamVR|HMD|eye tracker" src/full_dive/spike_bridge tests/full_dive/dnxr_ppp_grammar_serialization_test.cpp tests/dnxr_canonical_multimodal_bci_spike_path_test.cpp` — passed with no matches, proving the touched spike bridge/test path has no direct legacy write or headset/render dependency.
+
+## 2026-07-13 Prompt 10 transport/HAL/ACK evidence
+- `cmake -S . -B build -DDNXR_BUILD_TESTS=ON -DDNXR_ENABLE_LONG_SIMULATED_TESTS=OFF -DDNXR_ENABLE_EXTENDED_VV_TESTS=OFF` — passed.
+- `cmake --build build --target distributed_neural_xr dnxr_neural_chip_transport_lifecycle_test dnxr_neural_chip_ack_required_test dnxr_runtime_path_lock_test -j2` — passed.
+- `ctest --test-dir build -R "dnxr_(neural_chip_transport_lifecycle|neural_chip_ack_required|runtime_path_lock)_test" --output-on-failure` — passed, 3/3 tests.
+- `rg -n "authorized_real_transport_dispatch|NullNeuralTransport|class INeuralTransport|autoAck" src/hardware src/core tests/dnxr_neural_chip_transport_lifecycle_test.cpp` — passed with no matches; real transport no longer fabricates authorized dispatch, the empty transport shim is removed, and no auto-ACK token appears in the touched transport scope.

@@ -11,6 +11,9 @@ public:
   PPPGrammarFrame build(const VectorBundleFrame &vectors,
                         const NeuralChipSessionState &session,
                         const NeuralChipAck &ack) const;
+  PPPGrammarSerializedFrame serialize(const PPPGrammarFrame &frame) const;
+  PPPGrammarFrame parse(const PPPGrammarSerializedFrame &serialized) const;
+  bool verify(const PPPGrammarFrame &frame) const;
 };
 
 } // namespace dnxr

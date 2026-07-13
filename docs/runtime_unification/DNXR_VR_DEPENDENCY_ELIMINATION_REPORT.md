@@ -274,3 +274,17 @@
 - The computer/motor world path now accepts a structured `CanonicalVirtualWorldFrame` with engine provenance, not an HMD/OpenXR/SteamVR pose or raw renderer frame.
 - No raw pixel or audio payload is admitted by the canonical ingress contract; modalities remain semantic/scalar structures for sanitizer and neural encoders.
 - Observer rendering remains outside the canonical ingress and chip dispatch path.
+
+## Prompt 07 visual dependency disposition
+- `XRRenderer` is not referenced by the new canonical visual spike-path test and is not used by `VisualSceneSemanticExtractor`, `VisualCorticalWorldEncoder`, `PhospheneFrameStabilizer`, or `VisualVectorToSpikeAdapter`.
+- Visual attention is accepted only as `VirtualSceneFrame::worldGazeAttention01`, a world/character simulation datum, not as mandatory HMD eye tracking.
+
+## Prompt 08 multimodal dependency disposition
+- The multimodal canonical BCI spike-path regression covers audio/touch/proprioception/vestibular/olfactory/gustatory without `XRRenderer`, `XRHeadsetInterface`, OpenXR, SteamVR, HMD or headset eye-tracking symbols.
+- Non-visual modalities use structured world/body/audio/contact/motion/chemical fields and neural encoders/adapters, not headset/controller render telemetry.
+
+## Prompt 09 spike path dependency disposition
+- Spike bridge and PPP grammar tests were checked for direct `writeSafeStimulus`, `sensoryFrame`/`FullDiveNeuralFrame` bypass writes and headset/render terms; no matches were found in the touched spike bridge/test scope.
+
+## Prompt 10 transport dependency disposition
+- The transport/HAL lifecycle path is independent of XR renderer/headset APIs and was checked for no empty transport shim or auto-ACK terms in the touched hardware/core scope.

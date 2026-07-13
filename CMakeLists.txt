@@ -219,6 +219,7 @@ if(DNXR_BUILD_TESTS)
         dnxr_engine_spike_core_test
         dnxr_spike_to_stimulus_translator_test
         dnxr_stimulus_by_spike_runtime_test
+        dnxr_ppp_grammar_serialization_test
         dnxr_runtime_path_lock_test
         dnxr_canonical_runtime_architecture_test
         dnxr_canonical_runtime_single_owner_test
@@ -375,6 +376,7 @@ if(DNXR_BUILD_TESTS)
         dnxr_perception_divergence_detector_test
         dnxr_device_capability_limiter_test
         dnxr_neural_chip_ack_required_test
+        dnxr_neural_chip_transport_lifecycle_test
         dnxr_hal_accepts_seven_modality_full_dive_command_test
         dnxr_modern_stimulus_stage_does_not_call_legacy_nodes_test
         dnxr_body_pose_uses_acquisition_chip_frame_before_stimulus_test
@@ -390,6 +392,8 @@ if(DNXR_BUILD_TESTS)
         dnxr_per_modality_isolation_broker_test
         dnxr_neural_chip_only_pipeline_test
         dnxr_visual_cortical_world_encoder_test
+        dnxr_canonical_visual_bci_spike_path_test
+        dnxr_canonical_multimodal_bci_spike_path_test
         dnxr_virtual_epidermis_contact_codec_test
         dnxr_avatar_kinematic_rig_controller_test
         dnxr_chemical_channels_hold_test

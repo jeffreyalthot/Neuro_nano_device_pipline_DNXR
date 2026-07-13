@@ -1,5 +1,6 @@
 #include "full_dive/spike_bridge/EngineSpikeCore.h"
 
+#include <array>
 #include <cstddef>
 
 namespace dnxr {
@@ -20,28 +21,44 @@ EngineSpikeCore::process(const SpikeEngineIntentFrame &intent) const {
                     (1.0f - intent.phaseLockQuality01)) /
                    3.0f);
 
+  constexpr std::array<SpikeModality, DNXR_SPIKE_BRIDGE_MODALITY_COUNT>
+      priorityOrder = {SpikeModality::RealityAnchor, SpikeModality::Motor,
+                       SpikeModality::Touch, SpikeModality::Proprioception,
+                       SpikeModality::Visual, SpikeModality::Auditory,
+                       SpikeModality::Vestibular, SpikeModality::Olfactory,
+                       SpikeModality::Gustatory};
+
   std::size_t laneIndex = 0;
   float totalLoad = 0.0f;
-  for (std::size_t modalityIndex = 0;
-       modalityIndex < intent.routedCount &&
-       modalityIndex < intent.routedModalities.size();
-       ++modalityIndex) {
-    const auto &packet = intent.routedModalities[modalityIndex];
-    float modalityLoad = 0.0f;
-    for (std::size_t channelIndex = 0; channelIndex < packet.channelCount &&
-                                       laneIndex < output.spikeLanes01.size();
-         ++channelIndex) {
-      const float lane =
-          spikeClamp01(packet.channels01[channelIndex] * packet.confidence01 *
-                       (1.0f - packet.risk01));
-      output.spikeLanes01[laneIndex++] = lane;
-      modalityLoad += lane;
-      totalLoad += lane;
+  for (const SpikeModality priorityModality : priorityOrder) {
+    for (std::size_t modalityIndex = 0;
+         modalityIndex < intent.routedCount &&
+         modalityIndex < intent.routedModalities.size();
+         ++modalityIndex) {
+      const auto &packet = intent.routedModalities[modalityIndex];
+      if (packet.modality != priorityModality) {
+        continue;
+      }
+      float modalityLoad = 0.0f;
+      std::size_t emittedChannels = 0;
+      for (std::size_t channelIndex = 0; channelIndex < packet.channelCount &&
+                                         laneIndex < output.spikeLanes01.size();
+           ++channelIndex) {
+        const float lane =
+            spikeClamp01(packet.channels01[channelIndex] * packet.confidence01 *
+                         (1.0f - packet.risk01));
+        output.spikeLanes01[laneIndex++] = lane;
+        modalityLoad += lane;
+        totalLoad += lane;
+        ++emittedChannels;
+      }
+      const auto loadIndex = static_cast<std::size_t>(packet.modality);
+      if (loadIndex < output.modalityLoad01.size()) {
+        output.modalityLoad01[loadIndex] =
+            emittedChannels > 0 ? spikeClamp01(modalityLoad / emittedChannels)
+                                : 0.0f;
+      }
     }
-    output.modalityLoad01[modalityIndex] =
-        packet.channelCount > 0
-            ? spikeClamp01(modalityLoad / packet.channelCount)
-            : 0.0f;
   }
 
   output.laneCount = laneIndex;

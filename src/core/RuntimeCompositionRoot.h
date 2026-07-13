@@ -2,6 +2,7 @@
 
 #include "../config/RuntimeConfig.h"
 #include "../hardware/NeuralChipHAL.h"
+#include "../hardware/INeuralChipTransport.h"
 #include "RuntimeDeploymentMode.h"
 
 #include <cstdint>
@@ -11,10 +12,7 @@
 
 namespace dnxr {
 
-class INeuralTransport {
-public:
-    virtual ~INeuralTransport() = default;
-};
+using INeuralTransport = INeuralChipTransport;
 
 class INeuralPacketProtector {
 public:

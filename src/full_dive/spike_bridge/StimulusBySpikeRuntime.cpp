@@ -86,9 +86,17 @@ StimulusBySpikeRuntime::process(const StimulusBySpikeInput &input) {
 
   result.pppGrammarFrame = grammarBuilder_.build(
       result.vectorBundle, input.sessionState, input.lastAck);
+  if (result.pppGrammarFrame.feedbackOnly) {
+    result.vectorBundle.globalCoherence01 = std::min(
+        result.vectorBundle.globalCoherence01, result.pppGrammarFrame.globalSync01);
+  }
   markStage(result, "PPPGrammarFrameBuilder");
 
   result.spikeIntent = intentBuilder_.build(result.vectorBundle);
+  if (result.pppGrammarFrame.feedbackOnly && !result.spikeIntent.holdRequired) {
+    result.spikeIntent.holdRequired = true;
+    result.spikeIntent.holdReason = "ppp_feedback_only_lifecycle_hold";
+  }
   markStage(result, "VectorToSpikeEngineFrameBuilder");
 
   result.spikeIntent = thinkingEngine_.think(
