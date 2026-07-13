@@ -16,3 +16,11 @@ No headset, HMD, gaze, generic signal provider, or simulation signal source is a
 
 ## Prompt 08 model dependency
 - Real mode still requires an immutable signed motor-intent model artifact loader. The current canonical identity is deterministic/static and suitable for architecture/testing only; real activation remains blocked by hardware/readiness gates.
+
+## Prompt 10 visual external dependencies
+
+The visual BCI service requires only authenticated structured world-frame metadata and signed patient/topology/capability artifacts. It does not require OpenXR, SteamVR, HMD telemetry, screen capture, stereoscopic display, or `XRRenderer` output.
+
+## Prompt 11 auditory external dependencies
+
+The auditory BCI service requires authenticated structured world audio metadata and signed patient/topology/capability evidence. It does not require an audio device, DAC, ALSA/PulseAudio/CoreAudio/WASAPI, HMD audio endpoint, `SensoryRenderer`, or physical speaker output.

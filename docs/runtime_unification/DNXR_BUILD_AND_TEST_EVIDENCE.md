@@ -306,3 +306,26 @@ Result: PASS. 1/1 selected realtime test passed.
 - PASS (exit 0): `ctest --test-dir build/development-safe -R 'dnxr_(runtime_motor_intent_stage|runtime_acquisition_stage|bci_acquisition_source_validation|canonical_stage_graph_transaction)_test' --output-on-failure`.
 - WARN (exit 1): `cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target distributed_neural_xr -j2 && (rg -n 'setInducedVector\(\{|-0\.02f|0\.05f|CognitiveInfluence|RuntimeController.*inducedVector' src/core src/runtime -S && exit 1 || true) && (nm -C build/real-backend-compile-check/distributed_neural_xr | rg 'RuntimePipelineRunner|RuntimeRenderStage::execute|makeImmersionFrameStageInput' && exit 1 || true)` built successfully but the scan pattern was too broad and matched unrelated numeric constants.
 - PASS (exit 0): `(rg -n 'setInducedVector\(\{|CognitiveInfluence|runtime_induced_vector|0\.05f, -0\.02f' src/core src/runtime -S && exit 1 || true) && (nm -C build/real-backend-compile-check/distributed_neural_xr | rg 'RuntimePipelineRunner|RuntimeRenderStage::execute|makeImmersionFrameStageInput' && exit 1 || true)`.
+
+## Prompt 09 immutable calibration/patient/capability/topology artifacts — 2026-07-13
+
+- `cmake --preset development-safe && cmake --build build/development-safe --target dnxr_immutable_runtime_artifacts_test dnxr_session_bootstrap_validator_test dnxr_canonical_transaction_contract_test -j2` — initial failure: new test reassigned move-only `SessionBootstrapResult`; fixed test ownership.
+- `cmake --build build/development-safe --target dnxr_session_bootstrap_validator_test -j2 && ctest --test-dir build/development-safe -R 'dnxr_(immutable_runtime_artifacts|session_bootstrap_validator|canonical_transaction_contract)_test' --output-on-failure` — PASS, 3/3 tests.
+- `cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target distributed_neural_xr dnxr_session_bootstrap_validator_test dnxr_canonical_transaction_contract_test -j2` — FAIL for full executable path because the existing real profile still builds `dnxr_test_adapters`/`SimulationCryptoTransport`; this is recorded as remaining CMake link-scope debt, not a failure of the focused immutable-artifact runtime-core targets.
+- `cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target dnxr_immutable_runtime_artifacts_test dnxr_session_bootstrap_validator_test dnxr_canonical_transaction_contract_test -j2 && ctest --test-dir build/real-backend-compile-check -R 'dnxr_(immutable_runtime_artifacts|session_bootstrap_validator|canonical_transaction_contract)_test' --output-on-failure` — PASS, 3/3 tests.
+
+## Prompt 10 visual BCI world-to-spike evidence — 2026-07-13
+
+- `cmake --preset development-safe && cmake --build build/development-safe --target dnxr_canonical_visual_bci_spike_path_test dnxr_canonical_multimodal_bci_spike_path_test -j2` — initial failure while adding the new service/test due to incorrect packet field names; fixed to use existing `ModalityVectorPacket` fields.
+- `ctest --test-dir build/development-safe -R 'dnxr_(canonical_visual_bci_spike_path|canonical_multimodal_bci_spike_path)_test' --output-on-failure` — initial failure because the canonical world fixture lacked a valid message digest; fixed by adding deterministic digest.
+- `ctest --test-dir build/development-safe -R 'dnxr_(canonical_visual_bci_spike_path|canonical_multimodal_bci_spike_path)_test' --output-on-failure` — PASS, 2/2 tests.
+- `if rg -n "XRRenderer|XRHeadsetInterface|OpenXR|SteamVR|HMD|eye tracker|toRenderVector|presentImmersiveFrame" src/full_dive/visual_chip tests/dnxr_canonical_visual_bci_spike_path_test.cpp; then echo 'Forbidden visual dependency found' >&2; exit 1; fi` — PASS, no matches.
+- `cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target dnxr_runtime_core -j2` — PASS, confirms the visual service compiles in the non-simulation runtime core without test adapters.
+
+## Prompt 11 auditory BCI world-to-spike evidence — 2026-07-13
+
+- `cmake --preset development-safe && cmake --build build/development-safe --target dnxr_canonical_auditory_bci_spike_path_test -j2` — PASS.
+- `ctest --test-dir build/development-safe -R 'dnxr_(canonical_auditory_bci_spike_path|canonical_multimodal_bci_spike_path)_test' --output-on-failure` — initial failure because the test expected exactly 16 auditory packet channels; fixed to assert non-zero packet channels.
+- `ctest --test-dir build/development-safe -R 'dnxr_(canonical_auditory_bci_spike_path|canonical_multimodal_bci_spike_path)_test' --output-on-failure` — PASS, 2/2 tests.
+- `if rg -n "XRRenderer|XRHeadsetInterface|OpenXR|SteamVR|HMD|eye tracker|AudioDevice|ALSA|PulseAudio|CoreAudio|WASAPI|present|renderSensoryFrame|SensoryRenderer" src/full_dive/auditory_chip tests/dnxr_canonical_auditory_bci_spike_path_test.cpp; then echo 'Forbidden auditory dependency found' >&2; exit 1; fi` — PASS, no matches.
+- `cmake --preset real-backend-compile-check && cmake --build build/real-backend-compile-check --target dnxr_runtime_core -j2` — PASS.

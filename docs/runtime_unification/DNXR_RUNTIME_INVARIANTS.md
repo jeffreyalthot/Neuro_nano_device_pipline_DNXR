@@ -173,3 +173,13 @@
 - Motor intent is decoded only from external, attested, authenticated BCI acquisition and deterministic stage-local snapshots.
 - Motor egress is not sensory encoding and is not an ACK/feedback proof.
 - `inducedVector` is empty in the canonical runtime by default; cognitive influence modules are not active without future signed profile gates.
+
+### Prompt 10 visual BCI invariants
+- Visual spike candidates may be produced only from `CanonicalVirtualWorldFrame` metadata/modalities with valid provenance, message digest, auth tag, projection metadata and resolved hashed assets.
+- Visual encoding must pass signed patient-map, topology and capability evidence before spike-candidate generation.
+- The visual service must not reference renderer/headset/HMD APIs or raw screen capture helpers.
+
+### Prompt 11 auditory BCI invariants
+- Auditory spike candidates may be produced only from `CanonicalVirtualWorldFrame` audio metadata with valid provenance, digest, auth tag, format, sample rate, channel count, units and asset digest.
+- Auditory encoding must pass signed patient-map, topology, capability, phase-lock, isolation and dose-policy evidence before spike-candidate generation.
+- The auditory service must not reference physical audio device APIs, renderer output, HMD APIs or `SensoryRenderer` as an authoritative source.

@@ -231,3 +231,11 @@ The runtime now exposes `kCanonicalBciStageRegistry` as the executable graph con
 - `SignalProcessing` continues to own `SignalStreamProcessor`, `FeatureVectorizer`, `NeuralArtifactClassifier`, and `NeuralSignalQualityGate`.
 - `DecodeIntentMotorCognition` now owns `StateInferenceEngine` plus `RuntimeMotorIntentStage`, which maps validated BCI-derived features to neutral/active world motor intent under confidence policy.
 - Motor intent exits via `IMotorWorldEgress`; sensory encoding remains a separate ingress-to-chip path and cannot consume motor egress as stimulation proof.
+
+## Prompt 10 visual canonical subgraph
+
+`CanonicalVisualBciEncoder` is the single authoritative visual world-to-spike service. It uses `VisualSceneSemanticExtractor`, `VisualCorticalWorldEncoder`, `PhospheneFrameStabilizer` and `VisualVectorToSpikeAdapter` as components in sequence; none of these components reads from `XRRenderer`, HMD APIs or screen captures. Input is the authenticated `CanonicalVirtualWorldFrame`; output is traceable visual `ModalityVectorPacket` spike candidates.
+
+## Prompt 11 auditory canonical subgraph
+
+`CanonicalAuditoryBciEncoder` is the single authoritative auditory world-to-spike service. It uses `SpatialAudioEngine`, `AuditoryTonotopicEncoder` and `AuditoryVectorToSpikeAdapter` as components in sequence. `SensoryRenderer` is explicitly non-authoritative and is not part of the auditory BCI path. Input is authenticated structured world audio metadata, not physical audio output or an audio device callback.

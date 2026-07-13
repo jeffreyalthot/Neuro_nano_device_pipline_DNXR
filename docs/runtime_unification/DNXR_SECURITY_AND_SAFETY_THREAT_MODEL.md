@@ -18,3 +18,7 @@ BCI acquisition now rejects replay/duplicate/gap, stale/future/skew/cadence viol
 ## Prompt 08 threats and mitigations
 - Low confidence, corrupt/stale/non-external acquisition, non-finite features, unsigned model manifests, and adversarial saturation are neutralized to hold/stop intent.
 - Motor egress cannot be reused as sensory stimulation, ACK, or feedback evidence.
+
+## Prompt 09 signed artifact threats
+
+Added fail-closed controls for invalid artifact signature, subject/patient mismatch, device mismatch, expired validity windows, schema downgrade, revoked artifact, hot-reload/race attempt and digest absence before commit preparation. Revocation is modeled as a hold-triggering bootstrap/session condition pending a vendor online revocation feed.

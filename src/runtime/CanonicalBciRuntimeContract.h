@@ -250,6 +250,16 @@ public:
     virtual RuntimeError closeSession() noexcept = 0;
 };
 
+inline bool requiredArtifactDigestsPresent(const SafetyDecision& safety) noexcept {
+    const auto& session = safety.spikePlan.encoded.calibration.motor.inference.signal.acquisition.world.session;
+    return session.patientMapDigest.value.present() &&
+           session.topologyDigest.value.present() &&
+           session.capabilityDigest.value.present() &&
+           safety.spikePlan.encoded.calibration.patientMapDigest.value.present() &&
+           safety.spikePlan.encoded.calibration.capabilityDigest.value.present() &&
+           safety.spikePlan.topologyDigest.value.present();
+}
+
 inline PhaseResult<PreparedCommit> prepareCommit(const SafetyDecision& safety,
                                                  CommitId commitId,
                                                  PacketNonce packetNonce,
@@ -259,6 +269,12 @@ inline PhaseResult<PreparedCommit> prepareCommit(const SafetyDecision& safety,
                                                      LifecycleDisposition::Hold,
                                                      "PreparedCommit",
                                                      "safety_denied_dispatch"});
+    }
+    if (!requiredArtifactDigestsPresent(safety)) {
+        return PhaseResult<PreparedCommit>::failure({RuntimeErrorCode::PreconditionMissing,
+                                                     LifecycleDisposition::Hold,
+                                                     "PreparedCommit",
+                                                     "missing_required_artifact_digest"});
     }
     if (commitId.value == 0 || packetNonce.value == 0 || !digest.value.present()) {
         return PhaseResult<PreparedCommit>::failure({RuntimeErrorCode::PreconditionMissing,

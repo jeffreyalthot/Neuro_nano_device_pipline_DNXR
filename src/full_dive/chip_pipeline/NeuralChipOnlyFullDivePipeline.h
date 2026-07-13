@@ -58,7 +58,11 @@ namespace dnxr {
 
 struct NeuralChipOnlyPipelineConfig {
     ChipCapabilities capabilities{};
+#if DNXR_SIMULATION_ONLY
     PatientSpecificNeuralMap patientMap = PatientSpecificNeuralMap::simulationDefaults();
+#else
+    PatientSpecificNeuralMap patientMap{};
+#endif
     bool enableExperimentalChemicalChannels = false;
     bool enableResearchVision = false;
     bool enableResearchAuditory = false;
@@ -94,7 +98,11 @@ struct NeuralChipOnlyWorldFrame {
     OlfactorySafetyState olfactorySafety;
     GustatorySafetyState gustatorySafety;
     NeuralRealityAnchorVector realityAnchor;
+#if DNXR_SIMULATION_ONLY
     PatientSpecificNeuralMap patientMap = PatientSpecificNeuralMap::simulationDefaults();
+#else
+    PatientSpecificNeuralMap patientMap{};
+#endif
     NeuralChipLatencyBudget latencyBudget;
 };
 

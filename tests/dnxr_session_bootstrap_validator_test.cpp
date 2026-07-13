@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <type_traits>
+#include "../src/evidence/CryptoSignatureVerifier.h"
 
 namespace {
 
@@ -19,6 +20,37 @@ dnxr::RuntimeHardwareEvidence completeEvidence() {
     evidence.clocksSynchronized = true;
     evidence.authenticatedSessionCreated = true;
     return evidence;
+}
+
+
+dnxr::SignedRuntimeArtifactConfig signedArtifact(const std::string& id) {
+    dnxr::SignedRuntimeArtifactConfig a;
+    a.artifactId = id;
+    a.issuer = "vendor";
+    a.subjectId = "patient-nonhuman";
+    a.deviceId = "device-1";
+    a.schema = "dnxr.runtime-artifact.v1";
+    a.compatibility = "fw=1;protocol=1;schema=1";
+    a.payloadDigest = dnxr::CryptoSignatureVerifier::digestHex(id + "payload");
+    a.keyId = "key";
+    a.trustAnchor = "trust";
+    a.validFromUnixSeconds = 1;
+    a.validUntilUnixSeconds = 2000;
+    a.auditId = id + "-audit";
+    dnxr::SignedEvidenceDocument d{a.artifactId, a.payloadDigest, "", a.issuer, "runtime-artifact-issuer", a.keyId, a.validFromUnixSeconds, a.validUntilUnixSeconds};
+    a.signature = dnxr::CryptoSignatureVerifier::digestHex(dnxr::CryptoSignatureVerifier::canonicalPayload(d) + "|" + a.trustAnchor);
+    return a;
+}
+
+void attachArtifacts(dnxr::RuntimeConfig& config) {
+    config.runtimeArtifacts.patientId = "patient-nonhuman";
+    config.runtimeArtifacts.deviceId = "device-1";
+    config.runtimeArtifacts.firmwareVersion = "1";
+    config.runtimeArtifacts.protocolVersion = "1";
+    config.runtimeArtifacts.calibration = signedArtifact("calibration");
+    config.runtimeArtifacts.patientMap = signedArtifact("patient_map");
+    config.runtimeArtifacts.topology = signedArtifact("topology");
+    config.runtimeArtifacts.capability = signedArtifact("capability");
 }
 
 } // namespace
@@ -75,7 +107,12 @@ int main() {
     real.simulationMode = false;
     const auto rejectedReal = validator.validate(real);
     assert(!rejectedReal.ok());
-    assert(rejectedReal.error().reason == "real_backend_attestation_incomplete");
+    assert(rejectedReal.error().reason == "artifact_bundle_identity_incomplete");
+
+    attachArtifacts(real);
+    const auto missingHardwareReal = validator.validate(real);
+    assert(!missingHardwareReal.ok());
+    assert(missingHardwareReal.error().reason == "real_backend_attestation_incomplete");
 
     const auto acceptedReal = validator.validate(real, completeEvidence());
     assert(acceptedReal.ok());

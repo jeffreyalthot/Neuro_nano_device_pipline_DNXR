@@ -19,7 +19,7 @@ void applySimulationReviewSafetyMetadata(RuntimePipelineFrame& frame) {
     frame.fullDiveNeuralFrame.safety.emergencyCutoffAvailable = frame.chipFrame.simulation && frame.chipFrame.signalQuality > 0.0f;
     frame.fullDiveNeuralFrame.safety.aggregateRisk = std::clamp(frame.fusedSafetyDecision.riskScore, 0.0f, 1.0f);
     frame.fullDiveNeuralFrame.safety.patientCalibrationHash = frame.fullDiveNeuralFrame.safety.patientCalibrationHash.empty()
-        ? "simulation_calibration_hash_0_6_5"
+        ? "signed_calibration_artifact_required"
         : frame.fullDiveNeuralFrame.safety.patientCalibrationHash;
 }
 

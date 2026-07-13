@@ -61,7 +61,9 @@ struct PatientSpecificNeuralMap {
     PatientTouchChipMap touchChip;
     PatientChemicalChipMap chemicalChip;
 
+#if DNXR_SIMULATION_ONLY
     static PatientSpecificNeuralMap simulationDefaults();
+#endif
 };
 
 } // namespace dnxr
